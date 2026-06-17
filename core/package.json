@@ -1,0 +1,13 @@
+{
+  "name": "@shotoku/core",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Core daemon, ledger, and policy engine for Shotoku.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit"
+  }
+}
