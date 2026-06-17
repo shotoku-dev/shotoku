@@ -1,21 +1,65 @@
 # Decisions
 
-## 0001 — x402-first, rail-neutral architecture, no custody
+## 0001 — x402-first, rail-neutral, no custody
 
 Date: 2026-06-17
 
 ### Decision
 
-Shotoku will be x402-first, rail-neutral, and non-custodial.
+Shotoku starts with x402 but remains rail-neutral.
 
-### Context
+Shotoku never custodies funds, private keys, or payment credentials.
 
-Agent payments are emerging across multiple rails and protocols. The approval, policy, and ledger layer should not depend on a single payment provider or custody model.
+### Reasoning
+
+x402 is currently one of the clearest standards for agent-native payments and provides an ideal first integration target.
+
+However, authorization should not depend on a single payment rail.
 
 ### Consequences
 
-* x402 is the initial integration target.
-* Additional payment rails will be added later.
-* Core abstractions must remain rail-neutral.
-* Shotoku never holds user funds.
-* Policy, approval, and ledger functionality remain independent from payment execution.
+* x402 is the first integration.
+* Additional rails may be supported later.
+* Core abstractions remain rail-neutral.
+* No custody functionality will be added.
+
+---
+
+## 0002 — Developer-first, not enterprise-first
+
+Date: 2026-06-17
+
+### Decision
+
+Shotoku is designed first for developers building AI agents.
+
+### Reasoning
+
+The fastest path to adoption is providing a simple local tool that developers can understand and run immediately.
+
+### Consequences
+
+* CLI first.
+* Local-first workflows.
+* Open-source friendly architecture.
+* Avoid enterprise complexity in the initial product.
+
+---
+
+## 0003 — Local-first authorization
+
+Date: 2026-06-17
+
+### Decision
+
+The core authorization path should remain usable locally.
+
+### Reasoning
+
+Developers should be able to inspect, audit, and control agent actions without relying on a hosted service.
+
+### Consequences
+
+* Local approvals remain a first-class workflow.
+* Audit logs remain locally inspectable.
+* Cloud features must not replace core local functionality.
