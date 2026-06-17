@@ -1,11 +1,17 @@
-export type DaemonState = "idle" | "running" | "stopped";
-export interface DaemonStatus {
-    readonly state: DaemonState;
-    readonly ledgerEntries: number;
+export type ExecutionRail = "x402" | "mcp" | "api" | "code" | "custom";
+export interface AgentActionRequest {
+    readonly id: string;
+    readonly rail: ExecutionRail;
+    readonly action: string;
 }
-export interface PolicyDecision {
+export interface AuthorizationDecision {
     readonly allowed: boolean;
     readonly reason: string;
 }
-export declare const createDaemonStatus: (ledgerEntries?: number) => DaemonStatus;
-export declare const evaluatePolicy: () => PolicyDecision;
+export type ApprovalStatus = "pending" | "approved" | "denied";
+export interface LedgerEntry {
+    readonly requestId: string;
+    readonly status: ApprovalStatus;
+    readonly timestamp: string;
+}
+export declare const authorize: (_request: AgentActionRequest) => AuthorizationDecision;

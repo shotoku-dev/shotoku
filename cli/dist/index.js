@@ -1,7 +1,11 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Box, render, Text } from "ink";
-import { createDaemonStatus, evaluatePolicy } from "@shotoku/core";
-const App = ({ status, policyReason }) => (_jsxs(Box, { flexDirection: "column", paddingX: 1, paddingY: 1, children: [_jsx(Text, { bold: true, children: "Shotoku" }), _jsxs(Text, { children: ["Core status: ", status] }), _jsxs(Text, { children: ["Policy: ", policyReason] }), _jsx(Text, { dimColor: true, children: "Week 1 of 4 \u00B7 no custody ever" })] }));
-const daemon = createDaemonStatus();
-const policy = evaluatePolicy();
-render(_jsx(App, { status: daemon.state, policyReason: policy.reason }));
+import { authorize } from "@shotoku/core";
+const demoRequest = {
+    id: "demo-001",
+    rail: "x402",
+    action: "Call paid API endpoint"
+};
+const decision = authorize(demoRequest);
+const App = () => (_jsxs(Box, { flexDirection: "column", paddingX: 1, paddingY: 1, children: [_jsx(Text, { bold: true, children: "Shotoku" }), _jsx(Text, { children: "Authorization layer for AI agents" }), _jsx(Text, { children: "Mode: Local" }), _jsx(Text, { children: "Rail: x402 (demo)" }), _jsx(Text, { children: "Custody: Never" }), _jsx(Text, { children: "Ledger: Local" }), _jsxs(Text, { children: ["Decision: ", decision.reason] }), _jsx(Text, { dimColor: true, children: "Week 1 of 4" })] }));
+render(_jsx(App, {}));

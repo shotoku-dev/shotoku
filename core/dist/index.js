@@ -1,8 +1,4 @@
-export const createDaemonStatus = (ledgerEntries = 0) => ({
-    state: "idle",
-    ledgerEntries
-});
-export const evaluatePolicy = () => ({
+export const authorize = (_request) => ({
     allowed: false,
-    reason: "Policy engine is not implemented yet."
+    reason: "Authorization engine is not implemented yet."
 });

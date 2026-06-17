@@ -1,21 +1,25 @@
 import { Box, render, Text } from "ink";
-import { createDaemonStatus, evaluatePolicy } from "@shotoku/core";
+import { authorize, type AgentActionRequest } from "@shotoku/core";
 
-interface AppProps {
-  readonly status: string;
-  readonly policyReason: string;
-}
+const demoRequest: AgentActionRequest = {
+  id: "demo-001",
+  rail: "x402",
+  action: "Call paid API endpoint"
+};
 
-const App = ({ status, policyReason }: AppProps) => (
+const decision = authorize(demoRequest);
+
+const App = () => (
   <Box flexDirection="column" paddingX={1} paddingY={1}>
     <Text bold>Shotoku</Text>
-    <Text>Core status: {status}</Text>
-    <Text>Policy: {policyReason}</Text>
-    <Text dimColor>Week 1 of 4 · no custody ever</Text>
+    <Text>Authorization layer for AI agents</Text>
+    <Text>Mode: Local</Text>
+    <Text>Rail: x402 (demo)</Text>
+    <Text>Custody: Never</Text>
+    <Text>Ledger: Local</Text>
+    <Text>Decision: {decision.reason}</Text>
+    <Text dimColor>Week 1 of 4</Text>
   </Box>
 );
 
-const daemon = createDaemonStatus();
-const policy = evaluatePolicy();
-
-render(<App status={daemon.state} policyReason={policy.reason} />);
+render(<App />);

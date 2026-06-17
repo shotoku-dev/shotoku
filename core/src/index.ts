@@ -1,23 +1,35 @@
-export type DaemonState = "idle" | "running" | "stopped";
+export type ExecutionRail =
+  | "x402"
+  | "mcp"
+  | "api"
+  | "code"
+  | "custom";
 
-export interface DaemonStatus {
-  readonly state: DaemonState;
-  readonly ledgerEntries: number;
+export interface AgentActionRequest {
+  readonly id: string;
+  readonly rail: ExecutionRail;
+  readonly action: string;
 }
 
-export interface PolicyDecision {
+export interface AuthorizationDecision {
   readonly allowed: boolean;
   readonly reason: string;
 }
 
-export const createDaemonStatus = (
-  ledgerEntries = 0
-): DaemonStatus => ({
-  state: "idle",
-  ledgerEntries
-});
+export type ApprovalStatus =
+  | "pending"
+  | "approved"
+  | "denied";
 
-export const evaluatePolicy = (): PolicyDecision => ({
+export interface LedgerEntry {
+  readonly requestId: string;
+  readonly status: ApprovalStatus;
+  readonly timestamp: string;
+}
+
+export const authorize = (
+  _request: AgentActionRequest
+): AuthorizationDecision => ({
   allowed: false,
-  reason: "Policy engine is not implemented yet."
+  reason: "Authorization engine is not implemented yet."
 });
