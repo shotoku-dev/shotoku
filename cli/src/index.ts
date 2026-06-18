@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { authorize, readDecisions, getDecisionById, type AgentAction, type AuthorizationStatus } from "@shotoku/core";
 import { formatResponse, formatError, formatHistoryTable, formatStatus, formatDecision } from "./format.js";
+import { runInit } from "./init.js";
 
 const VALID_ACTIONS: AgentAction[] = [
   "purchase",
@@ -121,6 +122,21 @@ program
       process.exit(1);
     }
     console.log(formatDecision(entry));
+  });
+
+program
+  .command("init")
+  .description("Initialize Shotoku in the current directory")
+  .option("--dir <path>", "Target directory", ".")
+  .action(async (opts: { dir: string }) => {
+    const { created, skipped } = await runInit(opts.dir);
+
+    for (const f of created) console.log(`  ✓ Created  ${f}`);
+    for (const f of skipped) console.log(`  · Skipped  ${f} (already exists)`);
+
+    console.log("");
+    console.log("Ready. Try:");
+    console.log("  shotoku authorize --actor my-agent --action api_call --resource openai.com --amount 5");
   });
 
 program.parseAsync().catch((err: unknown) => {

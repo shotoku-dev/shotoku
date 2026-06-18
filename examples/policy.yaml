@@ -1,0 +1,32 @@
+# Shotoku example policy
+#
+# Rules are evaluated top to bottom. First match wins.
+# If no rule matches, defaultVerdict applies.
+
+rules:
+  # OpenAI — approved up to $50/transaction and $200/day
+  - resource: openai.com
+    actions: [api_call, purchase]
+    verdict: approved
+    maxAmount: 50
+    maxDailyAmount: 200
+
+  # Anthropic — approved up to $50/transaction and $200/day
+  - resource: anthropic.com
+    actions: [api_call, purchase]
+    verdict: approved
+    maxAmount: 50
+    maxDailyAmount: 200
+
+  # Internal code execution — always approved
+  - resource: localhost
+    actions: [execute_code]
+    verdict: approved
+
+  # Block email sending entirely
+  - resource: "*"
+    actions: [send_email]
+    verdict: denied
+
+  # Everything else requires a human to approve
+defaultVerdict: pending_approval

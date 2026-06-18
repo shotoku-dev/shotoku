@@ -4,7 +4,9 @@
   "type": "module",
   "description": "Core daemon, ledger, and policy engine for Shotoku.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "default": "./dist/index.js"
+    }
   },
   "scripts": {
     "build": "tsc -b",
