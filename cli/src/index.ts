@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { authorize, type AgentAction } from "@shotoku/core";
-import { formatResponse, formatError } from "./format.js";
+import { authorize, readDecisions, getDecisionById, type AgentAction, type AuthorizationStatus } from "@shotoku/core";
+import { formatResponse, formatError, formatHistoryTable, formatStatus, formatDecision } from "./format.js";
 
 const VALID_ACTIONS: AgentAction[] = [
   "purchase",
@@ -55,6 +55,72 @@ program
 
     console.log(formatResponse(response));
     process.exit(response.approved ? 0 : 1);
+  });
+
+const VALID_STATUSES: AuthorizationStatus[] = ["approved", "denied", "pending_approval"];
+const VALID_SINCE = ["24h", "7d", "30d"] as const;
+type SinceValue = (typeof VALID_SINCE)[number];
+
+function parseSince(value: string): Date {
+  const now = new Date();
+  if (value === "24h") return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  if (value === "7d") return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  if (value === "30d") return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  throw new Error(`Invalid --since value "${value}". Valid values: ${VALID_SINCE.join(", ")}`);
+}
+
+program
+  .command("history")
+  .description("List past authorization decisions")
+  .option("--actor <id>", "Filter by actor")
+  .option("--since <window>", `Filter by time window (${VALID_SINCE.join(", ")})`)
+  .option("--status <status>", `Filter by status (${VALID_STATUSES.join(", ")})`)
+  .option("--ledger <path>", "Path to ledger file", "data/decisions.jsonl")
+  .action(async (opts: { actor?: string; since?: string; status?: string; ledger: string }) => {
+    if (opts.status && !VALID_STATUSES.includes(opts.status as AuthorizationStatus)) {
+      console.error(formatError(`Invalid status "${opts.status}". Valid values: ${VALID_STATUSES.join(", ")}`));
+      process.exit(1);
+    }
+
+    let since: Date | undefined;
+    if (opts.since) {
+      if (!(VALID_SINCE as readonly string[]).includes(opts.since)) {
+        console.error(formatError(`Invalid --since value "${opts.since}". Valid values: ${VALID_SINCE.join(", ")}`));
+        process.exit(1);
+      }
+      since = parseSince(opts.since as SinceValue);
+    }
+
+    const readOpts = {
+      ...(opts.actor !== undefined && { actor: opts.actor }),
+      ...(opts.status !== undefined && { status: opts.status as AuthorizationStatus }),
+      ...(since !== undefined && { since }),
+    };
+    const entries = await readDecisions(opts.ledger, readOpts);
+
+    console.log(formatHistoryTable(entries));
+  });
+
+program
+  .command("status")
+  .description("Show pending approvals and last decision")
+  .option("--ledger <path>", "Path to ledger file", "data/decisions.jsonl")
+  .action(async (opts: { ledger: string }) => {
+    const entries = await readDecisions(opts.ledger);
+    console.log(formatStatus(entries));
+  });
+
+program
+  .command("decision <id>")
+  .description("Show full detail for a decision")
+  .option("--ledger <path>", "Path to ledger file", "data/decisions.jsonl")
+  .action(async (id: string, opts: { ledger: string }) => {
+    const entry = await getDecisionById(opts.ledger, id);
+    if (!entry) {
+      console.error(formatError(`Decision "${id}" not found.`));
+      process.exit(1);
+    }
+    console.log(formatDecision(entry));
   });
 
 program.parseAsync().catch((err: unknown) => {
