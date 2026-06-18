@@ -10,7 +10,7 @@ Shotoku is not:
 - A procurement platform
 - An ERP
 - A workflow engine
-- A compliance suite
+- A compliance suite (Shotoku may help teams produce audit trails, but it does not claim regulatory compliance by itself)
 - An accounting platform
 
 ## Focus

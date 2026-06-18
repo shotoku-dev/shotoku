@@ -12,7 +12,7 @@ Shotoku never custodies funds, private keys, or payment credentials.
 
 ### Reasoning
 
-x402 is currently one of the clearest standards for agent-native payments and provides an ideal first integration target.
+x402 is an early, relevant protocol for agent-native payments and provides a useful first integration target.
 
 However, authorization should not depend on a single payment rail.
 

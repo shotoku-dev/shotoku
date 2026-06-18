@@ -4,6 +4,8 @@
 
 Shotoku is a local-first authorization layer for AI agents.
 
+Every risky agent action becomes a decision that can be approved, denied, explained, and audited.
+
 ## Expanded description
 
 Before an agent performs an action—calling a paid API, using an MCP tool, executing code, deploying infrastructure, or spending money—Shotoku evaluates the request, applies policy, and records the decision locally.
@@ -42,13 +44,23 @@ Examples:
 
 ## Differentiation
 
-### AgentPay / Skyfire
+### Payment rails
 
-Focused on payment execution.
+AgentPay, Skyfire, and similar products focus on enabling payment execution.
+
+### Runtime guardrails
+
+Fiddler, AgentControl, and similar products focus on prompt safety, PII leakage, content filtering, and runtime monitoring.
+
+### Enterprise authorization
+
+WorkOS FGA and similar systems focus on identity, roles, tenants, and resource-scoped permissions.
 
 ### Shotoku
 
-Focused on authorization, approval, policy, and auditability.
+Shotoku focuses on agent action decisions: whether an autonomous action should proceed, whether it needs human approval, why the decision was made, and how it is audited locally.
+
+Shotoku turns agent actions into auditable decisions.
 
 ## Tagline candidates
 
