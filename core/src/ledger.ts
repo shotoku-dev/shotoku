@@ -43,6 +43,14 @@ export async function readDecisions(
   });
 }
 
+export async function getDecisionById(
+  ledgerPath: string,
+  decisionId: string,
+): Promise<LedgerEntry | undefined> {
+  const entries = await readDecisions(ledgerPath);
+  return entries.find((e) => e.decisionId === decisionId);
+}
+
 export async function getLedgerSnapshot(
   ledgerPath: string,
 ): Promise<LedgerSnapshot> {
