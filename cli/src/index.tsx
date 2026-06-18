@@ -4,7 +4,7 @@ import { authorize, type AgentActionRequest } from "@shotoku/core";
 const demoRequest: AgentActionRequest = {
   id: "demo-001",
   rail: "x402",
-  action: "Call paid API endpoint"
+  action: "Call paid API endpoint",
 };
 
 const decision = authorize(demoRequest);
