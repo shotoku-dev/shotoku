@@ -1,10 +1,12 @@
 import { Box, render, Text } from "ink";
-import { authorize, type AgentActionRequest } from "@shotoku/core";
+import { authorize, type AuthorizeRequest } from "@shotoku/core";
 
-const demoRequest: AgentActionRequest = {
-  id: "demo-001",
+const demoRequest: AuthorizeRequest = {
+  actor: "agent-001",
+  action: "api_call",
+  resource: "api.openai.com",
   rail: "x402",
-  action: "Call paid API endpoint",
+  amount: 0.02,
 };
 
 const decision = authorize(demoRequest);
@@ -17,8 +19,8 @@ const App = () => (
     <Text>Rail: x402 (demo)</Text>
     <Text>Custody: Never</Text>
     <Text>Ledger: Local</Text>
-    <Text>Decision: {decision.reason}</Text>
-    <Text dimColor>Week 1 of 4</Text>
+    <Text>Decision: {decision.status}</Text>
+    <Text dimColor>early development</Text>
   </Box>
 );
 
