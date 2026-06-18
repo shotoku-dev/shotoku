@@ -2,13 +2,15 @@
 
 Shotoku is a local-first authorization layer for AI agents.
 
+Every risky agent action becomes a decision that can be approved, denied, explained, and audited.
+
 Before an agent performs an action—calling a paid API, using an MCP tool, executing code, deploying infrastructure, or spending money—Shotoku evaluates the request, applies policy, and records the decision locally.
 
 Built first with x402. Designed for any rail.
 
 No custody ever.
 
-Status: Week 1 of 4.
+Status: early development.
 
 ## Why Shotoku exists
 
@@ -57,7 +59,7 @@ Shotoku
 ## Packages
 
 - `core/` — authorization, policy, and ledger primitives.
-- `cli/` — Ink-based terminal UI.
+- `cli/` — command-line interface and terminal UI.
 - `docs/` — architecture, positioning, and decisions.
 
 ## Development
