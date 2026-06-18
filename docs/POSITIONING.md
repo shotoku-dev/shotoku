@@ -10,12 +10,12 @@ Before an agent performs an action—calling a paid API, using an MCP tool, exec
 
 ## Target users
 
-* Agent builders
-* MCP developers
-* x402 developers
-* Open-source developers
-* AI infrastructure teams
-* Developer tool enthusiasts
+- Agent builders
+- MCP developers
+- x402 developers
+- Open-source developers
+- AI infrastructure teams
+- Developer tool enthusiasts
 
 ## Initial wedge
 
@@ -23,9 +23,9 @@ Agent payments.
 
 Specifically:
 
-* Paid APIs
-* x402 endpoints
-* Agent spend approvals
+- Paid APIs
+- x402 endpoints
+- Agent spend approvals
 
 ## Long-term vision
 
@@ -33,12 +33,12 @@ Authorization for all agent actions.
 
 Examples:
 
-* Spending money
-* Calling APIs
-* Using MCP tools
-* Running code
-* Deploying infrastructure
-* Triggering external workflows
+- Spending money
+- Calling APIs
+- Using MCP tools
+- Running code
+- Deploying infrastructure
+- Triggering external workflows
 
 ## Differentiation
 
@@ -52,8 +52,8 @@ Focused on authorization, approval, policy, and auditability.
 
 ## Tagline candidates
 
-* Authorization for AI agents.
-* The approval layer for autonomous software.
-* Control what agents can do.
-* Policy and approvals for AI agents.
-* Authorization before action.
+- Authorization for AI agents.
+- The approval layer for autonomous software.
+- Control what agents can do.
+- Policy and approvals for AI agents.
+- Authorization before action.

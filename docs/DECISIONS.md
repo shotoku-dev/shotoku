@@ -18,10 +18,10 @@ However, authorization should not depend on a single payment rail.
 
 ### Consequences
 
-* x402 is the first integration.
-* Additional rails may be supported later.
-* Core abstractions remain rail-neutral.
-* No custody functionality will be added.
+- x402 is the first integration.
+- Additional rails may be supported later.
+- Core abstractions remain rail-neutral.
+- No custody functionality will be added.
 
 ---
 
@@ -39,10 +39,10 @@ The fastest path to adoption is providing a simple local tool that developers ca
 
 ### Consequences
 
-* CLI first.
-* Local-first workflows.
-* Open-source friendly architecture.
-* Avoid enterprise complexity in the initial product.
+- CLI first.
+- Local-first workflows.
+- Open-source friendly architecture.
+- Avoid enterprise complexity in the initial product.
 
 ---
 
@@ -60,6 +60,6 @@ Developers should be able to inspect, audit, and control agent actions without r
 
 ### Consequences
 
-* Local approvals remain a first-class workflow.
-* Audit logs remain locally inspectable.
-* Cloud features must not replace core local functionality.
+- Local approvals remain a first-class workflow.
+- Audit logs remain locally inspectable.
+- Cloud features must not replace core local functionality.

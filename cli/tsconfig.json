@@ -6,8 +6,6 @@
     "outDir": "dist",
     "jsx": "react-jsx"
   },
-  "references": [
-    { "path": "../core" }
-  ],
+  "references": [{ "path": "../core" }],
   "include": ["src"]
 }

@@ -2,16 +2,16 @@
 
 Shotoku is not:
 
-* A wallet
-* A payment processor
-* A payment network
-* A custody provider
-* A banking product
-* A procurement platform
-* An ERP
-* A workflow engine
-* A compliance suite
-* An accounting platform
+- A wallet
+- A payment processor
+- A payment network
+- A custody provider
+- A banking product
+- A procurement platform
+- An ERP
+- A workflow engine
+- A compliance suite
+- An accounting platform
 
 ## Focus
 
@@ -25,9 +25,9 @@ Everything else is secondary.
 
 If a feature does not improve:
 
-* Authorization
-* Approvals
-* Policy enforcement
-* Auditability
+- Authorization
+- Approvals
+- Policy enforcement
+- Auditability
 
 it should probably live outside Shotoku.

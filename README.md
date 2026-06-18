@@ -22,21 +22,21 @@ Shotoku sits between agents and actions.
 
 It provides:
 
-* Authorization
-* Approvals
-* Policy enforcement
-* Audit trails
+- Authorization
+- Approvals
+- Policy enforcement
+- Audit trails
 
 without becoming a wallet, payment network, or custody provider.
 
 ## What Shotoku is not
 
-* Not a wallet
-* Not a payment network
-* Not a custody provider
-* Not an enterprise procurement system
-* Not a workflow engine
-* Not an ERP
+- Not a wallet
+- Not a payment network
+- Not a custody provider
+- Not an enterprise procurement system
+- Not a workflow engine
+- Not an ERP
 
 Shotoku focuses on one job:
 
@@ -56,9 +56,9 @@ Shotoku
 
 ## Packages
 
-* `core/` — authorization, policy, and ledger primitives.
-* `cli/` — Ink-based terminal UI.
-* `docs/` — architecture, positioning, and decisions.
+- `core/` — authorization, policy, and ledger primitives.
+- `cli/` — Ink-based terminal UI.
+- `docs/` — architecture, positioning, and decisions.
 
 ## Development
 
