@@ -1,4 +1,9 @@
-import type { AuthorizeResponse, AuthorizationStatus, LedgerEntry } from "@shotoku/core";
+import type {
+  ApprovalEntry,
+  AuthorizeResponse,
+  AuthorizationStatus,
+  LedgerEntry,
+} from "@shotoku/core";
 
 const APPROVED = "✓ APPROVED";
 const DENIED = "✗ DENIED";
@@ -50,8 +55,15 @@ export function formatHistoryTable(entries: LedgerEntry[]): string {
   return lines.join("\n");
 }
 
-export function formatStatus(entries: LedgerEntry[]): string {
-  const pending = entries.filter((e) => e.response.status === "pending_approval");
+export function formatStatus(
+  entries: LedgerEntry[],
+  approvals: ApprovalEntry[] = [],
+): string {
+  const actioned = new Set(approvals.map((a) => a.decisionId));
+  const pending = entries.filter(
+    (e) =>
+      e.response.status === "pending_approval" && !actioned.has(e.decisionId),
+  );
   const last = entries.at(-1);
   const lines: string[] = [];
 
@@ -79,7 +91,15 @@ export function formatStatus(entries: LedgerEntry[]): string {
   return lines.join("\n");
 }
 
-export function formatDecision(entry: LedgerEntry): string {
+export function formatApproval(entry: ApprovalEntry): string {
+  const verb = entry.verdict === "approved" ? "✓ Approved" : "✗ Denied";
+  return `${verb}. Recorded as ${entry.approvalId}.`;
+}
+
+export function formatDecision(
+  entry: LedgerEntry,
+  approval?: ApprovalEntry,
+): string {
   const lines: string[] = [];
   const icon = STATUS_ICON[entry.response.status];
 
@@ -97,7 +117,13 @@ export function formatDecision(entry: LedgerEntry): string {
     lines.push(`    • ${reason.text}`);
   }
 
-  if (entry.response.status === "pending_approval") {
+  if (approval) {
+    const resIcon = approval.verdict === "approved" ? "✓" : "✗";
+    lines.push("");
+    lines.push(
+      `  Resolution: ${resIcon} ${approval.verdict} (${approval.approvalId}) at ${formatDateTime(approval.timestamp)}`,
+    );
+  } else if (entry.response.status === "pending_approval") {
     lines.push("");
     lines.push(`  → Run: shotoku approve ${entry.decisionId}`);
   }

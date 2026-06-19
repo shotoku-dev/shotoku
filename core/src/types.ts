@@ -56,6 +56,26 @@ export interface LedgerEntry {
   readonly response: AuthorizeResponse;
 }
 
+/**
+ * A human approval or denial of a pending decision. Appended to the ledger as a
+ * new record; the original decision is never mutated. The `kind` field
+ * discriminates approval records from decision records in the JSONL file.
+ */
+export interface ApprovalEntry {
+  readonly kind: "approval";
+
+  /** Identifier for this approval action, e.g. "apr_abc123". */
+  readonly approvalId: string;
+
+  /** The decision this approval resolves. */
+  readonly decisionId: string;
+
+  /** Whether the human approved or denied the decision. */
+  readonly verdict: "approved" | "denied";
+
+  readonly timestamp: string;
+}
+
 export interface PolicyRule {
   /** Exact resource string or "*" to match any resource. */
   readonly resource: string;
