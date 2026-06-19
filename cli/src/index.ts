@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { authorize, readDecisions, getDecisionById, type AgentAction, type AuthorizationStatus } from "@shotoku/core";
-import { formatResponse, formatError, formatHistoryTable, formatStatus, formatDecision } from "./format.js";
+import { authorize, approve, deny, readDecisions, readApprovals, getDecisionById, getApprovalForDecision, type AgentAction, type AuthorizationStatus } from "@shotoku/core";
+import { formatResponse, formatError, formatHistoryTable, formatStatus, formatDecision, formatApproval } from "./format.js";
 import { runInit } from "./init.js";
 
 const VALID_ACTIONS: AgentAction[] = [
@@ -108,7 +108,8 @@ program
   .option("--ledger <path>", "Path to ledger file", "data/decisions.jsonl")
   .action(async (opts: { ledger: string }) => {
     const entries = await readDecisions(opts.ledger);
-    console.log(formatStatus(entries));
+    const approvals = await readApprovals(opts.ledger);
+    console.log(formatStatus(entries, approvals));
   });
 
 program
@@ -121,7 +122,36 @@ program
       console.error(formatError(`Decision "${id}" not found.`));
       process.exit(1);
     }
-    console.log(formatDecision(entry));
+    const approval = await getApprovalForDecision(opts.ledger, id);
+    console.log(formatDecision(entry, approval));
+  });
+
+program
+  .command("approve <id>")
+  .description("Approve a pending decision")
+  .option("--ledger <path>", "Path to ledger file", "data/decisions.jsonl")
+  .action(async (id: string, opts: { ledger: string }) => {
+    try {
+      const entry = await approve(id, { ledgerPath: opts.ledger });
+      console.log(formatApproval(entry));
+    } catch (err) {
+      console.error(formatError(err instanceof Error ? err.message : String(err)));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("deny <id>")
+  .description("Deny a pending decision")
+  .option("--ledger <path>", "Path to ledger file", "data/decisions.jsonl")
+  .action(async (id: string, opts: { ledger: string }) => {
+    try {
+      const entry = await deny(id, { ledgerPath: opts.ledger });
+      console.log(formatApproval(entry));
+    } catch (err) {
+      console.error(formatError(err instanceof Error ? err.message : String(err)));
+      process.exit(1);
+    }
   });
 
 program
