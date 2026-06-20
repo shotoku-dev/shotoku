@@ -98,6 +98,19 @@ describe("evaluatePolicy", () => {
     expect(result.reasons.some((r) => r.type === "policy_match")).toBe(true);
   });
 
+  it("explicit verdict: denied rule blocks without running limit checks", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "denied" }],
+    };
+
+    const result = evaluatePolicy(baseRequest, policy, emptyLedger);
+
+    expect(result.status).toBe("denied");
+    expect(result.reasons.some((r) => r.type === "policy_match")).toBe(true);
+    expect(result.reasons.some((r) => r.type === "limit_check")).toBe(false);
+    expect(result.reasons.some((r) => r.type === "budget_check")).toBe(false);
+  });
+
   it("rule scoped to specific actions only matches those actions", () => {
     const policy: Policy = {
       rules: [

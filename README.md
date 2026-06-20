@@ -1,76 +1,89 @@
 # Shotoku
 
-Shotoku is a local-first authorization layer for AI agents.
+Local-first authorization layer for AI agents.
 
-Every risky agent action becomes a decision that can be approved, denied, explained, and audited.
-
-Before an agent performs an action—calling a paid API, using an MCP tool, executing code, deploying infrastructure, or spending money—Shotoku evaluates the request, applies policy, and records the decision locally.
+Before an agent performs an action — calling a paid API, using an MCP tool, executing code, sending an email, deploying infrastructure, or spending money — Shotoku evaluates the request, applies policy, and records the decision locally.
 
 Built first with x402. Designed for any rail.
 
 No custody ever.
 
-Status: early development.
+## Install
 
-## Why Shotoku exists
+```bash
+npm install -g shotoku-cli
+```
 
-AI agents are rapidly gaining the ability to act on behalf of users.
+## Quickstart
 
-Today, developers can give agents access to APIs, tools, payment systems, cloud infrastructure, and external services. What is still missing is a simple way to answer:
+```bash
+# Initialize in your project directory
+shotoku init
+
+# Evaluate an action
+shotoku authorize --actor my-agent --action api_call --resource openai.com --amount 5
+```
+
+```
+✓ APPROVED  dec_063a20380ba7
+  • openai.com matched rule
+  • Amount $5 is within per-transaction limit of $50
+  • Daily budget remaining: $195
+  Recorded at 14:05:22
+```
+
+```bash
+# Check pending approvals
+shotoku status
+
+# View decision history
+shotoku history --since 24h
+
+# Inspect a specific decision
+shotoku decision dec_063a20380ba7
+```
+
+## How it works
+
+`shotoku init` creates a `policy.yaml` in your project directory:
+
+```yaml
+rules:
+  - resource: openai.com
+    actions: [api_call, purchase]
+    verdict: approved
+    maxAmount: 50
+    maxDailyAmount: 200
+
+defaultVerdict: pending_approval
+```
+
+Every decision is recorded locally to `data/decisions.jsonl`. No cloud. No external services required.
+
+## Core question
 
 > Should this agent be allowed to perform this action?
 
-Shotoku sits between agents and actions.
-
-It provides:
-
-- Authorization
-- Approvals
-- Policy enforcement
-- Audit trails
-
-without becoming a wallet, payment network, or custody provider.
+Shotoku answers it with a structured decision: approved, denied, or pending human approval.
 
 ## What Shotoku is not
 
 - Not a wallet
 - Not a payment network
 - Not a custody provider
+- Not a cloud policy engine
 - Not an enterprise procurement system
-- Not a workflow engine
-- Not an ERP
-
-Shotoku focuses on one job:
-
-> Require approvals, enforce limits, and record auditable decisions before agents act.
-
-## Architecture
-
-```txt
-Agent
-  ↓
-Shotoku
-  ├─ Authorization
-  ├─ Approval
-  ├─ Policy
-  └─ Audit Ledger
-```
 
 ## Packages
 
-- `core/` — authorization, policy, and ledger primitives.
-- `cli/` — command-line interface and terminal UI.
-- `docs/` — architecture, positioning, and decisions.
+- `core/` — authorization, policy, and ledger primitives
+- `cli/` — command-line interface
+- `docs/` — architecture and decisions
 
 ## Development
 
 ```bash
 pnpm install
-pnpm --filter shotoku-cli dev
-```
-
-## Build
-
-```bash
 pnpm build
+pnpm test
 ```

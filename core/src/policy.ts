@@ -42,6 +42,10 @@ export function evaluatePolicy(
     { type: "policy_match", text: `${request.resource} matched rule` },
   ];
 
+  if (matchedRule.verdict !== "approved") {
+    return { status: matchedRule.verdict, reasons };
+  }
+
   if (request.amount !== undefined && matchedRule.maxAmount !== undefined) {
     if (request.amount > matchedRule.maxAmount) {
       return {

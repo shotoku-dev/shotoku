@@ -21,11 +21,15 @@ async function readRecords(ledgerPath: string): Promise<LedgerRecord[]> {
     return [];
   }
 
-  return raw
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line) as LedgerRecord);
+  const records: LedgerRecord[] = [];
+  for (const line of raw.trim().split("\n").filter(Boolean)) {
+    try {
+      records.push(JSON.parse(line) as LedgerRecord);
+    } catch {
+      // skip malformed lines
+    }
+  }
+  return records;
 }
 
 export async function appendDecision(
