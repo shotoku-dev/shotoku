@@ -123,9 +123,9 @@ export function formatDecision(
     lines.push(
       `  Resolution: ${resIcon} ${approval.verdict} (${approval.approvalId}) at ${formatDateTime(approval.timestamp)}`,
     );
-  } else if (entry.response.status === "pending_approval") {
+  } else if (entry.response.explanation.hint) {
     lines.push("");
-    lines.push(`  → Run: shotoku approve ${entry.decisionId}`);
+    lines.push(`  → Run: ${entry.response.explanation.hint}`);
   }
 
   return lines.join("\n");
@@ -152,7 +152,9 @@ export function formatResponse(response: AuthorizeResponse): string {
     for (const reason of reasons) {
       lines.push(`  • ${reason.text}`);
     }
-    lines.push(`  → Run: shotoku approve ${decisionId}`);
+    if (response.explanation.hint) {
+      lines.push(`  → Run: ${response.explanation.hint}`);
+    }
   }
 
   return lines.join("\n");

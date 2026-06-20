@@ -29,6 +29,10 @@ function decisionEntry(
       approved: status === "approved",
       status,
       reasons: [{ type: "escalated", text: "vendor-xyz.com is not on the allowlist" }],
+      explanation: {
+        summary: "vendor-xyz.com is not on the allowlist",
+        ...(status === "pending_approval" ? { hint: `shotoku approve ${decisionId}` } : {}),
+      },
       decisionId,
       timestamp,
     },

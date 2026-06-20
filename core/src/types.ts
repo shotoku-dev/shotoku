@@ -41,10 +41,22 @@ export interface ReasonItem {
 
 export type AuthorizationStatus = "approved" | "denied" | "pending_approval";
 
+/**
+ * Synthesized human-readable explanation of a decision.
+ * Intended for CLI output, MCP tool responses, TUI display, and SDK consumers.
+ */
+export interface Explanation {
+  /** One-sentence summary of why the decision was made. */
+  readonly summary: string;
+  /** Actionable next step, if any (e.g. "shotoku approve dec_xxx" for pending). */
+  readonly hint?: string;
+}
+
 export interface AuthorizeResponse {
   readonly approved: boolean;
   readonly status: AuthorizationStatus;
   readonly reasons: readonly ReasonItem[];
+  readonly explanation: Explanation;
   readonly decisionId: string;
   readonly timestamp: string;
 }

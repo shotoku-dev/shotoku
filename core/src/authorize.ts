@@ -4,6 +4,7 @@ import { parse } from "yaml";
 import type { AuthorizeRequest, AuthorizeResponse, Policy } from "./types.js";
 import { evaluatePolicy } from "./policy.js";
 import { appendDecision, getLedgerSnapshot } from "./ledger.js";
+import { buildExplanation } from "./explain.js";
 
 function decisionId(): string {
   return `dec_${randomBytes(6).toString("hex")}`;
@@ -31,10 +32,12 @@ export async function authorize(
   const policy = await loadPolicy(options.policyPath);
 
   if (!policy) {
+    const reasons = [{ type: "blocked" as const, text: "Policy file could not be loaded" }];
     const response: AuthorizeResponse = {
       approved: false,
       status: "denied",
-      reasons: [{ type: "blocked", text: "Policy file could not be loaded" }],
+      reasons,
+      explanation: buildExplanation("denied", reasons, id),
       decisionId: id,
       timestamp,
     };
@@ -49,6 +52,7 @@ export async function authorize(
     approved: result.status === "approved",
     status: result.status,
     reasons: result.reasons,
+    explanation: buildExplanation(result.status, result.reasons, id),
     decisionId: id,
     timestamp,
   };
