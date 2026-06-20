@@ -33,7 +33,7 @@ describe("formatResponse", () => {
     expect(out).toContain("✗ DENIED");
     expect(out).toContain("dec_abc123");
     expect(out).toContain("• Amount $20 exceeds limit of $5");
-    expect(out).toContain("shotoku approve dec_abc123");
+    expect(out).not.toContain("shotoku approve");
   });
 
   it("pending output starts with ◷ PENDING APPROVAL and includes approve hint", () => {

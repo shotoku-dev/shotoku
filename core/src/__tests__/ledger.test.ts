@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+  import { describe, it, expect, beforeEach } from "vitest";
 import { mkdtemp, rm as _rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -124,6 +124,19 @@ describe("readDecisions", () => {
     const results = await readDecisions(ledgerPath, { since });
     expect(results).toHaveLength(1);
     expect(results[0]!.decisionId).toBe("dec_recent");
+  });
+});
+
+describe("readDecisions with malformed data", () => {
+  it("skips malformed lines and returns the valid ones", async () => {
+    const { appendFile } = await import("node:fs/promises");
+    await appendDecision(makeEntry({ decisionId: "dec_001" }), ledgerPath);
+    await appendFile(ledgerPath, "not-valid-json\n", "utf8");
+    await appendDecision(makeEntry({ decisionId: "dec_002" }), ledgerPath);
+
+    const entries = await readDecisions(ledgerPath);
+    expect(entries).toHaveLength(2);
+    expect(entries.map((e) => e.decisionId)).toEqual(["dec_001", "dec_002"]);
   });
 });
 

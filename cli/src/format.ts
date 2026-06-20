@@ -147,7 +147,6 @@ export function formatResponse(response: AuthorizeResponse): string {
     for (const reason of reasons) {
       lines.push(`  • ${reason.text}`);
     }
-    lines.push(`  → Run: shotoku approve ${decisionId}`);
   } else {
     lines.push(`${PENDING}  ${decisionId}`);
     for (const reason of reasons) {
