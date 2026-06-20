@@ -11,6 +11,7 @@ function makeEntry(overrides: Partial<LedgerEntry> = {}): LedgerEntry {
       approved: true,
       status: "approved",
       reasons: [{ type: "policy_match", text: "openai.com matched rule" }],
+      explanation: { summary: "openai.com matched rule" },
       decisionId: "dec_001",
       timestamp: new Date("2026-06-18T10:00:00.000Z").toISOString(),
     },
@@ -85,6 +86,7 @@ describe("formatStatus", () => {
         status: "pending_approval",
         decisionId: "dec_p1",
         reasons: [{ type: "escalated", text: "vendor not on allowlist" }],
+        explanation: { summary: "vendor not on allowlist", hint: "shotoku approve dec_p1" },
       },
     });
     const out = formatStatus([pending]);
@@ -148,6 +150,7 @@ describe("formatDecision", () => {
         status: "pending_approval",
         decisionId: "dec_p1",
         reasons: [{ type: "escalated", text: "vendor not on allowlist" }],
+        explanation: { summary: "vendor not on allowlist", hint: "shotoku approve dec_p1" },
       },
     });
     const out = formatDecision(entry);

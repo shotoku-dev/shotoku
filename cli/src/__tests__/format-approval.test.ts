@@ -12,6 +12,7 @@ function pending(id: string): LedgerEntry {
       approved: false,
       status: "pending_approval",
       reasons: [{ type: "escalated", text: "vendor-xyz.com is not on the allowlist" }],
+      explanation: { summary: "vendor-xyz.com is not on the allowlist", hint: `shotoku approve ${id}` },
       decisionId: id,
       timestamp,
     },

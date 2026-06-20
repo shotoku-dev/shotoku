@@ -11,6 +11,7 @@ const base: AuthorizeResponse = {
     { type: "policy_match", text: "openai.com matched rule" },
     { type: "budget_check", text: "Daily budget remaining: $80" },
   ],
+  explanation: { summary: "openai.com matched rule. Daily budget remaining: $80" },
 };
 
 describe("formatResponse", () => {
@@ -42,6 +43,7 @@ describe("formatResponse", () => {
       approved: false,
       status: "pending_approval",
       reasons: [{ type: "escalated", text: "vendor-xyz.com is not on the allowlist" }],
+      explanation: { summary: "vendor-xyz.com is not on the allowlist", hint: "shotoku approve dec_abc123" },
     };
     const out = formatResponse(response);
     expect(out).toContain("◷ PENDING APPROVAL");
