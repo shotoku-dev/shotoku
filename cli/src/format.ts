@@ -32,25 +32,51 @@ function formatAge(iso: string): string {
   return `${Math.floor(diffHr / 24)}d ago`;
 }
 
-export function formatHistoryTable(entries: LedgerEntry[]): string {
+export interface HistoryOptions {
+  readonly approvals?: ApprovalEntry[];
+  readonly actor?: string;
+  readonly since?: string;
+  readonly status?: string;
+}
+
+export function formatHistoryTable(entries: LedgerEntry[], options: HistoryOptions = {}): string {
   if (entries.length === 0) {
-    return "No decisions found.";
+    const filters: string[] = [];
+    if (options.actor) filters.push(`actor "${options.actor}"`);
+    if (options.status) filters.push(`status "${options.status}"`);
+    if (options.since) filters.push(`last ${options.since}`);
+    return filters.length > 0
+      ? `No decisions found for ${filters.join(", ")}.`
+      : "No decisions found.";
   }
+
+  const approvalMap = new Map(
+    (options.approvals ?? []).map((a) => [a.decisionId, a]),
+  );
 
   const lines: string[] = [];
   for (const entry of entries) {
     const icon = STATUS_ICON[entry.response.status];
     const amount = entry.request.amount !== undefined ? ` $${entry.request.amount}` : "";
+    const resolution = approvalMap.get(entry.decisionId);
+    const resolutionTag = resolution
+      ? `  [${resolution.verdict === "approved" ? "✓" : "✗"} ${resolution.verdict}]`
+      : "";
     lines.push(
-      `${icon}  ${entry.decisionId}  ${entry.request.actor}  ${entry.request.action}  ${entry.request.resource}${amount}  ${formatAge(entry.timestamp)}`,
+      `${icon}  ${entry.decisionId}  ${entry.request.actor}  ${entry.request.action}  ${entry.request.resource}${amount}  ${formatAge(entry.timestamp)}${resolutionTag}`,
     );
   }
 
   const approved = entries.filter((e) => e.response.status === "approved").length;
   const denied = entries.filter((e) => e.response.status === "denied").length;
   const pending = entries.filter((e) => e.response.status === "pending_approval").length;
+  const resolved = [...approvalMap.values()].filter((a) =>
+    entries.some((e) => e.decisionId === a.decisionId),
+  ).length;
   lines.push("");
-  lines.push(`${entries.length} total · ${approved} approved · ${denied} denied · ${pending} pending`);
+  let summary = `${entries.length} total · ${approved} approved · ${denied} denied · ${pending} pending`;
+  if (resolved > 0) summary += ` · ${resolved} resolved`;
+  lines.push(summary);
 
   return lines.join("\n");
 }

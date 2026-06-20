@@ -5,6 +5,7 @@
   "description": "Core daemon, ledger, and policy engine for Shotoku.",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
   },
