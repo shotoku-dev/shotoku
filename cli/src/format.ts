@@ -72,15 +72,15 @@ export function formatStatus(
   } else {
     lines.push(`${pending.length} pending approval${pending.length === 1 ? "" : "s"}:`);
     for (const entry of pending) {
-      const amount = entry.request.amount !== undefined ? ` $${entry.request.amount}` : "";
-      lines.push(
-        `  ◷  ${entry.decisionId}  ${entry.request.actor}  ${entry.request.resource}${amount}  ${formatAge(entry.timestamp)}`,
-      );
-      if (entry.response.reasons.length > 0) {
-        lines.push(`     ${entry.response.reasons[0]!.text}`);
+      const amount = entry.request.amount !== undefined ? ` · $${entry.request.amount}` : "";
+      lines.push("");
+      lines.push(`  ◷  ${entry.decisionId}`);
+      lines.push(`     ${entry.request.actor} · ${entry.request.action} · ${entry.request.resource}${amount} · ${formatAge(entry.timestamp)}`);
+      for (const reason of entry.response.reasons) {
+        lines.push(`     • ${reason.text}`);
       }
+      lines.push(`     → shotoku approve ${entry.decisionId}  |  shotoku deny ${entry.decisionId}`);
     }
-    lines.push(`  → Run: shotoku approve <id>`);
   }
 
   if (last) {

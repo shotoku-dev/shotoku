@@ -76,7 +76,29 @@ describe("formatStatus", () => {
     expect(formatStatus([])).toContain("No pending approvals.");
   });
 
-  it("shows pending count and approve hint", () => {
+  it("shows pending count, entry detail, and approve/deny hints", () => {
+    const pending = makeEntry({
+      decisionId: "dec_p1",
+      response: {
+        ...makeEntry().response,
+        approved: false,
+        status: "pending_approval",
+        decisionId: "dec_p1",
+        reasons: [{ type: "escalated", text: "vendor not on allowlist" }],
+      },
+    });
+    const out = formatStatus([pending]);
+    expect(out).toContain("1 pending approval");
+    expect(out).toContain("dec_p1");
+    expect(out).toContain("agent-1");
+    expect(out).toContain("purchase");
+    expect(out).toContain("openai.com");
+    expect(out).toContain("vendor not on allowlist");
+    expect(out).toContain("shotoku approve dec_p1");
+    expect(out).toContain("shotoku deny dec_p1");
+  });
+
+  it("hides actioned pending entries when approvals are passed", () => {
     const pending = makeEntry({
       decisionId: "dec_p1",
       response: {
@@ -86,10 +108,15 @@ describe("formatStatus", () => {
         decisionId: "dec_p1",
       },
     });
-    const out = formatStatus([pending]);
-    expect(out).toContain("1 pending approval");
-    expect(out).toContain("dec_p1");
-    expect(out).toContain("shotoku approve");
+    const approval: import("@shotoku/core").ApprovalEntry = {
+      kind: "approval",
+      approvalId: "apr_001",
+      decisionId: "dec_p1",
+      verdict: "approved",
+      timestamp: new Date().toISOString(),
+    };
+    const out = formatStatus([pending], [approval]);
+    expect(out).toContain("No pending approvals.");
   });
 
   it("shows last decision", () => {
