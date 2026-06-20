@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { formatHistoryTable, formatStatus, formatDecision } from "../format.js";
-import type { LedgerEntry } from "@shotoku/core";
+import type { ApprovalEntry, LedgerEntry } from "@shotoku/core";
 
 function makeEntry(overrides: Partial<LedgerEntry> = {}): LedgerEntry {
   return {
@@ -22,6 +22,54 @@ function makeEntry(overrides: Partial<LedgerEntry> = {}): LedgerEntry {
 describe("formatHistoryTable", () => {
   it("returns empty state message when no entries", () => {
     expect(formatHistoryTable([])).toBe("No decisions found.");
+  });
+
+  it("includes filter context in empty state message", () => {
+    expect(formatHistoryTable([], { actor: "unknown-agent" })).toContain("unknown-agent");
+    expect(formatHistoryTable([], { status: "denied" })).toContain("denied");
+    expect(formatHistoryTable([], { since: "24h" })).toContain("24h");
+  });
+
+  it("shows resolution tag for actioned pending entries", () => {
+    const pending = makeEntry({
+      decisionId: "dec_p1",
+      response: {
+        ...makeEntry().response,
+        approved: false,
+        status: "pending_approval",
+        decisionId: "dec_p1",
+      },
+    });
+    const approval: ApprovalEntry = {
+      kind: "approval",
+      approvalId: "apr_001",
+      decisionId: "dec_p1",
+      verdict: "approved",
+      timestamp: new Date().toISOString(),
+    };
+    const out = formatHistoryTable([pending], { approvals: [approval] });
+    expect(out).toContain("[✓ approved]");
+  });
+
+  it("shows resolved count in summary when approvals present", () => {
+    const pending = makeEntry({
+      decisionId: "dec_p1",
+      response: {
+        ...makeEntry().response,
+        approved: false,
+        status: "pending_approval",
+        decisionId: "dec_p1",
+      },
+    });
+    const approval: ApprovalEntry = {
+      kind: "approval",
+      approvalId: "apr_001",
+      decisionId: "dec_p1",
+      verdict: "denied",
+      timestamp: new Date().toISOString(),
+    };
+    const out = formatHistoryTable([pending], { approvals: [approval] });
+    expect(out).toContain("1 resolved");
   });
 
   it("renders ✓ icon for approved entries", () => {

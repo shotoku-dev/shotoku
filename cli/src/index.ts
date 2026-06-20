@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { authorize, approve, deny, readDecisions, readApprovals, getDecisionById, getApprovalForDecision, type AgentAction, type AuthorizationStatus } from "@shotoku/core";
-import { formatResponse, formatError, formatHistoryTable, formatStatus, formatDecision, formatApproval } from "./format.js";
+import { formatResponse, formatError, formatHistoryTable, formatStatus, formatDecision, formatApproval, type HistoryOptions } from "./format.js";
 import { runInit } from "./init.js";
 
 const VALID_ACTIONS: AgentAction[] = [
@@ -98,8 +98,15 @@ program
       ...(since !== undefined && { since }),
     };
     const entries = await readDecisions(opts.ledger, readOpts);
+    const approvals = await readApprovals(opts.ledger);
 
-    console.log(formatHistoryTable(entries));
+    const historyOpts: HistoryOptions = {
+      approvals,
+      ...(opts.actor !== undefined && { actor: opts.actor }),
+      ...(opts.since !== undefined && { since: opts.since }),
+      ...(opts.status !== undefined && { status: opts.status }),
+    };
+    console.log(formatHistoryTable(entries, historyOpts));
   });
 
 program
