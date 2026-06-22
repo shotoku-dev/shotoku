@@ -1,8 +1,12 @@
-# Shotoku API Reference
+# API Reference
+
+This document covers the core `authorize()` function and the types it uses. If you are building an agent and want to check whether an action is allowed before it runs, this is the right place to start.
+
+---
 
 ## `authorize(request, options)`
 
-The main entrypoint. Loads a policy file, reads the ledger, evaluates the request, writes the decision, and returns the result.
+The main function. You describe what the agent wants to do, point it at your policy file and ledger, and it returns a decision.
 
 ```ts
 import { authorize } from "@shotoku/core";
@@ -21,20 +25,25 @@ const response = await authorize(
 );
 ```
 
+Under the hood it:
+1. Loads your policy file
+2. Reads today's spend totals from the ledger
+3. Evaluates the request against your rules
+4. Writes the decision to the ledger
+5. Returns the result
+
 ### Options
 
-| Field        | Type     | Required | Description                         |
-| ------------ | -------- | -------- | ----------------------------------- |
-| `policyPath` | `string` | yes      | Path to the policy file.            |
-| `ledgerPath` | `string` | yes      | Path to the local JSONL ledger file. |
+| Field | Required | What it does |
+|---|---|---|
+| `policyPath` | yes | Path to your `policy.yaml` rules file |
+| `ledgerPath` | yes | Path to the local file where decisions are stored |
 
 ---
 
-## Types
+## `AuthorizeRequest`
 
-### `AuthorizeRequest`
-
-Describes the action an agent wants to perform.
+Describes the action an agent wants to take.
 
 ```ts
 interface AuthorizeRequest {
@@ -47,48 +56,62 @@ interface AuthorizeRequest {
 }
 ```
 
-| Field      | Description                                                      |
-| ---------- | ---------------------------------------------------------------- |
-| `actor`    | Identifier for the agent making the request, e.g. `"agent-001"` |
-| `action`   | The type of action being requested (see `AgentAction`)           |
-| `resource` | The target, e.g. `"api.openai.com"` or `"stripe.com"`           |
-| `rail`     | Optional execution rail: `"x402"`, `"mcp"`, `"api"`, etc.       |
-| `amount`   | Monetary amount in USD when the action involves spending         |
-| `context`  | Any additional metadata you want recorded with the decision      |
+| Field | What it means |
+|---|---|
+| `actor` | Who is requesting the action — a name or ID for your agent, e.g. `"agent-001"` |
+| `action` | The category of action being requested — see `AgentAction` below |
+| `resource` | What the agent is acting on — a domain, API endpoint, or service name |
+| `rail` | Optional: the execution channel being used (`"x402"`, `"mcp"`, `"api"`, etc.) |
+| `amount` | Optional: how much this action costs in USD, if it involves spending |
+| `context` | Optional: any extra details you want recorded alongside the decision |
 
 ---
 
-### `AuthorizeResponse`
+## `AuthorizeResponse`
 
-Returned by `authorize()`.
+What `authorize()` gives back.
 
 ```ts
 interface AuthorizeResponse {
   readonly approved: boolean;
   readonly status: AuthorizationStatus;
   readonly reasons: readonly ReasonItem[];
+  readonly explanation: Explanation;
   readonly decisionId: string;
   readonly timestamp: string;
 }
 ```
 
+| Field | What it means |
+|---|---|
+| `approved` | `true` if the action can proceed, `false` otherwise |
+| `status` | The full verdict — see `AuthorizationStatus` below |
+| `reasons` | A list of specific checks that were run and what they found |
+| `explanation` | A plain-English summary of the decision, ready to show to a user |
+| `decisionId` | A unique ID for this decision, e.g. `"dec_abc123"` — use it to look up or act on this decision later |
+| `timestamp` | When the decision was made, in ISO 8601 format |
+
 ---
 
-### `AuthorizationStatus`
+## `AuthorizationStatus`
+
+The three possible outcomes of an authorization check.
 
 ```ts
 type AuthorizationStatus = "approved" | "denied" | "pending_approval";
 ```
 
-| Value              | Meaning                                          |
-| ------------------ | ------------------------------------------------ |
-| `approved`         | Request passed all policy checks.                |
-| `denied`           | Request was blocked by a policy rule.            |
-| `pending_approval` | A human must approve before the action proceeds. |
+| Value | What it means |
+|---|---|
+| `approved` | The request passed all policy checks. The agent can proceed. |
+| `denied` | The request was blocked by a policy rule. The agent should stop. |
+| `pending_approval` | No rule automatically approved or denied this. A human must decide. Run `shotoku approve <decisionId>` or `shotoku deny <decisionId>`. |
 
 ---
 
-### `AgentAction`
+## `AgentAction`
+
+The type of thing an agent wants to do.
 
 ```ts
 type AgentAction =
@@ -100,9 +123,13 @@ type AgentAction =
   | "custom";
 ```
 
+Use `"custom"` for anything that does not fit the other categories.
+
 ---
 
-### `ExecutionRail`
+## `ExecutionRail`
+
+The channel through which an action would be executed. Optional — include it if you want to write rules that apply to a specific channel only.
 
 ```ts
 type ExecutionRail = "x402" | "mcp" | "api" | "code" | "custom";
@@ -110,9 +137,9 @@ type ExecutionRail = "x402" | "mcp" | "api" | "code" | "custom";
 
 ---
 
-### `ReasonItem`
+## `ReasonItem`
 
-One explanation for why a decision was made. A response always contains one or more.
+One specific check that ran during policy evaluation. A decision always includes one or more of these.
 
 ```ts
 interface ReasonItem {
@@ -127,11 +154,19 @@ interface ReasonItem {
 }
 ```
 
+| Type | What triggered it |
+|---|---|
+| `policy_match` | A rule in your policy file matched this request |
+| `limit_check` | The amount was checked against a per-transaction cap |
+| `budget_check` | Today's spend total was checked against a daily cap |
+| `blocked` | The request was explicitly blocked — e.g. no policy file found |
+| `escalated` | The request was sent for human review |
+
 ---
 
-### `Policy`
+## `Policy`
 
-Loaded from your `policy.yaml` file. Contains an ordered list of rules and a fallback verdict.
+The structure of your `policy.yaml` file. It contains a list of rules evaluated top-to-bottom, and a fallback verdict for requests that match nothing.
 
 ```ts
 interface Policy {
@@ -140,31 +175,7 @@ interface Policy {
 }
 ```
 
-Rules are evaluated top-to-bottom. The first matching rule wins. If no rule matches, `defaultVerdict` is used (defaults to `"pending_approval"` when omitted).
-
----
-
-### `PolicyRule`
-
-A single rule in your policy file.
-
-```ts
-interface PolicyRule {
-  readonly resource: string;
-  readonly actions?: readonly AgentAction[];
-  readonly verdict: AuthorizationStatus;
-  readonly maxAmount?: number;
-  readonly maxDailyAmount?: number;
-}
-```
-
-| Field           | Description                                                                   |
-| --------------- | ----------------------------------------------------------------------------- |
-| `resource`      | Exact resource string, or `"*"` to match any resource.                        |
-| `actions`       | Limits the rule to specific action types. Omit to match all actions.          |
-| `verdict`       | The decision to issue when this rule matches.                                 |
-| `maxAmount`     | Per-transaction cap. Requests above this are denied even if the rule matches. |
-| `maxDailyAmount`| Rolling 24-hour spend cap for this resource. Exceeding it denies the request. |
+The first rule that matches a request wins. If nothing matches, `defaultVerdict` is used — and if you omit `defaultVerdict`, it defaults to `"pending_approval"`.
 
 **Example `policy.yaml`:**
 
@@ -172,10 +183,10 @@ interface PolicyRule {
 defaultVerdict: pending_approval
 
 rules:
-  - resource: "api.openai.com"
+  - resource: "openai.com"
     verdict: approved
-    maxAmount: 1.00
-    maxDailyAmount: 20.00
+    maxAmount: 50
+    maxDailyAmount: 200
 
   - resource: "stripe.com"
     actions: [purchase]
@@ -187,9 +198,33 @@ rules:
 
 ---
 
-### `LedgerEntry`
+## `PolicyRule`
 
-One recorded decision. Written to `decisions.jsonl` — one JSON object per line.
+A single rule inside your policy file.
+
+```ts
+interface PolicyRule {
+  readonly resource: string;
+  readonly actions?: readonly AgentAction[];
+  readonly verdict: AuthorizationStatus;
+  readonly maxAmount?: number;
+  readonly maxDailyAmount?: number;
+}
+```
+
+| Field | What it does |
+|---|---|
+| `resource` | The domain or service this rule applies to. Use `"*"` to match anything. |
+| `actions` | Optional: limits this rule to specific action types. Omit to match all actions. |
+| `verdict` | What to decide when this rule matches — `approved`, `denied`, or `pending_approval` |
+| `maxAmount` | Optional: maximum allowed spend per single transaction. Requests above this are denied even if the rule would otherwise approve them. |
+| `maxDailyAmount` | Optional: maximum allowed total spend for this resource in a rolling 24-hour window. Exceeding it denies the request. |
+
+---
+
+## `LedgerEntry`
+
+One recorded decision. Stored as a single line in `decisions.jsonl` — one JSON object per line, append-only.
 
 ```ts
 interface LedgerEntry {
@@ -200,27 +235,4 @@ interface LedgerEntry {
 }
 ```
 
----
-
-### `LedgerSnapshot`
-
-A pre-computed view of the ledger passed into the policy evaluator. Contains rolling 24-hour spend totals keyed by `"${actor}|${resource}"`.
-
-```ts
-interface LedgerSnapshot {
-  readonly dailyTotals: Readonly<Record<string, number>>;
-}
-```
-
----
-
-### `EvaluationResult`
-
-The raw output from the policy engine, before the decision is written to the ledger.
-
-```ts
-interface EvaluationResult {
-  readonly status: AuthorizationStatus;
-  readonly reasons: readonly ReasonItem[];
-}
-```
+You can inspect the ledger file directly in any text editor. Each line is a self-contained record of one decision.
