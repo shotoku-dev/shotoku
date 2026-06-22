@@ -32,7 +32,7 @@ export function HistoryPanel({ entries, approvals }: HistoryPanelProps) {
   const recent = [...entries].reverse().slice(0, 10);
 
   return (
-    <Box flexDirection="column" paddingX={1} paddingTop={1} borderStyle="single">
+    <Box flexDirection="column" paddingTop={1}>
       <Box paddingLeft={2} marginBottom={1}>
         <Text bold>RECENT DECISIONS</Text>
       </Box>
