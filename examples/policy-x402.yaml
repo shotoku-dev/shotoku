@@ -1,0 +1,13 @@
+# Example x402 spending policy.
+# Allows small automated payments to a known API; holds everything else.
+
+rules:
+  # Allow micropayments to the weather API: up to 0.10 USDC/payment, 1 USDC/day.
+  - resource: api.weather.xyz
+    actions: [purchase]
+    verdict: approved
+    maxAmount: 0.10
+    maxDailyAmount: 1.00
+
+# Any other x402 payment requires a human.
+defaultVerdict: pending_approval
