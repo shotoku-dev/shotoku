@@ -5,3 +5,7 @@ export * from "./authorize.js";
 export * from "./approve.js";
 export * from "./explain.js";
 export * from "./x402.js";
+export * from "./errors.js";
+export * from "./validation.js";
+export * from "./integrity.js";
+export * from "./snapshot.js";

@@ -61,11 +61,19 @@ export interface AuthorizeResponse {
   readonly timestamp: string;
 }
 
+export interface LedgerIntegrity {
+  readonly version: 1;
+  readonly sequence: number;
+  readonly previousHash: string;
+  readonly hash: string;
+}
+
 export interface LedgerEntry {
   readonly decisionId: string;
   readonly timestamp: string;
   readonly request: AuthorizeRequest;
   readonly response: AuthorizeResponse;
+  readonly integrity?: LedgerIntegrity;
 }
 
 /**
@@ -86,6 +94,8 @@ export interface ApprovalEntry {
   readonly verdict: "approved" | "denied";
 
   readonly timestamp: string;
+
+  readonly integrity?: LedgerIntegrity;
 }
 
 export interface PolicyRule {
@@ -94,6 +104,9 @@ export interface PolicyRule {
 
   /** Limits which actions this rule applies to. Omit to match all actions. */
   readonly actions?: readonly AgentAction[];
+
+  /** Limits which execution rails this rule applies to. Omit to match all rails. */
+  readonly rails?: readonly ExecutionRail[];
 
   /** Decision to issue when this rule matches. */
   readonly verdict: AuthorizationStatus;
@@ -115,6 +128,40 @@ export interface Policy {
 /** Pre-computed daily totals passed into the policy evaluator. Key format: "${actor}|${resource}". */
 export interface LedgerSnapshot {
   readonly dailyTotals: Readonly<Record<string, number>>;
+  readonly windowStart: string;
+}
+
+export interface LedgerIntegrityReport {
+  readonly recordCount: number;
+  readonly legacyRecordCount: number;
+  readonly headHash: string;
+}
+
+export interface SignedSnapshotSignature {
+  readonly algorithm: "HMAC-SHA256";
+  readonly value: string;
+  readonly keyId?: string;
+}
+
+export interface SignedSnapshot {
+  readonly version: 1;
+  readonly createdAt: string;
+  readonly policy: {
+    readonly path: string;
+    readonly hash: string;
+  };
+  readonly ledger: {
+    readonly path: string;
+    readonly headHash: string;
+    readonly recordCount: number;
+    readonly legacyRecordCount: number;
+  };
+  readonly signature: SignedSnapshotSignature;
+}
+
+export interface SnapshotVerification {
+  readonly verified: boolean;
+  readonly reasons: readonly string[];
 }
 
 /** What the policy engine returns before it is written to the ledger. */

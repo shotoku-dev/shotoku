@@ -71,6 +71,40 @@ describe("parseX402Response", () => {
   it("throws when there are no payment options", () => {
     expect(() => parseX402Response({ x402Version: 1, accepts: [] })).toThrow();
   });
+
+  it("throws when the atomic amount is not a non-negative integer string", () => {
+    const response: X402Response = {
+      x402Version: 1,
+      accepts: [
+        {
+          network: "base",
+          maxAmountRequired: "10.5",
+          resource: "api.weather.xyz",
+          payTo: "0xABC",
+          asset: "0xUSDC",
+        },
+      ],
+    };
+
+    expect(() => parseX402Response(response)).toThrow(/amount/i);
+  });
+
+  it("throws when required payment fields are empty", () => {
+    const response: X402Response = {
+      x402Version: 1,
+      accepts: [
+        {
+          network: "",
+          maxAmountRequired: "50000",
+          resource: "api.weather.xyz",
+          payTo: "0xABC",
+          asset: "0xUSDC",
+        },
+      ],
+    };
+
+    expect(() => parseX402Response(response)).toThrow(/network/i);
+  });
 });
 
 describe("authorizeX402Payment", () => {

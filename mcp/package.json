@@ -10,7 +10,8 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "pretest": "pnpm --filter @shotoku/core build",
+    "test": "vitest run src --passWithNoTests"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",

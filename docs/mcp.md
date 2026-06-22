@@ -69,17 +69,19 @@ mkdir -p data
 
 ## Verifying the connection
 
-Once your agent host is running, confirm that it discovered the three Shotoku tools:
+Once your agent host is running, confirm that it discovered the Shotoku tools:
 
 - `authorize_action`
 - `get_decision`
 - `get_pending_approvals`
+- `approve_decision`
+- `deny_decision`
 
 How you verify depends on your host. In Claude Desktop, click the tools icon (hammer) in a new conversation and look for the **shotoku** section.
 
 ---
 
-## The three tools
+## The tools
 
 ### `authorize_action`
 
@@ -98,6 +100,8 @@ Shotoku checks your `policy.yaml`, records the decision to the local ledger, and
 - **approved** — the action can proceed
 - **denied** — the action is blocked
 - **pending_approval** — a human needs to approve before the action continues
+
+The MCP response includes both readable text and structured JSON content. Agents should use the structured content when they need to branch on `status` or store `decisionId`.
 
 Example response:
 
@@ -138,6 +142,34 @@ If nothing is waiting, it returns: `No pending approvals.`
 
 ---
 
+### `approve_decision`
+
+Approves a decision that is currently pending human review.
+
+Input:
+
+```json
+{ "decisionId": "dec_abc123" }
+```
+
+Shotoku appends a new approval record to the ledger. It does not mutate the original decision. That keeps the audit trail honest: you can see both the original decision and the later human action.
+
+---
+
+### `deny_decision`
+
+Denies a decision that is currently pending human review.
+
+Input:
+
+```json
+{ "decisionId": "dec_abc123" }
+```
+
+Like approval, denial is append-only. The original decision remains in the ledger, and the denial is recorded as a separate action.
+
+---
+
 ## Walkthrough
 
 Here is what a typical exchange looks like once Shotoku is connected:
@@ -164,7 +196,10 @@ Or if your policy requires approval:
 
 | Variable | Default | What it controls |
 |---|---|---|
+| `SHOTOKU_CONFIG` | `shotoku.config.json` | Path to the Shotoku config file |
 | `SHOTOKU_POLICY` | `policy.yaml` | Path to your policy file |
 | `SHOTOKU_LEDGER` | `data/decisions.jsonl` | Path to the local decision ledger |
 
-Paths are resolved relative to the working directory where the server starts. Using absolute paths (as shown in the setup above) avoids any ambiguity.
+If `SHOTOKU_POLICY` or `SHOTOKU_LEDGER` are set, they win. Otherwise the server reads `shotoku.config.json`. If no config file exists, it falls back to `policy.yaml` and `data/decisions.jsonl`.
+
+Relative paths inside `shotoku.config.json` are resolved from the config file directory. Relative paths in environment variables are resolved from the working directory where the server starts. Using absolute paths (as shown in the setup above) avoids ambiguity.

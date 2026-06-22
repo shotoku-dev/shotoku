@@ -1,24 +1,17 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
   authorize,
+  approve,
+  deny,
   getDecisionById,
   getPendingApprovals,
-  type AgentAction,
+  isAgentAction,
+  toUserSafeMessage,
+  validActions,
 } from "@shotoku/core";
 import { loadConfig } from "./config.js";
 
-const VALID_ACTIONS: readonly AgentAction[] = [
-  "purchase",
-  "api_call",
-  "execute_code",
-  "send_email",
-  "mcp_tool",
-  "custom",
-];
-
-function isAgentAction(value: unknown): value is AgentAction {
-  return typeof value === "string" && (VALID_ACTIONS as string[]).includes(value);
-}
+const VALID_ACTIONS = validActions();
 
 function text(content: string): CallToolResult {
   return { content: [{ type: "text", text: content }] };
@@ -26,6 +19,17 @@ function text(content: string): CallToolResult {
 
 function errorResult(message: string): CallToolResult {
   return { content: [{ type: "text", text: message }], isError: true };
+}
+
+function jsonResult(content: Record<string, unknown>): CallToolResult {
+  return {
+    content: [{ type: "text", text: JSON.stringify(content, null, 2) }],
+    structuredContent: content,
+  };
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function handleAuthorizeAction(
@@ -44,31 +48,29 @@ async function handleAuthorizeAction(
   if (typeof resource !== "string" || !resource) {
     return errorResult("Missing required argument: resource");
   }
-  if (amount !== undefined && (typeof amount !== "number" || amount < 0)) {
+  if (
+    amount !== undefined &&
+    (typeof amount !== "number" || !Number.isFinite(amount) || amount < 0)
+  ) {
     return errorResult("amount must be a non-negative number");
   }
-  if (
-    context !== undefined &&
-    (typeof context !== "object" || context === null || Array.isArray(context))
-  ) {
+  if (context !== undefined && !isPlainRecord(context)) {
     return errorResult("context must be a plain object");
   }
 
-  const config = loadConfig();
+  const config = await loadConfig();
   const response = await authorize(
     {
       actor,
       action,
       resource,
-      ...(amount !== undefined ? { amount: amount as number } : {}),
-      ...(context !== undefined
-        ? { context: context as Record<string, unknown> }
-        : {}),
+      ...(amount !== undefined ? { amount } : {}),
+      ...(context !== undefined ? { context } : {}),
     },
     { policyPath: config.policyPath, ledgerPath: config.ledgerPath },
   );
 
-  return text(JSON.stringify(response, null, 2));
+  return jsonResult({ response });
 }
 
 async function handleGetDecision(
@@ -79,25 +81,47 @@ async function handleGetDecision(
     return errorResult("Missing required argument: decisionId");
   }
 
-  const config = loadConfig();
+  const config = await loadConfig();
   const entry = await getDecisionById(config.ledgerPath, decisionId);
 
   if (!entry) {
     return errorResult(`Decision "${decisionId}" not found.`);
   }
 
-  return text(JSON.stringify(entry, null, 2));
+  return jsonResult({ decision: entry });
 }
 
 async function handleGetPendingApprovals(): Promise<CallToolResult> {
-  const config = loadConfig();
+  const config = await loadConfig();
   const pending = await getPendingApprovals(config.ledgerPath);
 
   if (pending.length === 0) {
     return text("No pending approvals.");
   }
 
-  return text(JSON.stringify(pending, null, 2));
+  return jsonResult({ pending });
+}
+
+async function handleApprovalAction(
+  args: Record<string, unknown>,
+  verdict: "approved" | "denied",
+): Promise<CallToolResult> {
+  const { decisionId } = args;
+  if (typeof decisionId !== "string" || !decisionId) {
+    return errorResult("Missing required argument: decisionId");
+  }
+
+  const config = await loadConfig();
+
+  try {
+    const approval =
+      verdict === "approved"
+        ? await approve(decisionId, { ledgerPath: config.ledgerPath })
+        : await deny(decisionId, { ledgerPath: config.ledgerPath });
+    return jsonResult({ approval });
+  } catch (error) {
+    return errorResult(toUserSafeMessage(error));
+  }
 }
 
 export async function handleToolCall(
@@ -107,6 +131,8 @@ export async function handleToolCall(
   if (name === "authorize_action") return handleAuthorizeAction(args);
   if (name === "get_decision") return handleGetDecision(args);
   if (name === "get_pending_approvals") return handleGetPendingApprovals();
+  if (name === "approve_decision") return handleApprovalAction(args, "approved");
+  if (name === "deny_decision") return handleApprovalAction(args, "denied");
 
   return {
     content: [{ type: "text", text: `Unknown tool: "${name}".` }],
