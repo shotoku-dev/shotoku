@@ -29,9 +29,9 @@ describe("buildExplanation — approved", () => {
 });
 
 describe("buildExplanation — denied", () => {
-  it("summary uses the first reason text", () => {
+  it("summary surfaces the failing check, not the policy match", () => {
     const result = buildExplanation("denied", [policyMatch, limitDenied], "dec_001");
-    expect(result.summary).toBe(policyMatch.text);
+    expect(result.summary).toBe(limitDenied.text);
     expect(result.hint).toBeUndefined();
   });
 
