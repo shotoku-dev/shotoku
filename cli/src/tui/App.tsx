@@ -8,7 +8,7 @@ import {
   type ApprovalEntry,
   type LedgerEntry,
 } from "@shotoku/core";
-import { Header } from "./Header.js";
+import { Banner } from "./Banner.js";
 import { PendingPanel } from "./PendingPanel.js";
 import { HistoryPanel } from "./HistoryPanel.js";
 import { Footer } from "./Footer.js";
@@ -56,7 +56,7 @@ export function App({ ledgerPath }: AppProps) {
 
   function showFlash(text: string, ok: boolean) {
     setFlash({ text, ok });
-    setTimeout(() => setFlash(null), 2500);
+    setTimeout(() => setFlash(null), 5000);
   }
 
   useInput((input, key) => {
@@ -75,14 +75,11 @@ export function App({ ledgerPath }: AppProps) {
       if (!entry) return;
       void approve(entry.decisionId, { ledgerPath })
         .then(() => {
-          showFlash(`✓ Approved ${entry.decisionId}`, true);
+          showFlash(`✓  Approved  ${entry.decisionId}`, true);
           void loadData();
         })
         .catch((err: unknown) => {
-          showFlash(
-            `✗ ${err instanceof Error ? err.message : String(err)}`,
-            false,
-          );
+          showFlash(`✗  ${err instanceof Error ? err.message : String(err)}`, false);
         });
       return;
     }
@@ -91,23 +88,18 @@ export function App({ ledgerPath }: AppProps) {
       if (!entry) return;
       void deny(entry.decisionId, { ledgerPath })
         .then(() => {
-          showFlash(`✗ Denied ${entry.decisionId}`, false);
+          showFlash(`✗  Denied  ${entry.decisionId}`, false);
           void loadData();
         })
         .catch((err: unknown) => {
-          showFlash(
-            `✗ ${err instanceof Error ? err.message : String(err)}`,
-            false,
-          );
+          showFlash(`✗  ${err instanceof Error ? err.message : String(err)}`, false);
         });
       return;
     }
     if (input === "e") {
       const entry = pending[selectedIndex];
       if (!entry) return;
-      setExpandedId((id) =>
-        id === entry.decisionId ? null : entry.decisionId,
-      );
+      setExpandedId((id) => (id === entry.decisionId ? null : entry.decisionId));
       return;
     }
     if (input === "h") {
@@ -120,21 +112,25 @@ export function App({ ledgerPath }: AppProps) {
   });
 
   return (
-    <Box flexDirection="column">
-      <Header decisionCount={decisions.length} pendingCount={pending.length} />
-      {flash && (
-        <Box paddingX={2} paddingY={0}>
-          <Text color={flash.ok ? "green" : "red"}>{flash.text}</Text>
-        </Box>
-      )}
-      <PendingPanel
-        entries={pending}
-        selectedIndex={selectedIndex}
-        expandedId={expandedId}
-      />
-      {showHistory && (
-        <HistoryPanel entries={decisions} approvals={approvals} />
-      )}
+    <Box flexDirection="column" alignItems="center">
+      <Banner decisionCount={decisions.length} pendingCount={pending.length} />
+      <Box flexDirection="column" paddingX={4} paddingTop={1}>
+        {flash && (
+          <Box marginBottom={1}>
+            <Text color={flash.ok ? "green" : "red"}>{flash.text}</Text>
+          </Box>
+        )}
+        <PendingPanel
+          entries={pending}
+          selectedIndex={selectedIndex}
+          expandedId={expandedId}
+        />
+        {showHistory && (
+          <Box marginTop={1}>
+            <HistoryPanel entries={decisions} approvals={approvals} />
+          </Box>
+        )}
+      </Box>
       <Footer showHistory={showHistory} hasPending={pending.length > 0} />
     </Box>
   );
