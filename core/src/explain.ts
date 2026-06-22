@@ -7,8 +7,9 @@ export function buildExplanation(
 ): Explanation {
   if (status === "approved") {
     const match = reasons.find((r) => r.type === "policy_match");
-    const limit = reasons.find((r) => r.type === "limit_check" || r.type === "budget_check");
-    const parts = [match?.text, limit?.text].filter(Boolean);
+    const limit = reasons.find((r) => r.type === "limit_check");
+    const budget = reasons.find((r) => r.type === "budget_check");
+    const parts = [match?.text, limit?.text, budget?.text].filter(Boolean);
     return { summary: parts.length > 0 ? parts.join(". ") : "Approved." };
   }
 
