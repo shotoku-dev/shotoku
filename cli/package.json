@@ -10,7 +10,8 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "pretest": "pnpm --filter @shotoku/core build",
+    "test": "vitest run src"
   },
   "dependencies": {
     "@shotoku/core": "workspace:*",

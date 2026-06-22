@@ -106,6 +106,39 @@ describe("authorize", () => {
 
     expect(response.approved).toBe(false);
     expect(response.status).toBe("denied");
-    expect(response.reasons[0]!.text).toMatch(/policy/i);
+    expect(response.reasons[0]!.text).toMatch(/not found/i);
+  });
+
+  it("denies and records invalid policy files with a precise reason", async () => {
+    await writeFile(
+      policyPath,
+      `rules:\n  - resource: openai.com\n    verdict: approve\n`,
+    );
+
+    const response = await authorize(
+      { actor: "agent-1", action: "api_call", resource: "openai.com" },
+      { policyPath, ledgerPath },
+    );
+
+    expect(response.status).toBe("denied");
+    expect(response.reasons[0]!.text).toMatch(/verdict/i);
+
+    const entries = await readDecisions(ledgerPath);
+    expect(entries).toHaveLength(1);
+  });
+
+  it("denies invalid requests before policy evaluation", async () => {
+    await writeFile(
+      policyPath,
+      `rules:\n  - resource: "*"\n    verdict: approved\n`,
+    );
+
+    const response = await authorize(
+      { actor: "", action: "api_call", resource: "openai.com" },
+      { policyPath, ledgerPath },
+    );
+
+    expect(response.status).toBe("denied");
+    expect(response.reasons[0]!.text).toBe("actor is required");
   });
 });

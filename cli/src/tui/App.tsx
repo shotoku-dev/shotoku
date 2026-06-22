@@ -5,6 +5,7 @@ import {
   deny,
   readApprovals,
   readDecisions,
+  toUserSafeMessage,
   type ApprovalEntry,
   type LedgerEntry,
 } from "@shotoku/core";
@@ -25,6 +26,7 @@ export function App({ ledgerPath }: AppProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ text: string; ok: boolean } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const actionedIds = new Set(approvals.map((a) => a.decisionId));
   const pending = decisions.filter(
@@ -34,12 +36,17 @@ export function App({ ledgerPath }: AppProps) {
   );
 
   async function loadData() {
-    const [d, a] = await Promise.all([
-      readDecisions(ledgerPath),
-      readApprovals(ledgerPath),
-    ]);
-    setDecisions(d);
-    setApprovals(a);
+    try {
+      const [d, a] = await Promise.all([
+        readDecisions(ledgerPath),
+        readApprovals(ledgerPath),
+      ]);
+      setDecisions(d);
+      setApprovals(a);
+      setLoadError(null);
+    } catch (error) {
+      setLoadError(toUserSafeMessage(error));
+    }
   }
 
   useEffect(() => {
@@ -79,7 +86,7 @@ export function App({ ledgerPath }: AppProps) {
           void loadData();
         })
         .catch((err: unknown) => {
-          showFlash(`✗  ${err instanceof Error ? err.message : String(err)}`, false);
+          showFlash(`✗  ${toUserSafeMessage(err)}`, false);
         });
       return;
     }
@@ -92,7 +99,7 @@ export function App({ ledgerPath }: AppProps) {
           void loadData();
         })
         .catch((err: unknown) => {
-          showFlash(`✗  ${err instanceof Error ? err.message : String(err)}`, false);
+          showFlash(`✗  ${toUserSafeMessage(err)}`, false);
         });
       return;
     }
@@ -118,6 +125,11 @@ export function App({ ledgerPath }: AppProps) {
         {flash && (
           <Box marginBottom={1}>
             <Text color={flash.ok ? "green" : "red"}>{flash.text}</Text>
+          </Box>
+        )}
+        {loadError && (
+          <Box marginBottom={1}>
+            <Text color="red">✗  {loadError}</Text>
           </Box>
         )}
         <PendingPanel

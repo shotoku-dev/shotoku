@@ -64,4 +64,32 @@ export const tools: Tool[] = [
       required: [],
     },
   },
+  {
+    name: "approve_decision",
+    description: "Approve a pending authorization decision by ID.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        decisionId: {
+          type: "string",
+          description: "The pending decision ID (e.g. dec_abc123).",
+        },
+      },
+      required: ["decisionId"],
+    },
+  },
+  {
+    name: "deny_decision",
+    description: "Deny a pending authorization decision by ID.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        decisionId: {
+          type: "string",
+          description: "The pending decision ID (e.g. dec_abc123).",
+        },
+      },
+      required: ["decisionId"],
+    },
+  },
 ];
