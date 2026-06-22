@@ -14,8 +14,11 @@ export function buildExplanation(
   }
 
   if (status === "denied") {
-    const first = reasons[0];
-    return { summary: first ? first.text : "Denied." };
+    // The reason that caused the denial is appended last by the policy engine
+    // (the failing limit_check / budget_check / blocked check), after any
+    // policy_match. Surface that, not the match.
+    const cause = reasons.at(-1);
+    return { summary: cause ? cause.text : "Denied." };
   }
 
   // pending_approval
