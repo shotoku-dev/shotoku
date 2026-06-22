@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { render } from "ink";
+import { createElement } from "react";
 import { authorize, approve, deny, readDecisions, readApprovals, getDecisionById, getApprovalForDecision, type AgentAction, type AuthorizationStatus } from "@shotoku/core";
+import { App } from "./tui/App.js";
 import { formatResponse, formatError, formatHistoryTable, formatStatus, formatDecision, formatApproval, type HistoryOptions } from "./format.js";
 import { runInit } from "./init.js";
 
@@ -174,6 +177,14 @@ program
     console.log("");
     console.log("Ready. Try:");
     console.log("  shotoku authorize --actor my-agent --action api_call --resource openai.com --amount 5");
+  });
+
+program
+  .command("tui")
+  .description("Launch the interactive TUI")
+  .option("--ledger <path>", "Path to ledger file", "data/decisions.jsonl")
+  .action((opts: { ledger: string }) => {
+    render(createElement(App, { ledgerPath: opts.ledger }));
   });
 
 program.parseAsync().catch((err: unknown) => {
