@@ -2,5 +2,7 @@ packages:
   - core
   - cli
   - mcp
+  - web
 allowBuilds:
   esbuild: true
+  sharp: true
