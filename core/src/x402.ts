@@ -55,6 +55,31 @@ export interface X402Response {
 
 /** USDC and most x402 stablecoins use 6 decimals. */
 const DEFAULT_DECIMALS = 6;
+const MAX_DECIMALS = 18;
+
+function amountFromAtomicUnits(value: string, decimals: number): number {
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > MAX_DECIMALS) {
+    throw new Error(`x402 decimals must be an integer from 0 to ${MAX_DECIMALS}`);
+  }
+
+  if (!/^\d+$/.test(value)) {
+    throw new Error("x402 amount must be a non-negative integer string");
+  }
+
+  const padded =
+    value.length <= decimals ? value.padStart(decimals + 1, "0") : value;
+  const splitAt = padded.length - decimals;
+  const whole = padded.slice(0, splitAt);
+  const fractional = decimals > 0 ? padded.slice(splitAt) : "";
+  const decimal = decimals > 0 ? `${whole}.${fractional}` : whole;
+  const amount = Number(decimal);
+
+  if (!Number.isFinite(amount)) {
+    throw new Error("x402 amount is too large to represent safely");
+  }
+
+  return amount;
+}
 
 /**
  * Convert the first payment option from an x402 402 response into Shotoku's
@@ -69,10 +94,22 @@ export function parseX402Response(
   if (!accept) {
     throw new Error("x402 response contains no payment options");
   }
+  if (!accept.resource.trim()) {
+    throw new Error("x402 payment option is missing resource");
+  }
+  if (!accept.payTo.trim()) {
+    throw new Error("x402 payment option is missing payTo");
+  }
+  if (!accept.network.trim()) {
+    throw new Error("x402 payment option is missing network");
+  }
+  if (!accept.asset.trim()) {
+    throw new Error("x402 payment option is missing asset");
+  }
 
   return {
     resource: accept.resource,
-    amount: Number(accept.maxAmountRequired) / 10 ** decimals,
+    amount: amountFromAtomicUnits(accept.maxAmountRequired, decimals),
     payTo: accept.payTo,
     asset: accept.extra?.name ?? accept.asset,
     network: accept.network,

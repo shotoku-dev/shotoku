@@ -6,7 +6,10 @@ import type {
   LedgerSnapshot,
 } from "../types.js";
 
-const emptyLedger: LedgerSnapshot = { dailyTotals: {} };
+const emptyLedger: LedgerSnapshot = {
+  dailyTotals: {},
+  windowStart: new Date("2026-06-18T00:00:00.000Z").toISOString(),
+};
 
 const baseRequest: AuthorizeRequest = {
   actor: "agent-1",
@@ -40,6 +43,7 @@ describe("evaluatePolicy", () => {
     };
     const ledger: LedgerSnapshot = {
       dailyTotals: { "agent-1|openai.com": 95 },
+      windowStart: new Date("2026-06-18T00:00:00.000Z").toISOString(),
     };
 
     const result = evaluatePolicy(baseRequest, policy, ledger);
@@ -129,5 +133,40 @@ describe("evaluatePolicy", () => {
     const result = evaluatePolicy(purchaseRequest, policy, emptyLedger);
 
     expect(result.status).not.toBe("approved");
+  });
+
+  it("rule scoped to specific rails only matches those rails", () => {
+    const policy: Policy = {
+      rules: [
+        {
+          resource: "openai.com",
+          rails: ["mcp"],
+          verdict: "approved",
+        },
+      ],
+    };
+
+    const result = evaluatePolicy(
+      { ...baseRequest, rail: "x402" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(result.status).toBe("pending_approval");
+  });
+
+  it("denies negative amounts before matching policy", () => {
+    const policy: Policy = {
+      rules: [{ resource: "*", verdict: "approved" }],
+    };
+
+    const result = evaluatePolicy(
+      { ...baseRequest, amount: -1 },
+      policy,
+      emptyLedger,
+    );
+
+    expect(result.status).toBe("denied");
+    expect(result.reasons[0]!.type).toBe("blocked");
   });
 });

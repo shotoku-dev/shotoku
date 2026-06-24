@@ -1,11 +1,12 @@
-  import { describe, it, expect, beforeEach } from "vitest";
-import { mkdtemp, rm as _rm } from "node:fs/promises";
+import { describe, it, expect, beforeEach } from "vitest";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   appendDecision,
   readDecisions,
   getLedgerSnapshot,
+  getLedgerIntegrity,
 } from "../ledger.js";
 import type { LedgerEntry } from "../types.js";
 
@@ -44,7 +45,11 @@ describe("appendDecision", () => {
     await appendDecision(entry, ledgerPath);
     const entries = await readDecisions(ledgerPath);
     expect(entries).toHaveLength(1);
-    expect(entries[0]!).toEqual(entry);
+    expect(entries[0]!).toMatchObject(entry);
+    expect(entries[0]!.integrity).toMatchObject({
+      version: 1,
+      sequence: 1,
+    });
   });
 
   it("appends multiple decisions without overwriting", async () => {
@@ -58,6 +63,33 @@ describe("appendDecision", () => {
       "dec_002",
       "dec_003",
     ]);
+  });
+
+  it("creates the ledger directory when it does not exist", async () => {
+    const nestedPath = join(ledgerPath, "..", "nested", "decisions.jsonl");
+
+    await appendDecision(makeEntry(), nestedPath);
+
+    const entries = await readDecisions(nestedPath);
+    expect(entries).toHaveLength(1);
+  });
+
+  it("hash-chains appended records", async () => {
+    await appendDecision(makeEntry({ decisionId: "dec_001" }), ledgerPath);
+    await appendDecision(makeEntry({ decisionId: "dec_002" }), ledgerPath);
+
+    const entries = await readDecisions(ledgerPath);
+
+    expect(entries[0]!.integrity?.sequence).toBe(1);
+    expect(entries[1]!.integrity?.sequence).toBe(2);
+    expect(entries[1]!.integrity?.previousHash).toBe(
+      entries[0]!.integrity?.hash,
+    );
+
+    const integrity = await getLedgerIntegrity(ledgerPath);
+    expect(integrity.recordCount).toBe(2);
+    expect(integrity.legacyRecordCount).toBe(0);
+    expect(integrity.headHash).toBe(entries[1]!.integrity?.hash);
   });
 });
 
@@ -129,22 +161,43 @@ describe("readDecisions", () => {
 });
 
 describe("readDecisions with malformed data", () => {
-  it("skips malformed lines and returns the valid ones", async () => {
+  it("fails closed when the ledger contains malformed lines", async () => {
     const { appendFile } = await import("node:fs/promises");
     await appendDecision(makeEntry({ decisionId: "dec_001" }), ledgerPath);
     await appendFile(ledgerPath, "not-valid-json\n", "utf8");
-    await appendDecision(makeEntry({ decisionId: "dec_002" }), ledgerPath);
+
+    await expect(readDecisions(ledgerPath)).rejects.toThrow(/corrupt/i);
+  });
+
+  it("fails closed when a hashed record is tampered with", async () => {
+    await appendDecision(makeEntry({ decisionId: "dec_001" }), ledgerPath);
+
+    const raw = await readFile(ledgerPath, "utf8");
+    await writeFile(ledgerPath, raw.replace("openai.com", "evil.example"), "utf8");
+
+    await expect(readDecisions(ledgerPath)).rejects.toThrow(/hash/i);
+  });
+
+  it("accepts legacy records but reports them as legacy", async () => {
+    const legacy = makeEntry({ decisionId: "dec_legacy" });
+    await writeFile(ledgerPath, `${JSON.stringify(legacy)}\n`, "utf8");
 
     const entries = await readDecisions(ledgerPath);
-    expect(entries).toHaveLength(2);
-    expect(entries.map((e) => e.decisionId)).toEqual(["dec_001", "dec_002"]);
+    const integrity = await getLedgerIntegrity(ledgerPath);
+
+    expect(entries).toHaveLength(1);
+    expect(integrity.recordCount).toBe(1);
+    expect(integrity.legacyRecordCount).toBe(1);
   });
 });
 
 describe("getLedgerSnapshot", () => {
   it("returns zero totals when ledger is empty", async () => {
-    const snapshot = await getLedgerSnapshot(ledgerPath);
+    const snapshot = await getLedgerSnapshot(ledgerPath, {
+      now: new Date("2026-06-18T12:00:00.000Z"),
+    });
     expect(snapshot.dailyTotals).toEqual({});
+    expect(snapshot.windowStart).toBe("2026-06-17T12:00:00.000Z");
   });
 
   it("sums approved amounts for the same actor and resource today", async () => {
@@ -184,18 +237,38 @@ describe("getLedgerSnapshot", () => {
     expect(snapshot.dailyTotals["agent-1|openai.com"]).toBeUndefined();
   });
 
-  it("excludes decisions from previous days", async () => {
-    const yesterday = new Date("2026-06-17T10:00:00.000Z").toISOString();
+  it("uses a rolling 24-hour window instead of the calendar day", async () => {
+    const withinWindow = new Date("2026-06-17T13:00:00.000Z").toISOString();
+    const outsideWindow = new Date("2026-06-17T11:00:00.000Z").toISOString();
+
     await appendDecision(
       makeEntry({
-        decisionId: "dec_old",
-        timestamp: yesterday,
-        response: { ...makeEntry().response, decisionId: "dec_old", timestamp: yesterday },
+        decisionId: "dec_inside",
+        timestamp: withinWindow,
+        response: {
+          ...makeEntry().response,
+          decisionId: "dec_inside",
+          timestamp: withinWindow,
+        },
+      }),
+      ledgerPath,
+    );
+    await appendDecision(
+      makeEntry({
+        decisionId: "dec_outside",
+        timestamp: outsideWindow,
+        response: {
+          ...makeEntry().response,
+          decisionId: "dec_outside",
+          timestamp: outsideWindow,
+        },
       }),
       ledgerPath,
     );
 
-    const snapshot = await getLedgerSnapshot(ledgerPath);
-    expect(snapshot.dailyTotals["agent-1|openai.com"]).toBeUndefined();
+    const snapshot = await getLedgerSnapshot(ledgerPath, {
+      now: new Date("2026-06-18T12:00:00.000Z"),
+    });
+    expect(snapshot.dailyTotals["agent-1|openai.com"]).toBe(20);
   });
 });

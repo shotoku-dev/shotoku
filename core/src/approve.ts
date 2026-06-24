@@ -4,6 +4,7 @@ import {
   appendApproval,
   getApprovalForDecision,
   getDecisionById,
+  withLedgerLock,
 } from "./ledger.js";
 
 function approvalId(): string {
@@ -19,34 +20,36 @@ async function resolve(
   verdict: "approved" | "denied",
   options: ApproveOptions,
 ): Promise<ApprovalEntry> {
-  const decision = await getDecisionById(options.ledgerPath, decisionId);
-  if (!decision) {
-    throw new Error(`Decision "${decisionId}" not found.`);
-  }
+  return withLedgerLock(options.ledgerPath, async () => {
+    const decision = await getDecisionById(options.ledgerPath, decisionId);
+    if (!decision) {
+      throw new Error(`Decision "${decisionId}" not found.`);
+    }
 
-  if (decision.response.status !== "pending_approval") {
-    throw new Error(
-      `Decision "${decisionId}" is not pending approval (status: ${decision.response.status}).`,
-    );
-  }
+    if (decision.response.status !== "pending_approval") {
+      throw new Error(
+        `Decision "${decisionId}" is not pending approval (status: ${decision.response.status}).`,
+      );
+    }
 
-  const existing = await getApprovalForDecision(options.ledgerPath, decisionId);
-  if (existing) {
-    throw new Error(
-      `Decision "${decisionId}" was already ${existing.verdict} as ${existing.approvalId}.`,
-    );
-  }
+    const existing = await getApprovalForDecision(options.ledgerPath, decisionId);
+    if (existing) {
+      throw new Error(
+        `Decision "${decisionId}" was already ${existing.verdict} as ${existing.approvalId}.`,
+      );
+    }
 
-  const entry: ApprovalEntry = {
-    kind: "approval",
-    approvalId: approvalId(),
-    decisionId,
-    verdict,
-    timestamp: new Date().toISOString(),
-  };
+    const entry: ApprovalEntry = {
+      kind: "approval",
+      approvalId: approvalId(),
+      decisionId,
+      verdict,
+      timestamp: new Date().toISOString(),
+    };
 
-  await appendApproval(entry, options.ledgerPath);
-  return entry;
+    await appendApproval(entry, options.ledgerPath);
+    return entry;
+  });
 }
 
 export function approve(

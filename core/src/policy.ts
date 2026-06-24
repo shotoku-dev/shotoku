@@ -17,6 +17,9 @@ function matchesRule(request: AuthorizeRequest, rule: PolicyRule): boolean {
   if (!resourceMatch) return false;
 
   if (rule.actions && !rule.actions.includes(request.action)) return false;
+  if (rule.rails && (request.rail === undefined || !rule.rails.includes(request.rail))) {
+    return false;
+  }
 
   return true;
 }
@@ -26,6 +29,15 @@ export function evaluatePolicy(
   policy: Policy,
   ledger: LedgerSnapshot,
 ): EvaluationResult {
+  if (request.amount !== undefined) {
+    if (!Number.isFinite(request.amount) || request.amount < 0) {
+      return {
+        status: "denied",
+        reasons: [{ type: "blocked", text: "amount must be non-negative" }],
+      };
+    }
+  }
+
   const matchedRule = policy.rules.find((rule) => matchesRule(request, rule));
 
   if (!matchedRule) {

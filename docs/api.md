@@ -2,6 +2,13 @@
 
 This document covers the core `authorize()` function and the types it uses. If you are building an agent and want to check whether an action is allowed before it runs, this is the right place to start.
 
+Plain-English model:
+
+- A **request** is what the agent wants to do.
+- A **policy** is your local checklist for what is allowed.
+- A **decision** is Shotoku's answer: approved, denied, or pending human approval.
+- The **ledger** is the local audit log. It records what was asked, what Shotoku decided, and why.
+
 ---
 
 ## `authorize(request, options)`
@@ -27,10 +34,12 @@ const response = await authorize(
 
 Under the hood it:
 1. Loads your policy file
-2. Reads today's spend totals from the ledger
+2. Reads rolling 24-hour spend totals from the ledger
 3. Evaluates the request against your rules
 4. Writes the decision to the ledger
 5. Returns the result
+
+Shotoku fails closed. If a request is malformed, the policy file is missing or invalid, or the ledger is corrupt, Shotoku does not approve the action.
 
 ### Options
 
@@ -86,6 +95,8 @@ interface AuthorizeRequest {
 | `rail` | Optional: the execution channel being used (`"x402"`, `"mcp"`, `"api"`, etc.) |
 | `amount` | Optional: how much this action costs in USD, if it involves spending |
 | `context` | Optional: any extra details you want recorded alongside the decision |
+
+`context` must be JSON-serializable. In practical terms: strings, numbers, booleans, arrays, plain objects, or `null`. Do not put functions, symbols, circular objects, or private keys in context.
 
 ---
 
@@ -198,7 +209,7 @@ interface ReasonItem {
 |---|---|
 | `policy_match` | A rule in your policy file matched this request |
 | `limit_check` | The amount was checked against a per-transaction cap |
-| `budget_check` | Today's spend total was checked against a daily cap |
+| `budget_check` | The rolling 24-hour spend total was checked against a daily cap |
 | `blocked` | The request was explicitly blocked — e.g. no policy file found |
 | `escalated` | The request was sent for human review |
 
@@ -225,6 +236,7 @@ defaultVerdict: pending_approval
 rules:
   - resource: "openai.com"
     verdict: approved
+    rails: [api]
     maxAmount: 50
     maxDailyAmount: 200
 
@@ -246,6 +258,7 @@ A single rule inside your policy file.
 interface PolicyRule {
   readonly resource: string;
   readonly actions?: readonly AgentAction[];
+  readonly rails?: readonly ExecutionRail[];
   readonly verdict: AuthorizationStatus;
   readonly maxAmount?: number;
   readonly maxDailyAmount?: number;
@@ -256,9 +269,12 @@ interface PolicyRule {
 |---|---|
 | `resource` | The domain or service this rule applies to. Use `"*"` to match anything. |
 | `actions` | Optional: limits this rule to specific action types. Omit to match all actions. |
+| `rails` | Optional: limits this rule to specific execution rails. Omit to match all rails. |
 | `verdict` | What to decide when this rule matches — `approved`, `denied`, or `pending_approval` |
 | `maxAmount` | Optional: maximum allowed spend per single transaction. Requests above this are denied even if the rule would otherwise approve them. |
 | `maxDailyAmount` | Optional: maximum allowed total spend for this resource in a rolling 24-hour window. Exceeding it denies the request. |
+
+Rules are strict on purpose. Unknown policy fields are rejected instead of ignored, because a typo in an authorization policy should not silently weaken the policy.
 
 ---
 
@@ -277,6 +293,21 @@ interface LedgerEntry {
 
 You can inspect the ledger file directly in any text editor. Each line is a self-contained record of one decision.
 
+If a ledger line is malformed, Shotoku reports the ledger as corrupt instead of skipping the bad line. Skipping would make budgets and approval state hard to trust.
+
+Every new ledger record includes an `integrity` object. It links the record to the previous ledger hash:
+
+```ts
+interface LedgerIntegrity {
+  readonly version: 1;
+  readonly sequence: number;
+  readonly previousHash: string;
+  readonly hash: string;
+}
+```
+
+Older ledgers without `integrity` can still be read, but they are reported as legacy records. Once a new hashed record is appended after them, editing an older line breaks the chain.
+
 ---
 
 ## `ApprovalEntry`
@@ -292,6 +323,53 @@ interface ApprovalEntry {
   readonly timestamp: string;
 }
 ```
+
+---
+
+## `LedgerSnapshot`
+
+A pre-computed view of recent approved spend used by the policy engine.
+
+```ts
+interface LedgerSnapshot {
+  readonly dailyTotals: Readonly<Record<string, number>>;
+  readonly windowStart: string;
+}
+```
+
+`dailyTotals` is keyed as `"actor|resource"`. `windowStart` records the start of the rolling 24-hour window used to calculate those totals.
+
+---
+
+## Signed Snapshots
+
+A signed snapshot records:
+
+- the hash of the policy file
+- the current ledger head hash
+- the number of ledger records
+- a keyed signature over those fields
+
+Use snapshots when you want to prove later that the policy and ledger head have not changed since a point in time.
+
+```ts
+import {
+  createSignedSnapshot,
+  verifySignedSnapshot,
+} from "@shotoku/core";
+
+const snapshot = await createSignedSnapshot({
+  policyPath: "./policy.yaml",
+  ledgerPath: "./data/decisions.jsonl",
+  secret: process.env.SHOTOKU_SNAPSHOT_SECRET!,
+});
+
+const result = await verifySignedSnapshot(snapshot, {
+  secret: process.env.SHOTOKU_SNAPSHOT_SECRET!,
+});
+```
+
+Shotoku uses HMAC-SHA256 for local snapshots. It does not create, store, or manage signing keys. The secret comes from the caller.
 
 ---
 

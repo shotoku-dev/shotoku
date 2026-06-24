@@ -45,7 +45,13 @@ shotoku decision dec_063a20380ba7
 
 ## How it works
 
-`shotoku init` creates a `policy.yaml` in your project directory:
+`shotoku init` creates three local files:
+
+- `policy.yaml` — the rules for what agents can do.
+- `shotoku.config.json` — where Shotoku should find the policy and ledger.
+- `data/decisions.jsonl` — the local audit log, created when decisions are recorded.
+
+A policy is just a checklist. Shotoku reads the checklist before an agent acts.
 
 ```yaml
 rules:
@@ -58,7 +64,23 @@ rules:
 defaultVerdict: pending_approval
 ```
 
-Every decision is recorded locally to `data/decisions.jsonl`. No cloud. No external services required.
+Every decision is recorded locally to `data/decisions.jsonl`. JSONL means “one JSON record per line,” so the ledger stays easy to inspect with any text editor.
+
+Shotoku fails closed: if the policy is missing, invalid, or the ledger cannot be trusted, the agent is not approved. That is intentional. An authorization layer should be easy to use, but it should never guess when the audit trail is unclear.
+
+`maxDailyAmount` is a rolling 24-hour limit, not a midnight reset. If an agent spent $20 at 3pm yesterday, that spend counts until 3pm today.
+
+The ledger is hash-chained. Each new record stores a hash of the previous record plus itself. If someone edits a past line, later reads fail because the chain no longer matches.
+
+You can also create a signed snapshot of the current policy and ledger head:
+
+```bash
+export SHOTOKU_SNAPSHOT_SECRET="use-a-long-local-secret"
+shotoku snapshot create --out shotoku.snapshot.json
+shotoku snapshot verify --snapshot shotoku.snapshot.json
+```
+
+Shotoku does not store the snapshot secret. Provide it through your environment or secret manager.
 
 ## Core question
 
@@ -76,8 +98,9 @@ Shotoku answers it with a structured decision: approved, denied, or pending huma
 
 ## Packages
 
-- `core/` — authorization, policy, and ledger primitives
-- `cli/` — command-line interface
+- `core/` — authorization, policy, ledger, approvals, and x402 primitives
+- `cli/` — command-line interface and TUI
+- `mcp/` — MCP tool server for agent integrations
 - `docs/` — architecture and decisions
 
 ## Development

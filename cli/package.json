@@ -10,11 +10,13 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "pretest": "pnpm --filter @shotoku/core build",
+    "test": "vitest run src"
   },
   "dependencies": {
     "@shotoku/core": "workspace:*",
     "commander": "^15.0.0",
+    "dedent": "^1.7.2",
     "ink": "^7.0.6",
     "react": "^19.2.7"
   },
