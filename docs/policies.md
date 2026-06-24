@@ -35,10 +35,11 @@ A policy has two parts:
 
 Rules are evaluated **top to bottom. The first rule that matches wins** — later rules are not consulted. If no rule matches, `defaultVerdict` applies.
 
-A rule matches a request when **both** are true:
+A rule matches a request when **all** of these are true:
 
 1. The `resource` matches — either an exact string, or `"*"` (matches anything).
-2. The `actions` matches — the request's action is in the rule's `actions` list. If a rule omits `actions`, it matches every action.
+2. The `actions` matches — the request's action is in the rule's `actions` list, or the rule omits `actions` (then it matches every action).
+3. The `rails` matches — the request's `rail` is in the rule's `rails` list, or the rule omits `rails` (then it matches every rail).
 
 Because the first match wins, **put your most specific rules first and your catch-alls last.**
 
@@ -48,7 +49,8 @@ Because the first match wins, **put your most specific rules first and your catc
 
 ```yaml
 - resource: openai.com      # required
-  actions: [api_call]       # optional
+  actions: [api_call]       # optional — match only these action types
+  rails: [api]              # optional — match only these execution rails
   verdict: approved         # required
   maxAmount: 50             # optional
   maxDailyAmount: 200       # optional
@@ -58,6 +60,7 @@ Because the first match wins, **put your most specific rules first and your catc
 |---|---|---|
 | `resource` | yes | The domain or service this rule applies to. Use `"*"` to match anything. |
 | `actions` | no | Restricts the rule to specific action types (`purchase`, `api_call`, `execute_code`, `send_email`, `mcp_tool`, `custom`). Omit to match all actions. |
+| `rails` | no | Restricts the rule to specific execution rails (`x402`, `mcp`, `api`, `code`, `custom`). Omit to match all rails. |
 | `verdict` | yes | What to decide when the rule matches: `approved`, `denied`, or `pending_approval`. |
 | `maxAmount` | no | Per-transaction cap. A matching request above this amount is **denied**, even if `verdict` is `approved`. |
 | `maxDailyAmount` | no | Rolling 24-hour spend cap for this resource. If today's approved spend plus this request would exceed it, the request is **denied**. |
@@ -67,6 +70,7 @@ A few things worth knowing:
 - `maxAmount` and `maxDailyAmount` only apply when the request carries an `amount`. Actions without a cost ignore them.
 - The daily total is computed from the ledger — only **approved** decisions for the same actor and resource count toward it. Denied and pending requests do not consume budget.
 - The limits act as a safety net on top of an `approved` verdict. A rule can say "approved" and still produce a denial if a cap is exceeded — and the decision will tell the user which cap.
+- **Unknown fields are rejected, not ignored.** A typo like `maxAmonut` makes the whole policy invalid rather than silently dropping the cap. A misspelled limit should fail loudly, not quietly weaken your policy.
 
 ---
 
