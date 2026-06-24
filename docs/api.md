@@ -41,6 +41,28 @@ Under the hood it:
 
 ---
 
+## `approve(decisionId, options)` and `deny(decisionId, options)`
+
+Resolve a `pending_approval` decision. `approve` lets the action proceed; `deny` blocks it. Both **append a new record** to the ledger — the original decision is never modified, so the audit trail stays intact.
+
+```ts
+import { approve, deny } from "@shotoku/core";
+
+const result = await approve("dec_abc123", { ledgerPath: "data/decisions.jsonl" });
+// result.approvalId -> "apr_..."
+// result.verdict    -> "approved"
+```
+
+They throw if the decision does not exist, is not pending, or has already been resolved. The CLI turns these into readable errors rather than stack traces.
+
+| Field | Required | What it does |
+|---|---|---|
+| `ledgerPath` | yes | Path to the local ledger file |
+
+Each returns an [`ApprovalEntry`](#approvalentry).
+
+---
+
 ## `AuthorizeRequest`
 
 Describes the action an agent wants to take.
@@ -106,6 +128,24 @@ type AuthorizationStatus = "approved" | "denied" | "pending_approval";
 | `approved` | The request passed all policy checks. The agent can proceed. |
 | `denied` | The request was blocked by a policy rule. The agent should stop. |
 | `pending_approval` | No rule automatically approved or denied this. A human must decide. Run `shotoku approve <decisionId>` or `shotoku deny <decisionId>`. |
+
+---
+
+## `Explanation`
+
+A plain-English summary of a decision, ready to show to a user. Carried on every `AuthorizeResponse`.
+
+```ts
+interface Explanation {
+  readonly summary: string;
+  readonly hint?: string;
+}
+```
+
+| Field | What it means |
+|---|---|
+| `summary` | One sentence describing the decision. For approvals it stitches together the matched rule and any limit checks; for denials it states the check that failed. |
+| `hint` | An actionable next step when there is one — e.g. `"shotoku approve dec_abc123"` for a pending decision. |
 
 ---
 
@@ -236,3 +276,25 @@ interface LedgerEntry {
 ```
 
 You can inspect the ledger file directly in any text editor. Each line is a self-contained record of one decision.
+
+---
+
+## `ApprovalEntry`
+
+A human approval or denial, appended to the ledger when you run `approve` or `deny`. It references the decision it resolves; the original decision record is left untouched.
+
+```ts
+interface ApprovalEntry {
+  readonly kind: "approval";
+  readonly approvalId: string;
+  readonly decisionId: string;
+  readonly verdict: "approved" | "denied";
+  readonly timestamp: string;
+}
+```
+
+---
+
+## x402 helpers
+
+For authorizing agent payments over the x402 protocol, `@shotoku/core` also exports `authorizeX402Payment()` and `parseX402Response()`. See the **[x402 integration guide](x402.md)** for the full flow and where these fit.
