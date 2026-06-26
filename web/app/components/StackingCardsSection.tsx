@@ -4,12 +4,15 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { ReactLenis } from 'lenis/react';
 import CheckpointSection from './CheckpointSection';
+import LocalFirstSectionB from './LocalFirstSectionB';
 
-const CARDS = [
-  { id: 1, bg: undefined },   // CheckpointSection provides its own #F2F1ED
-  { id: 2, bg: '#E8E6E1' },
-  { id: 3, bg: '#DEDAD3' },
-  { id: 4, bg: '#D3CFC7' },
+// Blank card shades continue the warm-grey gradient:
+// #F2F1ED → #DEDAD3 → #D4CEC6 → #CAC3B9
+const CARDS: { id: number; bg?: string; content?: React.ReactNode }[] = [
+  { id: 1, content: <CheckpointSection /> },
+  { id: 2, content: <LocalFirstSectionB reversed={true} /> },
+  { id: 3, bg: '#D4CEC6' },
+  { id: 4, bg: '#CAC3B9' },
 ];
 
 interface CardProps {
@@ -54,7 +57,7 @@ export default function StackingCardsSection() {
     <ReactLenis root>
       <section ref={container} style={{ background: '#ffffff', padding: '0 32px' }}>
         {CARDS.map((card, i) => {
-          const targetScale = 1 - (CARDS.length - i) * 0.05;
+          const targetScale = 1 - (CARDS.length - i) * 0.04;
           return (
             <Card
               key={card.id}
@@ -64,7 +67,7 @@ export default function StackingCardsSection() {
               range={[i * (1 / CARDS.length), 1]}
               targetScale={targetScale}
             >
-              {i === 0 ? <CheckpointSection /> : null}
+              {card.content ?? null}
             </Card>
           );
         })}
