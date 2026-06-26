@@ -30,6 +30,20 @@
   50% { opacity: 0; }
 }
 
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes shine-border {
+  to { --border-angle: 360deg; }
+}
+
+.shotoku-shine {
+  animation: shine-border 6s linear infinite;
+}
+
 @layer base {
   html, body {
     background: var(--bg);
