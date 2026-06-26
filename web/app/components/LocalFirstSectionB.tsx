@@ -5,7 +5,6 @@ import { Tree, File, Folder } from '@/app/components/ui/file-tree';
 
 interface Props { reversed?: boolean }
 
-type SelectedFile = 'decisions' | 'policy';
 type View = 'log' | 'raw';
 
 const CLEAN_DECISIONS = [
@@ -30,32 +29,12 @@ const STATUS_COLORS: Record<string, string> = {
   denied:           '#dc2626',
 };
 
-interface Segment { text: string; color: string }
-
-const POLICY_LINES: Segment[][] = [
-  [{ text: 'version: ', color: 'rgba(0,0,0,0.35)' }, { text: '1', color: 'rgba(0,0,0,0.55)' }],
-  [],
-  [{ text: 'rules:', color: 'rgba(0,0,0,0.45)' }],
-  [{ text: '  - resource: ', color: 'rgba(0,0,0,0.35)' }, { text: 'openai.com', color: 'rgba(0,0,0,0.60)' }],
-  [{ text: '    status: ', color: 'rgba(0,0,0,0.35)' }, { text: 'allow', color: '#16a34a' }],
-  [{ text: '    daily_budget: ', color: 'rgba(0,0,0,0.35)' }, { text: '500', color: 'rgba(0,0,0,0.55)' }],
-  [],
-  [{ text: '  - resource: ', color: 'rgba(0,0,0,0.35)' }, { text: 'stripe.com', color: 'rgba(0,0,0,0.60)' }],
-  [{ text: '    require_approval: ', color: 'rgba(0,0,0,0.35)' }, { text: 'true', color: '#ca8a04' }],
-  [],
-  [{ text: '  - resource: ', color: 'rgba(0,0,0,0.35)' }, { text: '"*"', color: 'rgba(0,0,0,0.55)' }],
-  [{ text: '    status: ', color: 'rgba(0,0,0,0.35)' }, { text: 'deny', color: '#dc2626' }],
-];
-
-function getRightHeight(selectedFile: SelectedFile, view: View): number {
-  if (selectedFile === 'policy') return 248;
-  return view === 'log' ? 186 : 465;
-}
-
 const FILE_BG: React.CSSProperties = { background: 'rgba(0,0,0,0.05)', borderRadius: 4 };
 
+// Card heights for the two views
+const CARD_H: Record<View, number> = { log: 154, raw: 431 };
+
 export default function LocalFirstSectionB({ reversed }: Props) {
-  const [selectedFile, setSelectedFile] = useState<SelectedFile>('decisions');
   const [view, setView] = useState<View>('log');
 
   return (
@@ -104,7 +83,7 @@ export default function LocalFirstSectionB({ reversed }: Props) {
 
       {/* Visual */}
       <div style={{ flex: 1, display: 'flex', gap: 16 }}>
-        {/* File tree */}
+        {/* File tree — decisions.jsonl only */}
         <div
           style={{
             background: 'rgba(255,255,255,0.42)',
@@ -120,19 +99,8 @@ export default function LocalFirstSectionB({ reversed }: Props) {
             initialExpandedItems={['shotoku', 'data']}
           >
             <Folder element="shotoku" value="shotoku">
-              <File
-                value="policy"
-                style={selectedFile === 'policy' ? FILE_BG : {}}
-                onClick={() => setSelectedFile('policy')}
-              >
-                <span>policy.yaml</span>
-              </File>
               <Folder element="data" value="data">
-                <File
-                  value="decisions"
-                  style={selectedFile === 'decisions' ? FILE_BG : {}}
-                  onClick={() => setSelectedFile('decisions')}
-                >
+                <File value="decisions" style={FILE_BG}>
                   <span>decisions.jsonl</span>
                 </File>
               </Folder>
@@ -140,163 +108,111 @@ export default function LocalFirstSectionB({ reversed }: Props) {
           </Tree>
         </div>
 
-        {/* Right column — height drives the expansion, panels fade between files */}
+        {/* Right column — expands from center as card height transitions */}
         <div
           style={{
             flex: 1,
             alignSelf: 'center',
-            position: 'relative',
-            height: getRightHeight(selectedFile, view),
-            transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
           }}
         >
-          {/* Decisions panel */}
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: 2, paddingLeft: 2 }}>
+            {(['log', 'raw'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setView(tab)}
+                style={{
+                  background: view === tab ? 'rgba(0,0,0,0.09)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '3px 9px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-geist-mono), monospace',
+                  fontSize: 10,
+                  color: view === tab ? 'rgba(0,0,0,0.70)' : 'rgba(0,0,0,0.35)',
+                  letterSpacing: '0.02em',
+                  transition: 'background 0.15s ease, color 0.15s ease',
+                }}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Card — height transitions reveal the active view */}
           <div
             style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              opacity: selectedFile === 'decisions' ? 1 : 0,
-              transition: 'opacity 0.15s ease',
-              pointerEvents: selectedFile === 'decisions' ? 'auto' : 'none',
+              background: 'rgba(255,255,255,0.42)',
+              borderRadius: 5,
+              position: 'relative',
+              height: CARD_H[view],
+              transition: 'height 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
+              overflow: 'hidden',
             }}
           >
-            {/* Tabs */}
-            <div style={{ display: 'flex', gap: 2, paddingLeft: 2 }}>
-              {(['log', 'raw'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setView(tab)}
+            {/* Log view */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                padding: '28px 22px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                opacity: view === 'log' ? 1 : 0,
+                pointerEvents: view === 'log' ? 'auto' : 'none',
+              }}
+            >
+              {CLEAN_DECISIONS.map((d) => (
+                <div
+                  key={d.id}
                   style={{
-                    background: view === tab ? 'rgba(0,0,0,0.09)' : 'transparent',
-                    border: 'none',
-                    borderRadius: 4,
-                    padding: '3px 9px',
-                    cursor: 'pointer',
+                    display: 'flex',
+                    gap: 20,
                     fontFamily: 'var(--font-geist-mono), monospace',
-                    fontSize: 10,
-                    color: view === tab ? 'rgba(0,0,0,0.70)' : 'rgba(0,0,0,0.35)',
-                    letterSpacing: '0.02em',
-                    transition: 'background 0.15s ease, color 0.15s ease',
+                    fontSize: 11,
                   }}
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
+                  <span style={{ color: 'rgba(0,0,0,0.30)', flexShrink: 0, width: 48 }}>{d.id}</span>
+                  <span style={{ color: d.color }}>{d.status}</span>
+                </div>
               ))}
             </div>
 
-            {/* Card */}
+            {/* Raw view */}
             <div
               style={{
-                flex: 1,
-                background: 'rgba(255,255,255,0.42)',
-                borderRadius: 5,
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              {/* Log view */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  padding: '28px 22px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                  opacity: view === 'log' ? 1 : 0,
-                  pointerEvents: view === 'log' ? 'auto' : 'none',
-                }}
-              >
-                {CLEAN_DECISIONS.map((d) => (
-                  <div
-                    key={d.id}
-                    style={{
-                      display: 'flex',
-                      gap: 20,
-                      fontFamily: 'var(--font-geist-mono), monospace',
-                      fontSize: 11,
-                    }}
-                  >
-                    <span style={{ color: 'rgba(0,0,0,0.30)', flexShrink: 0, width: 48 }}>{d.id}</span>
-                    <span style={{ color: d.color }}>{d.status}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Raw view */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  padding: '22px 22px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                  opacity: view === 'raw' ? 1 : 0,
-                  pointerEvents: view === 'raw' ? 'auto' : 'none',
-                }}
-              >
-                {JSON_ENTRIES.map((entry, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      fontFamily: 'var(--font-geist-mono), monospace',
-                      fontSize: 10,
-                      lineHeight: 1.7,
-                    }}
-                  >
-                    <div style={{ color: 'rgba(0,0,0,0.22)' }}>{'{'}</div>
-                    {Object.entries(entry).map(([key, value]) => (
-                      <div key={key} style={{ paddingLeft: 14 }}>
-                        <span style={{ color: 'rgba(0,0,0,0.38)' }}>"{key}"</span>
-                        <span style={{ color: 'rgba(0,0,0,0.22)' }}>: </span>
-                        <span style={{ color: STATUS_COLORS[value] ?? 'rgba(0,0,0,0.55)' }}>"{value}"</span>
-                      </div>
-                    ))}
-                    <div style={{ color: 'rgba(0,0,0,0.22)' }}>{'}'}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Policy panel */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              opacity: selectedFile === 'policy' ? 1 : 0,
-              transition: 'opacity 0.15s ease',
-              pointerEvents: selectedFile === 'policy' ? 'auto' : 'none',
-            }}
-          >
-            <div
-              style={{
-                background: 'rgba(255,255,255,0.42)',
-                borderRadius: 5,
+                position: 'absolute',
+                inset: 0,
                 padding: '22px 22px',
-                height: '100%',
-                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                opacity: view === 'raw' ? 1 : 0,
+                pointerEvents: view === 'raw' ? 'auto' : 'none',
               }}
             >
-              {POLICY_LINES.map((segments, i) => (
+              {JSON_ENTRIES.map((entry, i) => (
                 <div
                   key={i}
                   style={{
                     fontFamily: 'var(--font-geist-mono), monospace',
                     fontSize: 10,
                     lineHeight: 1.7,
-                    whiteSpace: 'pre',
-                    minHeight: segments.length === 0 ? '1em' : undefined,
                   }}
                 >
-                  {segments.map((seg, j) => (
-                    <span key={j} style={{ color: seg.color }}>{seg.text}</span>
+                  <div style={{ color: 'rgba(0,0,0,0.22)' }}>{'{'}</div>
+                  {Object.entries(entry).map(([key, value]) => (
+                    <div key={key} style={{ paddingLeft: 14 }}>
+                      <span style={{ color: 'rgba(0,0,0,0.38)' }}>"{key}"</span>
+                      <span style={{ color: 'rgba(0,0,0,0.22)' }}>: </span>
+                      <span style={{ color: STATUS_COLORS[value] ?? 'rgba(0,0,0,0.55)' }}>"{value}"</span>
+                    </div>
                   ))}
+                  <div style={{ color: 'rgba(0,0,0,0.22)' }}>{'}'}</div>
                 </div>
               ))}
             </div>

@@ -5,14 +5,16 @@ import { motion, useScroll, useTransform, type MotionValue } from 'motion/react'
 import { ReactLenis } from 'lenis/react';
 import CheckpointSection from './CheckpointSection';
 import LocalFirstSectionB from './LocalFirstSectionB';
+import LocalFirstSectionC from './LocalFirstSectionC';
+import LocalFirstSectionD from './LocalFirstSectionD';
 
 // Blank card shades continue the warm-grey gradient:
 // #F2F1ED → #DEDAD3 → #D4CEC6 → #CAC3B9
 const CARDS: { id: number; bg?: string; content?: React.ReactNode }[] = [
   { id: 1, content: <CheckpointSection /> },
   { id: 2, content: <LocalFirstSectionB reversed={true} /> },
-  { id: 3, bg: '#D4CEC6' },
-  { id: 4, bg: '#CAC3B9' },
+  { id: 3, content: <LocalFirstSectionC /> },
+  { id: 4, content: <LocalFirstSectionD /> },
 ];
 
 interface CardProps {
