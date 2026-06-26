@@ -1,18 +1,44 @@
 {
   "name": "@shotoku/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Core daemon, ledger, and policy engine for Shotoku.",
+  "license": "MIT",
+  "homepage": "https://github.com/shotoku-dev/shotoku#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shotoku-dev/shotoku.git",
+    "directory": "core"
+  },
+  "bugs": "https://github.com/shotoku-dev/shotoku/issues",
+  "keywords": [
+    "authorization",
+    "ai-agents",
+    "policy",
+    "audit",
+    "x402",
+    "local-first"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
   },
+  "files": [
+    "dist",
+    "!dist/__tests__"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run src"
+    "test": "vitest run src",
+    "prepack": "tsc -b"
   },
   "devDependencies": {
     "vitest": "^4.1.9"
