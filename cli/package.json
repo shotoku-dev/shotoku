@@ -1,17 +1,38 @@
 {
   "name": "shotoku-cli",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "description": "Command-line interface for Shotoku — local-first authorization for AI agents.",
+  "license": "MIT",
+  "homepage": "https://github.com/shotoku-dev/shotoku#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shotoku-dev/shotoku.git",
+    "directory": "cli"
+  },
+  "bugs": "https://github.com/shotoku-dev/shotoku/issues",
+  "keywords": [
+    "authorization",
+    "ai-agents",
+    "cli",
+    "policy",
+    "audit",
+    "x402"
+  ],
   "bin": {
     "shotoku": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "!dist/__tests__"
+  ],
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "pretest": "pnpm --filter @shotoku/core build",
-    "test": "vitest run src"
+    "test": "vitest run src",
+    "prepack": "tsc -b"
   },
   "dependencies": {
     "@shotoku/core": "workspace:*",
