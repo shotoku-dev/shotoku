@@ -269,7 +269,7 @@ export default function CheckpointSection() {
                 style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "visible" }}
               >
                 <defs>
-                  <style>{`@keyframes flowDown { to { stroke-dashoffset: -12; } }`}</style>
+                  <style>{`@keyframes flowDown { to { stroke-dashoffset: -10; } }`}</style>
                 </defs>
                 {paths.map((p) => (
                   <path key={`base-${p.key}`} d={p.d} fill="none" stroke="rgba(0,0,0,0.10)" strokeWidth="1" />

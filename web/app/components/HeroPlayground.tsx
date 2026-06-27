@@ -2,6 +2,7 @@
 
 import { motion, useDragControls, useMotionValue } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -403,8 +404,10 @@ function AgentBody({ state, charsTyped, scenario, segments }: AgentBodyProps) {
 
       {after("pending_approval", "shotoku_review", "approved", "denied", "agent_success", "agent_blocked") && (
         <>
-          <div style={{ color: "#92400e", fontWeight: 500 }}>◷ Pending approval{"  "}{scenario.decisionId}</div>
-          <Blank />
+          <div style={{ color: "#92400e", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em", marginBottom: 4 }}>
+            <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>◷</span>
+            <span>Pending approval{"  "}{scenario.decisionId}</span>
+          </div>
           {scenario.pendingReasons.map((r, i) => <div key={i}>{"  "}• {r}</div>)}
           <Blank />
           <div style={{ color: "rgba(0,0,0,0.38)" }}>→ Waiting for Shotoku approval</div>
@@ -414,8 +417,10 @@ function AgentBody({ state, charsTyped, scenario, segments }: AgentBodyProps) {
 
       {after("approved", "agent_success") && (
         <>
-          <div style={{ color: "#166534", fontWeight: 500 }}>✓ Approved{"  "}{scenario.decisionId}</div>
-          <Blank />
+          <div style={{ color: "#166534", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em", marginBottom: 4 }}>
+            <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>✓</span>
+            <span>Approved{"  "}{scenario.decisionId}</span>
+          </div>
           <div>{"  "}• Approved by user</div>
           <div>{"  "}• Daily budget remaining: {scenario.approvedBudget}</div>
           <div>{"  "}• Recorded locally</div>
@@ -425,8 +430,10 @@ function AgentBody({ state, charsTyped, scenario, segments }: AgentBodyProps) {
 
       {after("denied", "agent_blocked") && (
         <>
-          <div style={{ color: "#991b1b", fontWeight: 500 }}>✗ Denied{"  "}{scenario.decisionId}</div>
-          <Blank />
+          <div style={{ color: "#991b1b", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em", marginBottom: 4 }}>
+            <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>✗</span>
+            <span>Denied{"  "}{scenario.decisionId}</span>
+          </div>
         </>
       )}
 
@@ -489,7 +496,7 @@ function ShotokuBody({ state, countdown, scenario, onApprove, onDeny }: ShotokuB
         color: "rgba(0,0,0,0.72)",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 18 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 14 }}>
         <div style={{ color: "#DB0028", whiteSpace: "pre", lineHeight: "15px", fontSize: "10px" }}>
           {MINI_ART.join("\n")}
         </div>
@@ -503,8 +510,6 @@ function ShotokuBody({ state, countdown, scenario, onApprove, onDeny }: ShotokuB
         </div>
       </div>
 
-      <div style={{ height: 1, background: "rgba(219,0,40,0.14)", marginBottom: 18 }} />
-
       {!hasPending && !isApproved && !isDenied && (
         <>
           <div style={{ color: "rgba(0,0,0,0.30)" }}>Listening for decisions...</div>
@@ -515,8 +520,10 @@ function ShotokuBody({ state, countdown, scenario, onApprove, onDeny }: ShotokuB
 
       {hasPending && (
         <>
-          <div style={{ color: "#DB0028", fontWeight: 500 }}>◷ Pending{"  "}{scenario.decisionId}</div>
-          <Blank />
+          <div style={{ color: "#DB0028", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em", marginBottom: 4 }}>
+            <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>◷</span>
+            <span>Pending{"  "}{scenario.decisionId}</span>
+          </div>
           <div>
             <span style={{ color: "rgba(0,0,0,0.42)" }}>{scenario.actor}</span>
             <span style={{ color: "rgba(0,0,0,0.22)" }}>{" → "}</span>
@@ -532,10 +539,10 @@ function ShotokuBody({ state, countdown, scenario, onApprove, onDeny }: ShotokuB
                 className="cursor-pointer transition-opacity hover:opacity-75"
                 style={{
                   padding: "3px 10px",
-                  border: "1px solid rgba(22,101,52,0.22)",
+                  border: "none",
                   borderRadius: 5,
-                  background: "rgba(22,101,52,0.07)",
-                  color: "#166534",
+                  background: "#166534",
+                  color: "#ffffff",
                   font: "inherit",
                 }}
               >
@@ -546,10 +553,10 @@ function ShotokuBody({ state, countdown, scenario, onApprove, onDeny }: ShotokuB
                 className="cursor-pointer transition-opacity hover:opacity-75"
                 style={{
                   padding: "3px 10px",
-                  border: "1px solid rgba(153,27,27,0.18)",
+                  border: "none",
                   borderRadius: 5,
-                  background: "rgba(153,27,27,0.06)",
-                  color: "#991b1b",
+                  background: "#991b1b",
+                  color: "#ffffff",
                   font: "inherit",
                 }}
               >
@@ -573,8 +580,10 @@ function ShotokuBody({ state, countdown, scenario, onApprove, onDeny }: ShotokuB
 
       {isApproved && (
         <>
-          <div style={{ color: "#166534", fontWeight: 500 }}>✓ Approved{"  "}{scenario.decisionId}</div>
-          <Blank />
+          <div style={{ color: "#166534", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em", marginBottom: 4 }}>
+            <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>✓</span>
+            <span>Approved{"  "}{scenario.decisionId}</span>
+          </div>
           <div>{"  "}• Approved by user</div>
           <div>{"  "}• Daily budget remaining: {scenario.approvedBudget}</div>
           <div>{"  "}• Recorded locally</div>
@@ -585,8 +594,10 @@ function ShotokuBody({ state, countdown, scenario, onApprove, onDeny }: ShotokuB
 
       {isDenied && (
         <>
-          <div style={{ color: "#991b1b", fontWeight: 500 }}>✗ Denied{"  "}{scenario.decisionId}</div>
-          <Blank />
+          <div style={{ color: "#991b1b", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em", marginBottom: 4 }}>
+            <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>✗</span>
+            <span>Denied{"  "}{scenario.decisionId}</span>
+          </div>
           <div>{"  "}• Denied by user</div>
           <div>{"  "}• Agent cannot continue</div>
           <div>{"  "}• No charges were made</div>
@@ -605,42 +616,69 @@ type ToastKind = "pending" | "approved" | "denied" | "hidden";
 function TerminalToast({ kind, decisionId }: { kind: ToastKind; decisionId: string }) {
   const visible = kind !== "hidden";
 
-  const mainText =
+  const statusText =
     kind === "approved" ? `${decisionId} approved` :
     kind === "denied"   ? `${decisionId} denied`   :
                           "1 pending approval";
 
-  const mainColor =
-    kind === "approved" ? "#166534" :
-    kind === "denied"   ? "#991b1b" :
-                          "rgba(0,0,0,0.72)";
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: -18 }}
-      animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : -18 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: -56 }}
+      animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : -56 }}
+      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
       style={{
         position: "absolute",
         top: 18,
         right: 18,
         zIndex: 30,
         pointerEvents: "none",
-        fontFamily: "monospace",
-        fontSize: 11,
-        lineHeight: "17px",
       }}
     >
       <div
         style={{
-          background: "#F2F1ED",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: "rgba(242, 241, 237, 0.82)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
           border: "1px solid rgba(0,0,0,0.08)",
-          borderRadius: 8,
-          padding: "7px 12px 8px",
+          borderRadius: 12,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06)",
+          padding: "3px 14px 3px 5px",
         }}
       >
-        <div style={{ color: "rgba(0,0,0,0.35)", fontSize: 10, marginBottom: 2 }}>Shotoku</div>
-        <div style={{ color: mainColor }}>{mainText}</div>
+        <Image
+          src="/assets/brand/shotoku-logo-rw.svg"
+          alt="Shotoku"
+          width={44}
+          height={44}
+          style={{ display: "block", flexShrink: 0, borderRadius: 10 }}
+        />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <div
+            style={{
+              color: "#0A0A0A",
+              fontSize: 12,
+              fontWeight: 600,
+              fontFamily: "system-ui, -apple-system, sans-serif",
+              lineHeight: 1.3,
+            }}
+          >
+            Shotoku
+          </div>
+          <div
+            style={{
+              color: "rgba(0,0,0,0.55)",
+              fontSize: 11,
+              fontFamily: "system-ui, -apple-system, sans-serif",
+              lineHeight: 1.3,
+            }}
+          >
+            {statusText}
+          </div>
+        </div>
       </div>
     </motion.div>
   );
