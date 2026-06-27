@@ -54,6 +54,36 @@ export default function LocalFirstSectionC() {
         boxSizing: 'border-box',
       }}
     >
+      {/* Text */}
+      <div style={{ flexShrink: 0, width: 200, alignSelf: 'center' }}>
+        <h2
+          style={{
+            color: '#0A0A0A',
+            fontSize: '1.5rem',
+            fontWeight: 450,
+            letterSpacing: '-0.025em',
+            lineHeight: 1.35,
+            fontFamily: 'Satoshi, var(--font-geist), sans-serif',
+            marginBottom: 5,
+          }}
+        >
+          Policies decide.
+        </h2>
+        <p
+          style={{
+            color: 'rgba(0,0,0,0.45)',
+            fontSize: '1.5rem',
+            fontWeight: 450,
+            letterSpacing: '-0.025em',
+            lineHeight: 1.35,
+            fontFamily: 'Satoshi, var(--font-geist), sans-serif',
+            margin: 0,
+          }}
+        >
+          Agents follow the rules you set.
+        </p>
+      </div>
+
       {/* Visual */}
       <div style={{ flex: 1, display: 'flex', gap: 16 }}>
         {/* File tree */}
@@ -124,44 +154,14 @@ export default function LocalFirstSectionC() {
                   <span style={{ color: SEP }}>: </span>
                   <span style={{ color: rule.verdictColor }}>{rule.verdict}</span>
                 </div>
-                <div style={{ paddingLeft: '9ch', color: CMT, display: 'flex', alignItems: 'center', gap: 3, lineHeight: 1 }}>
-                  <IconArrowLoopRight2 size={10} style={{ flexShrink: 0, transform: 'scaleY(-1)' }} />
-                  {rule.comment}
+                <div style={{ paddingLeft: '9ch', color: CMT, display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <IconArrowLoopRight2 size={10} style={{ flexShrink: 0, transform: 'scaleY(-1)', display: 'block' }} />
+                  <span style={{ lineHeight: 1 }}>{rule.comment}</span>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Text */}
-      <div style={{ flexShrink: 0, width: 200, alignSelf: 'center' }}>
-        <h2
-          style={{
-            color: '#0A0A0A',
-            fontSize: '1.5rem',
-            fontWeight: 450,
-            letterSpacing: '-0.025em',
-            lineHeight: 1.35,
-            fontFamily: 'Satoshi, var(--font-geist), sans-serif',
-            marginBottom: 5,
-          }}
-        >
-          Policies decide.
-        </h2>
-        <p
-          style={{
-            color: 'rgba(0,0,0,0.45)',
-            fontSize: '1.5rem',
-            fontWeight: 450,
-            letterSpacing: '-0.025em',
-            lineHeight: 1.35,
-            fontFamily: 'Satoshi, var(--font-geist), sans-serif',
-            margin: 0,
-          }}
-        >
-          Agents follow the rules you set.
-        </p>
       </div>
     </div>
   );
