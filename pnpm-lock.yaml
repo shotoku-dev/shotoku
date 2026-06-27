@@ -101,6 +101,9 @@ importers:
       '@tabler/icons-react':
         specifier: ^3.44.0
         version: 3.44.0(react@19.2.4)
+      '@thesvg/react':
+        specifier: ^3.0.18
+        version: 3.0.18(react@19.2.4)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1001,6 +1004,12 @@ packages:
 
   '@tailwindcss/postcss@4.3.1':
     resolution: {integrity: sha512-dNJuNbdEJT/SWRuXTYP1WSamelsz3ztkUsdtWQPjrexysrTpaEPM40P/71knXiXLYEojqPOEGitVLLpPMS5T6A==}
+
+  '@thesvg/react@3.0.18':
+    resolution: {integrity: sha512-fbfmjgxAaB5pF8V7PBaODTMyw28Fznbxtmoe4JODJLruutYdvtFz0FlmSpkA1ZnMhHsV6WOLBF8dUUHuvPooTQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: '>=18'
 
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
@@ -2981,6 +2990,10 @@ snapshots:
       '@tailwindcss/oxide': 4.3.1
       postcss: 8.5.15
       tailwindcss: 4.3.1
+
+  '@thesvg/react@3.0.18(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
 
   '@tybys/wasm-util@0.10.2':
     dependencies:
