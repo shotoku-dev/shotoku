@@ -94,6 +94,7 @@ export default function LocalFirstSectionC() {
             padding: '14px 6px',
             flexShrink: 0,
             alignSelf: 'center',
+            pointerEvents: 'auto',
           }}
         >
           <Tree

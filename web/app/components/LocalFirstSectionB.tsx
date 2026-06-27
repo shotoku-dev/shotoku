@@ -119,7 +119,7 @@ export default function LocalFirstSectionB({ reversed }: Props) {
           }}
         >
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: 2, paddingLeft: 2 }}>
+          <div style={{ display: 'flex', gap: 2, paddingLeft: 2, pointerEvents: 'auto' }}>
             {(['log', 'raw'] as const).map((tab) => (
               <button
                 key={tab}

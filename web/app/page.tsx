@@ -2,7 +2,6 @@ import Navbar from "./components/Navbar";
 import HeroPlayground from "./components/HeroPlayground";
 import StackingCardsSection from "./components/StackingCardsSection";
 import CTARow from "./components/CTARow";
-import Footer from "./components/Footer";
 
 export default function Home() {
   return (
@@ -27,8 +26,6 @@ export default function Home() {
           <CTARow />
         </section>
       </main>
-
-      <Footer />
     </>
   );
 }
