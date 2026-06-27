@@ -1,8 +1,11 @@
 'use client';
 
+import { DotmSquare11 } from '@/app/components/ui/dotm-square-11';
+
 interface StepItem {
   text: string;
   color?: string;
+  dot?: boolean;
 }
 
 interface Step {
@@ -35,9 +38,9 @@ const STEPS: Step[] = [
     num: '03',
     label: 'Record',
     items: [
-      { text: '✓ approved',          color: '#16a34a' },
-      { text: '✗ denied',            color: '#dc2626' },
-      { text: '◷ pending_approval',  color: '#ca8a04' },
+      { text: '✓ approved',         color: '#16a34a' },
+      { text: '✗ denied',           color: '#dc2626' },
+      { text: ' pending_approval',  color: '#ca8a04', dot: true },
     ],
   },
 ];
@@ -132,8 +135,22 @@ export default function HowItWorksSection() {
                       fontSize: 10,
                       fontFamily: 'var(--font-geist-mono), monospace',
                       letterSpacing: '0.01em',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
                     }}
                   >
+                    {item.dot && (
+                      <span style={{ display: 'inline-flex', flexShrink: 0 }}>
+                        <DotmSquare11
+                          size={10}
+                          dotSize={1.2}
+                          animated
+                          speed={1.4}
+                          color={item.color ?? 'rgba(0,0,0,0.40)'}
+                        />
+                      </span>
+                    )}
                     {item.text}
                   </span>
                 ))}

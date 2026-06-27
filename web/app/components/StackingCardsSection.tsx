@@ -1,8 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { motion, useScroll, useTransform, type MotionValue } from 'motion/react';
-import { ReactLenis } from 'lenis/react';
+import { motion, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'motion/react';
 import CheckpointSection from './CheckpointSection';
 import LocalFirstSectionB from './LocalFirstSectionB';
 import LocalFirstSectionC from './LocalFirstSectionC';
@@ -30,7 +29,7 @@ function Card({ i, bg, progress, range, targetScale, children }: CardProps) {
   const scale = useTransform(progress, range, [1, targetScale]);
 
   return (
-    <div className="h-screen flex items-center justify-center sticky top-0">
+    <div className="h-screen flex items-center justify-center sticky top-0 pointer-events-none">
       <motion.div
         style={{
           scale,
@@ -40,7 +39,7 @@ function Card({ i, bg, progress, range, targetScale, children }: CardProps) {
           height: 640,
           overflow: 'hidden',
         }}
-        className="relative w-[calc(100%-64px)] max-w-[960px] origin-top"
+        className="relative w-[calc(100%-64px)] max-w-[960px] origin-top pointer-events-none"
       >
         {children}
       </motion.div>
@@ -55,25 +54,32 @@ export default function StackingCardsSection() {
     offset: ['start start', 'end end'],
   });
 
+  useMotionValueEvent(scrollYProgress, 'change', (latest) => {
+    if (!container.current) return;
+    if (latest > 0.85) {
+      container.current.setAttribute('inert', '');
+    } else {
+      container.current.removeAttribute('inert');
+    }
+  });
+
   return (
-    <ReactLenis root>
-      <section ref={container} style={{ background: '#ffffff', padding: '0 32px' }}>
-        {CARDS.map((card, i) => {
-          const targetScale = 1 - (CARDS.length - i) * 0.04;
-          return (
-            <Card
-              key={card.id}
-              i={i}
-              bg={card.bg}
-              progress={scrollYProgress}
-              range={[i * (1 / CARDS.length), 1]}
-              targetScale={targetScale}
-            >
-              {card.content ?? null}
-            </Card>
-          );
-        })}
-      </section>
-    </ReactLenis>
+    <section ref={container} style={{ background: '#ffffff', padding: '0 32px' }}>
+      {CARDS.map((card, i) => {
+        const targetScale = 1 - (CARDS.length - i) * 0.04;
+        return (
+          <Card
+            key={card.id}
+            i={i}
+            bg={card.bg}
+            progress={scrollYProgress}
+            range={[i * (1 / CARDS.length), 1]}
+            targetScale={targetScale}
+          >
+            {card.content ?? null}
+          </Card>
+        );
+      })}
+    </section>
   );
 }

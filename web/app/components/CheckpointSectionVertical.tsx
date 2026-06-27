@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useLayoutEffect, useState, useCallback } from "react";
+import { DotmSquare11 } from "@/app/components/ui/dotm-square-11";
 
 // ── Data ───────────────────────────────────────────────────────────────────────
 
@@ -12,9 +13,9 @@ const CARDS = [
 ] as const;
 
 const PILLS = [
-  { symbol: "✓", label: "Approved", color: "#166534" },
-  { symbol: "✕", label: "Denied",   color: "#991b1b" },
-  { symbol: "◷", label: "Pending",  color: "#92400e" },
+  { symbol: "✓", label: "Approved", color: "#166534", dot: false },
+  { symbol: "✕", label: "Denied",   color: "#991b1b", dot: false },
+  { symbol: "◷", label: "Pending",  color: "#92400e", dot: true  },
 ] as const;
 
 interface SvgPath { d: string; key: string }
@@ -291,7 +292,10 @@ export default function CheckpointSectionVertical() {
                   whiteSpace: "nowrap",
                 }}
               >
-                <span style={{ color: pill.color }}>{pill.symbol}</span>
+                {pill.dot
+                  ? <span style={{ display: "inline-flex", flexShrink: 0 }}><DotmSquare11 size={12} dotSize={1.4} animated speed={1.4} color={pill.color} /></span>
+                  : <span style={{ color: pill.color }}>{pill.symbol}</span>
+                }
                 <span style={{ color: "rgba(0,0,0,0.38)" }}>{pill.label}</span>
               </span>
             ))}

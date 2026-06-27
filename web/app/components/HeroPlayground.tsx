@@ -3,6 +3,7 @@
 import { motion, useDragControls, useMotionValue } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { DotmSquare11 } from "@/app/components/ui/dotm-square-11";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -405,7 +406,9 @@ function AgentBody({ state, charsTyped, scenario, segments }: AgentBodyProps) {
       {after("pending_approval", "shotoku_review", "approved", "denied", "agent_success", "agent_blocked") && (
         <>
           <div style={{ color: "#92400e", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em", marginBottom: 4 }}>
-            <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>◷</span>
+            <span style={{ flexShrink: 0, display: "inline-flex" }}>
+              <DotmSquare11 size={14} dotSize={1.5} animated speed={1.4} color="#92400e" />
+            </span>
             <span>Pending approval{"  "}{scenario.decisionId}</span>
           </div>
           {scenario.pendingReasons.map((r, i) => <div key={i}>{"  "}• {r}</div>)}
@@ -521,7 +524,9 @@ function ShotokuBody({ state, countdown, scenario, onApprove, onDeny }: ShotokuB
       {hasPending && (
         <>
           <div style={{ color: "#DB0028", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em", marginBottom: 4 }}>
-            <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>◷</span>
+            <span style={{ flexShrink: 0, display: "inline-flex" }}>
+              <DotmSquare11 size={14} dotSize={1.5} animated speed={1.4} color="#DB0028" />
+            </span>
             <span>Pending{"  "}{scenario.decisionId}</span>
           </div>
           <div>
@@ -651,9 +656,9 @@ function TerminalToast({ kind, decisionId }: { kind: ToastKind; decisionId: stri
         <Image
           src="/assets/brand/shotoku-logo-rw.svg"
           alt="Shotoku"
-          width={44}
-          height={44}
-          style={{ display: "block", flexShrink: 0, borderRadius: 10 }}
+          width={52}
+          height={52}
+          style={{ display: "block", flexShrink: 0, borderRadius: 12 }}
         />
 
         <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>

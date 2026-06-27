@@ -1,4 +1,5 @@
 import CopyInstallCommand from "./CopyInstallCommand";
+import ConnectWithAI from "./ConnectWithAI";
 
 function GitHubIcon({ size = 14 }: { size?: number }) {
   return (
@@ -25,18 +26,21 @@ interface CTARowProps {
 
 export default function CTARow({ githubLabel = "Star on GitHub" }: CTARowProps) {
   return (
-    <div className="flex items-center gap-3">
-      <CopyInstallCommand />
-      <a
-        href="https://github.com/shotoku-dev/shotoku"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium rounded-[10px] transition-[background-color,scale] duration-150 ease-out hover:bg-black/5 active:scale-[0.97]"
-        style={{ color: "#0A0A0A" }}
-      >
-        <GitHubIcon />
-        {githubLabel}
-      </a>
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-3">
+        <CopyInstallCommand />
+        <a
+          href="https://github.com/shotoku-dev/shotoku"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium rounded-[10px] transition-[background-color,scale] duration-150 ease-out hover:bg-black/5 active:scale-[0.97]"
+          style={{ color: "#0A0A0A" }}
+        >
+          <GitHubIcon />
+          {githubLabel}
+        </a>
+      </div>
+      <ConnectWithAI />
     </div>
   );
 }
