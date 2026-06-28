@@ -28,6 +28,16 @@ export default [
     },
   },
   {
+    files: ["web/**/*.ts", "web/**/*.tsx"],
+    languageOptions: {
+      parser: tsParser,
+      globals: {
+        ...globals.browser,
+        React: "readonly",
+      },
+    },
+  },
+  {
     ignores: ["**/dist/**", "**/node_modules/**"],
   },
 ];

@@ -3,6 +3,8 @@
 import { Tree, File, Folder } from '@/app/components/ui/file-tree';
 import { IconArrowLoopRight2 } from '@tabler/icons-react';
 
+const EXPANDED_C = ['shotoku', 'data'];
+
 const FILE_BG: React.CSSProperties = { background: 'rgba(0,0,0,0.05)', borderRadius: 4 };
 
 const RULES = [
@@ -40,7 +42,8 @@ const SEP = 'rgba(0,0,0,0.22)';
 const VAL = 'rgba(0,0,0,0.58)';
 const CMT = 'rgba(0,0,0,0.25)';
 
-export default function LocalFirstSectionC() {
+function LocalFirstSectionC() {
+
   return (
     <div
       style={{
@@ -100,7 +103,7 @@ export default function LocalFirstSectionC() {
           <Tree
             className="w-52"
             initialSelectedId="policy"
-            initialExpandedItems={['shotoku', 'data']}
+            initialExpandedItems={EXPANDED_C}
           >
             <Folder element="shotoku" value="shotoku">
               <File value="policy" style={FILE_BG}>
@@ -167,3 +170,5 @@ export default function LocalFirstSectionC() {
     </div>
   );
 }
+
+export default LocalFirstSectionC;

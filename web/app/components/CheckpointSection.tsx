@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useLayoutEffect, useState, useCallback, useEffect } from "react";
+import { useRef, useLayoutEffect, useState, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -151,7 +151,12 @@ function ShotokuPill({ innerRef }: { innerRef: React.RefObject<HTMLDivElement | 
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function CheckpointSection() {
+export interface CheckpointSectionHandle {
+  hoverEnter: () => void;
+  hoverLeave: () => void;
+}
+
+const CheckpointSection = forwardRef<CheckpointSectionHandle>(function CheckpointSection(_, ref) {
   const diagramRef   = useRef<HTMLDivElement>(null);
   const centerDotRef = useRef<HTMLDivElement>(null);
   const shotokuRef   = useRef<HTMLDivElement>(null);
@@ -162,6 +167,11 @@ export default function CheckpointSection() {
   const iconRef2 = useRef<BlocksIconHandle>(null);
   const iconRef3 = useRef<CreditCardIconHandle>(null);
   const iconRefs = [iconRef0, iconRef1, iconRef2, iconRef3] as const;
+
+  useImperativeHandle(ref, () => ({
+    hoverEnter: () => iconRefs.forEach(r => r.current?.startAnimation()),
+    hoverLeave: () => iconRefs.forEach(r => r.current?.stopAnimation()),
+  }));
 
   const [paths,   setPaths]   = useState<SvgPath[]>([]);
   const [dots,    setDots]    = useState<SvgDot[]>([]);
@@ -389,4 +399,6 @@ export default function CheckpointSection() {
         </div>
     </div>
   );
-}
+});
+
+export default CheckpointSection;
