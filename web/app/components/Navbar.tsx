@@ -28,7 +28,7 @@ export default function Navbar() {
       </div>
 
       <a
-        href="#install"
+        href="/docs/quickstart"
         className="ml-auto px-3 py-2 text-[13px] font-medium text-white flex items-center gap-1.5 rounded-[10px] transition-[background-color,scale] duration-150 ease-out active:scale-[0.96]"
         style={{ background: "#E54B4B" }}
         onMouseEnter={() => airplaneRef.current?.startAnimation()}
