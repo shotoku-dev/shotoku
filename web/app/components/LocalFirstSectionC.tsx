@@ -1,6 +1,7 @@
 'use client';
 
 import { Tree, File, Folder } from '@/app/components/ui/file-tree';
+import { useIsNarrow } from '@/app/hooks/useIsNarrow';
 import { IconArrowLoopRight2 } from '@tabler/icons-react';
 
 const EXPANDED_C = ['shotoku', 'data'];
@@ -43,26 +44,35 @@ const VAL = 'rgba(0,0,0,0.58)';
 const CMT = 'rgba(0,0,0,0.25)';
 
 function LocalFirstSectionC() {
+  const narrow = useIsNarrow(600);
+  const column = useIsNarrow(1040);
+
+  const outerPadding = !column
+    ? '0 64px'
+    : narrow
+    ? '24px 28px 20px'
+    : '24px 28px 20px';
 
   return (
     <div
       style={{
         background: '#D4CEC6',
         borderRadius: 6,
-        padding: '0 64px',
+        padding: outerPadding,
         display: 'flex',
-        flexDirection: 'row',
-        gap: 16,
+        flexDirection: column ? 'column' : 'row',
+        alignItems: column ? 'flex-start' : undefined,
+        gap: column ? 20 : 16,
         height: '100%',
         boxSizing: 'border-box',
       }}
     >
       {/* Text */}
-      <div style={{ flexShrink: 0, width: 200, alignSelf: 'center' }}>
+      <div style={{ flexShrink: 0, width: column ? '100%' : 200, alignSelf: column ? 'auto' : 'center' }}>
         <h2
           style={{
             color: '#0A0A0A',
-            fontSize: '1.5rem',
+            fontSize: narrow ? '1.25rem' : '1.5rem',
             fontWeight: 450,
             letterSpacing: '-0.025em',
             lineHeight: 1.35,
@@ -75,7 +85,7 @@ function LocalFirstSectionC() {
         <p
           style={{
             color: 'rgba(0,0,0,0.45)',
-            fontSize: '1.5rem',
+            fontSize: narrow ? '1.25rem' : '1.5rem',
             fontWeight: 450,
             letterSpacing: '-0.025em',
             lineHeight: 1.35,
@@ -88,7 +98,16 @@ function LocalFirstSectionC() {
       </div>
 
       {/* Visual */}
-      <div style={{ flex: 1, display: 'flex', gap: 16 }}>
+      <div
+        style={{
+          flex: 1,
+          width: column ? '100%' : undefined,
+          display: 'flex',
+          flexDirection: column ? 'column' : 'row',
+          alignItems: column ? (narrow ? 'stretch' : 'center') : undefined,
+          gap: column ? 10 : 16,
+        }}
+      >
         {/* File tree */}
         <div
           style={{
@@ -96,12 +115,13 @@ function LocalFirstSectionC() {
             borderRadius: 5,
             padding: '14px 6px',
             flexShrink: 0,
-            alignSelf: 'center',
+            alignSelf: narrow ? 'flex-start' : 'center',
             pointerEvents: 'auto',
           }}
+          className={column ? '[&_.text-sm]:text-xs [&_svg]:size-3' : ''}
         >
           <Tree
-            className="w-52"
+            className={column ? 'w-48' : 'w-52'}
             initialSelectedId="policy"
             initialExpandedItems={EXPANDED_C}
           >
@@ -121,9 +141,10 @@ function LocalFirstSectionC() {
         {/* Policy card */}
         <div
           style={{
-            width: 310,
-            flexShrink: 0,
-            alignSelf: 'center',
+            width: narrow ? '100%' : 310,
+            flexShrink: narrow ? undefined : 0,
+            alignSelf: column && !narrow ? 'center' : narrow ? 'stretch' : 'center',
+            marginTop: column && !narrow ? 12 : 0,
             background: 'rgba(255,255,255,0.42)',
             borderRadius: 5,
             padding: '22px 22px',

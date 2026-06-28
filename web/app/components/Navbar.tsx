@@ -8,7 +8,7 @@ export default function Navbar() {
   const airplaneRef = useRef<AirplaneIconHandle>(null);
 
   return (
-    <header className="fixed top-5 left-1/2 -translate-x-1/2 z-100 flex items-center gap-5 py-0 pl-0 pr-2 bg-black rounded-[18px] whitespace-nowrap overflow-hidden">
+    <header className="fixed top-5 left-1/2 -translate-x-1/2 z-100 flex items-center gap-5 py-0 pl-0 pr-2 bg-black rounded-[18px] whitespace-nowrap overflow-hidden w-max">
       <div className="flex items-center">
         <a href="/">
           <Image
@@ -29,7 +29,7 @@ export default function Navbar() {
 
       <a
         href="/docs/quickstart"
-        className="ml-auto px-3 py-2 text-[13px] font-medium text-white flex items-center gap-1.5 rounded-[10px] transition-[background-color,scale] duration-150 ease-out active:scale-[0.96]"
+        className="hidden lg:flex ml-auto px-3 py-2 text-[13px] font-medium text-white items-center gap-1.5 rounded-[10px] transition-[background-color,scale] duration-150 ease-out active:scale-[0.96]"
         style={{ background: "#E54B4B" }}
         onMouseEnter={() => airplaneRef.current?.startAnimation()}
         onMouseLeave={() => airplaneRef.current?.stopAnimation()}

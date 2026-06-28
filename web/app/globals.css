@@ -69,6 +69,7 @@
     color: var(--fg);
     font-family: 'Geist', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
   a {

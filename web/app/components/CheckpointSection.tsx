@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useLayoutEffect, useState, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
+import { useIsNarrow } from "@/app/hooks/useIsNarrow";
 import Image from "next/image";
 import {
   motion,
@@ -157,6 +158,7 @@ export interface CheckpointSectionHandle {
 }
 
 const CheckpointSection = forwardRef<CheckpointSectionHandle>(function CheckpointSection(_, ref) {
+  const narrow = useIsNarrow(1030);
   const diagramRef   = useRef<HTMLDivElement>(null);
   const centerDotRef = useRef<HTMLDivElement>(null);
   const shotokuRef   = useRef<HTMLDivElement>(null);
@@ -218,25 +220,28 @@ const CheckpointSection = forwardRef<CheckpointSectionHandle>(function Checkpoin
     recalc();
     window.addEventListener("resize", recalc);
     return () => window.removeEventListener("resize", recalc);
-  }, [recalc]);
+  }, [recalc, narrow]);
 
   return (
     <div
       style={{
         background: "#F2F1ED",
         borderRadius: 6,
-        padding: "48px 64px 52px",
+        padding: narrow ? "24px 28px 20px" : "48px 64px 52px",
         display: "flex",
-        alignItems: "center",
-        gap: 64,
+        flexDirection: narrow ? "column" : "row",
+        alignItems: narrow ? "flex-start" : "center",
+        gap: narrow ? 20 : 64,
+        height: "100%",
+        boxSizing: "border-box",
       }}
     >
-        {/* ── Left: text ── */}
-        <div style={{ flexShrink: 0, width: 300 }}>
+        {/* ── Text ── */}
+        <div style={{ flexShrink: 0, width: narrow ? "100%" : 300 }}>
           <h2
             style={{
               color: "#0A0A0A",
-              fontSize: "1.5rem",
+              fontSize: narrow ? "1.25rem" : "1.5rem",
               fontWeight: 450,
               letterSpacing: "-0.025em",
               lineHeight: 1.35,
@@ -249,7 +254,7 @@ const CheckpointSection = forwardRef<CheckpointSectionHandle>(function Checkpoin
           <p
             style={{
               color: "rgba(0,0,0,0.45)",
-              fontSize: "1.5rem",
+              fontSize: narrow ? "1.25rem" : "1.5rem",
               fontWeight: 450,
               letterSpacing: "-0.025em",
               lineHeight: 1.35,
@@ -260,8 +265,8 @@ const CheckpointSection = forwardRef<CheckpointSectionHandle>(function Checkpoin
           </p>
         </div>
 
-        {/* ── Right: flow diagram ── */}
-        <div style={{ flex: 1 }}>
+        {/* ── Flow diagram ── */}
+        <div style={{ flex: 1, width: narrow ? "100%" : undefined }}>
           <div
             ref={diagramRef}
             style={{
@@ -305,8 +310,8 @@ const CheckpointSection = forwardRef<CheckpointSectionHandle>(function Checkpoin
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(2, 150px)",
-                gap: 8,
+                gridTemplateColumns: narrow ? "repeat(2, 110px)" : "repeat(2, 150px)",
+                gap: narrow ? 6 : 8,
                 justifyContent: "center",
                 position: "relative",
                 zIndex: 1,
@@ -364,13 +369,13 @@ const CheckpointSection = forwardRef<CheckpointSectionHandle>(function Checkpoin
             <div ref={centerDotRef} style={{ height: 0, marginTop: 12, alignSelf: "center" }} />
 
             {/* Spacer */}
-            <div style={{ height: 36 }} />
+            <div style={{ height: narrow ? 18 : 36 }} />
 
             {/* Shotoku pill */}
             <ShotokuPill innerRef={shotokuRef} />
 
             {/* Spacer */}
-            <div style={{ height: 44 }} />
+            <div style={{ height: narrow ? 22 : 44 }} />
 
             {/* Decision recorded locally */}
             <div

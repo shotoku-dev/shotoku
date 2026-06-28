@@ -34,7 +34,11 @@ const NAV = [
   },
 ];
 
-export default function DocsSidebar() {
+interface Props {
+  onClose?: () => void;
+}
+
+export default function DocsSidebar({ onClose }: Props) {
   const pathname = usePathname();
   const [backHover, setBackHover] = useState(false);
 
@@ -53,6 +57,7 @@ export default function DocsSidebar() {
       <div style={{ padding: "16px 16px 12px 20px", flexShrink: 0 }}>
         <Link
           href="/"
+          onClick={onClose}
           onMouseEnter={() => setBackHover(true)}
           onMouseLeave={() => setBackHover(false)}
           style={{
@@ -114,6 +119,7 @@ export default function DocsSidebar() {
                 <div key={item.href} style={{ padding: "1px 18px 1px 14px" }}>
                   <Link
                     href={item.href}
+                    onClick={onClose}
                     style={{
                       display:        "block",
                       padding:        "5px 10px",

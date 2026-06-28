@@ -1,4 +1,5 @@
 'use client';
+import { useIsNarrow } from '@/app/hooks/useIsNarrow';
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-geist-mono), monospace',
@@ -18,18 +19,20 @@ const _OK  = '#22c55e';
 const Blank = () => <div style={{ height: 19 }} />;
 
 export default function LocalFirstSectionD() {
+  const narrow = useIsNarrow(1030);
+
   return (
     <div
       style={{
         background: '#CAC3B9',
         borderRadius: 6,
-        padding: '0 64px',
+        padding: narrow ? '24px 28px 0' : '0 64px',
         display: 'flex',
-        flexDirection: 'row',
-        gap: 32,
+        flexDirection: narrow ? 'column-reverse' : 'row',
+        gap: narrow ? 16 : 32,
         height: '100%',
         boxSizing: 'border-box',
-        alignItems: 'center',
+        alignItems: narrow ? 'stretch' : 'center',
       }}
     >
       {/* Code window */}
@@ -73,8 +76,9 @@ export default function LocalFirstSectionD() {
             background: 'rgba(255,255,255,0.42)',
             borderRadius: '0 0 8px 8px',
             border: 'none',
-            padding: '20px 22px',
+            padding: narrow ? '14px 16px' : '20px 22px',
             ...MONO,
+            fontSize: narrow ? 10 : MONO.fontSize,
           }}
         >
           <div>
@@ -152,11 +156,11 @@ export default function LocalFirstSectionD() {
       </div>
 
       {/* Text */}
-      <div style={{ flexShrink: 0, width: 240, alignSelf: 'center' }}>
+      <div style={{ flexShrink: 0, width: narrow ? '100%' : 240, alignSelf: narrow ? 'auto' : 'center' }}>
         <h2
           style={{
             color: '#0A0A0A',
-            fontSize: '1.5rem',
+            fontSize: narrow ? '1.25rem' : '1.5rem',
             fontWeight: 450,
             letterSpacing: '-0.025em',
             lineHeight: 1.35,
@@ -169,7 +173,7 @@ export default function LocalFirstSectionD() {
         <p
           style={{
             color: 'rgba(0,0,0,0.45)',
-            fontSize: '1.5rem',
+            fontSize: narrow ? '1.25rem' : '1.5rem',
             fontWeight: 450,
             letterSpacing: '-0.025em',
             lineHeight: 1.35,

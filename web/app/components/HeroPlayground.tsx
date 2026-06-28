@@ -628,13 +628,14 @@ function TerminalToast({ kind, decisionId }: { kind: ToastKind; decisionId: stri
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -56 }}
-      animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : -56 }}
+      initial={{ opacity: 0, y: 56 }}
+      animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 56 }}
       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
       style={{
         position: "absolute",
-        top: 18,
-        right: 18,
+        bottom: 18,
+        left: "50%",
+        x: "-50%",
         zIndex: 30,
         pointerEvents: "none",
       }}
@@ -700,7 +701,9 @@ export default function HeroPlayground() {
   const [typedIndex,   setTypedIndex]  = useState(0);
   const [countdown,    setCountdown]   = useState<number | null>(null);
   const [scenarioIdx,  setScenarioIdx] = useState(0);
-  const [shotokuPos,   setShotokuPos]  = useState<{ x: number; y: number } | null>(null);
+  const [agentPos,     setAgentPos]    = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [shotokuPos,   setShotokuPos]  = useState<{ x: number; y: number; w: number } | null>(null);
+  const [isMobile,     setIsMobile]    = useState(false);
 
   const scenario = SCENARIOS[scenarioIdx % SCENARIOS.length]!;
   const segments = buildSegments(scenario);
@@ -709,10 +712,32 @@ export default function HeroPlayground() {
   useLayoutEffect(() => {
     const c = containerRef.current;
     if (!c) return;
-    setShotokuPos({
-      x: Math.max(32, c.clientWidth  - SHOTOKU_W - DRAG_PAD),
-      y: Math.max(48, c.clientHeight - SHOTOKU_H - DRAG_PAD),
-    });
+
+    const updatePos = () => {
+      const cw = c.clientWidth;
+      const ch = c.clientHeight;
+      const mobile = window.innerWidth < 625;
+      setIsMobile(mobile);
+
+      if (mobile) {
+        const agentW = Math.min(340, cw - 32);
+        const shotokuW = Math.min(SHOTOKU_W, cw - 32);
+        setAgentPos({ x: Math.max(0, (cw - agentW) / 2), y: 24, w: agentW, h: 306 });
+        setShotokuPos({ x: Math.max(0, (cw - shotokuW) / 2), y: 64, w: shotokuW });
+      } else {
+        setAgentPos({ x: 32, y: 40, w: 380, h: 340 });
+        setShotokuPos({
+          x: Math.max(32, cw - SHOTOKU_W - DRAG_PAD),
+          y: Math.max(48, ch - SHOTOKU_H - DRAG_PAD),
+          w: SHOTOKU_W,
+        });
+      }
+    };
+
+    updatePos();
+    const ro = new ResizeObserver(updatePos);
+    ro.observe(c);
+    return () => ro.disconnect();
   }, []);
 
   // Advance scenario each loop
@@ -811,27 +836,31 @@ export default function HeroPlayground() {
     >
       <TerminalToast kind={toastKind} decisionId={scenario.decisionId} />
 
-      <WindowShell
-        title={agentTitle}
-        isActive={agentFront}
-        zIndex={agentFront ? 10 : 5}
-        offsetX={32}
-        offsetY={40}
-        width={340}
-        height={306}
-        containerRef={containerRef}
-      >
-        <AgentBody state={state} charsTyped={typedIndex} scenario={scenario} segments={segments} />
-      </WindowShell>
+      {agentPos && (
+        <WindowShell
+          key={isMobile ? "mobile-agent" : "desktop-agent"}
+          title={agentTitle}
+          isActive={agentFront}
+          zIndex={agentFront ? 10 : 5}
+          offsetX={agentPos.x}
+          offsetY={agentPos.y}
+          width={agentPos.w}
+          height={agentPos.h}
+          containerRef={containerRef}
+        >
+          <AgentBody state={state} charsTyped={typedIndex} scenario={scenario} segments={segments} />
+        </WindowShell>
+      )}
 
       {shotokuPos && (
         <WindowShell
+          key={isMobile ? "mobile-shotoku" : "desktop-shotoku"}
           title={shotokuTitle}
           isActive={!agentFront}
           zIndex={agentFront ? 5 : 10}
           offsetX={shotokuPos.x}
           offsetY={shotokuPos.y}
-          width={SHOTOKU_W}
+          width={shotokuPos.w}
           height={SHOTOKU_H}
           containerRef={containerRef}
         >
