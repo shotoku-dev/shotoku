@@ -295,7 +295,13 @@ program
   .option("--ledger <path>", "Path to ledger file")
   .action(async (opts: { ledger?: string }) => {
     const { ledgerPath } = await resolveRuntimePaths(opts);
-    render(createElement(App, { ledgerPath }));
+    process.stdout.write('\x1B[?1049h\x1B[H'); // enter alternate screen
+    const { waitUntilExit } = render(createElement(App, { ledgerPath }));
+    try {
+      await waitUntilExit();
+    } finally {
+      process.stdout.write('\x1B[?1049l'); // exit alternate screen
+    }
   });
 
 program.parseAsync().catch((err: unknown) => {

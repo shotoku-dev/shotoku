@@ -16,7 +16,6 @@ export function Footer({ showHistory, hasPending }: FooterProps) {
             <Text dimColor> approve  </Text>
             <Text color="#DB0028">d</Text>
             <Text dimColor> deny  </Text>
-            <Text dimColor>e expand  </Text>
           </>
         )}
         <Text dimColor>h {showHistory ? "hide history" : "history"}  </Text>
