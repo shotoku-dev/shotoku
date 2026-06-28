@@ -14,8 +14,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shotoku",
-  description: "Local-first authorization layer for AI agents.",
+  title: "Shotoku — Local-first authorization for AI agents",
+  description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
+  openGraph: {
+    title: "Shotoku — Local-first authorization for AI agents",
+    description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
+    url: "https://shotoku.dev",
+    siteName: "Shotoku",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Shotoku — Local-first authorization for AI agents",
+    description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
+  },
 };
 
 export default function RootLayout({

@@ -147,7 +147,7 @@ export default function Footer() {
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(0,0,0,0.85)")}
                   onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(0,0,0,0.45)")}
-                  {...(link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  {...('external' in link && link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 >
                   {link.text}
                 </a>
