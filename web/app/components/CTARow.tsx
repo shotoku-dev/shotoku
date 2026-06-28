@@ -27,7 +27,7 @@ interface CTARowProps {
 export default function CTARow({ githubLabel = "Star on GitHub" }: CTARowProps) {
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <CopyInstallCommand />
         <a
           href="https://github.com/shotoku-dev/shotoku"
