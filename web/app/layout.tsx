@@ -27,11 +27,20 @@ export const metadata: Metadata = {
     url: "https://shotoku.dev",
     siteName: "Shotoku",
     type: "website",
+    images: [
+      {
+        url: "/assets/brand/shotoku-open-graph.png",
+        width: 1200,
+        height: 630,
+        alt: "Shotoku - Local-first authorization for AI agents",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Shotoku - Local-first authorization for AI agents",
     description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
+    images: ["/assets/brand/shotoku-open-graph.png"],
   },
 };
 
