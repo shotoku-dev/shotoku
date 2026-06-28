@@ -34,7 +34,9 @@ const FILE_BG: React.CSSProperties = { background: 'rgba(0,0,0,0.05)', borderRad
 // Card heights for the two views
 const CARD_H: Record<View, number> = { log: 154, raw: 431 };
 
-export default function LocalFirstSectionB({ reversed }: Props) {
+const EXPANDED = ['shotoku', 'data'];
+
+function LocalFirstSectionB({ reversed }: Props) {
   const [view, setView] = useState<View>('log');
 
   return (
@@ -96,7 +98,7 @@ export default function LocalFirstSectionB({ reversed }: Props) {
           <Tree
             className="w-52"
             initialSelectedId="decisions"
-            initialExpandedItems={['shotoku', 'data']}
+            initialExpandedItems={EXPANDED}
           >
             <Folder element="shotoku" value="shotoku">
               <Folder element="data" value="data">
@@ -222,3 +224,5 @@ export default function LocalFirstSectionB({ reversed }: Props) {
     </div>
   );
 }
+
+export default LocalFirstSectionB;

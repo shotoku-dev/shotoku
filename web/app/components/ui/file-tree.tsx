@@ -6,6 +6,8 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useImperativeHandle,
+  useRef,
   useState,
 } from "react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
@@ -161,7 +163,11 @@ type TreeViewProps = {
   "defaultValue" | "onValueChange" | "type" | "value"
 >
 
-const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
+export interface TreeHandle {
+  setExpandedItems: React.Dispatch<React.SetStateAction<string[] | undefined>>
+}
+
+const Tree = forwardRef<TreeHandle, TreeViewProps>(
   (
     {
       className,
@@ -178,12 +184,15 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
     },
     ref
   ) => {
+    const scrollRef = useRef<HTMLDivElement>(null)
     const [selectedId, setSelectedId] = useState<string | undefined>(
       initialSelectedId
     )
     const [expandedItems, setExpandedItems] = useState<string[] | undefined>(
       initialExpandedItems
     )
+
+    useImperativeHandle(ref, () => ({ setExpandedItems }))
 
     const selectItem = useCallback((id: string) => {
       setSelectedId(id)
@@ -260,7 +269,7 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
       >
         <div className={cn("size-full", className)}>
           <ScrollArea
-            ref={ref}
+            ref={scrollRef}
             className="relative h-full px-2"
             dir={dir as Direction}
           >

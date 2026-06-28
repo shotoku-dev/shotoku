@@ -13,7 +13,7 @@ const KEY = '#0F0D0C';   // object keys
 const NUM = '#B05A00';   // numbers (same family as strings)
 const FN  = '#FF3B4E';   // function names
 const PUN = '#0F0D0C';   // brackets, punctuation
-const OK  = '#22c55e';
+const _OK  = '#22c55e';
 
 const Blank = () => <div style={{ height: 19 }} />;
 

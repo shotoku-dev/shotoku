@@ -31,12 +31,6 @@ function Table({ headers, rows }: { headers: string[]; rows: (string | React.Rea
   );
 }
 
-function Cmd({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 style={S.h3}>{children}</h3>
-  );
-}
-
 export default function CliPage() {
   return (
     <div style={S.page}>
