@@ -14,15 +14,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shotoku — Local-first authorization for AI agents",
+  title: "Shotoku - Local-first authorization for AI agents",
   description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
   icons: {
-    icon: "/assets/brand/shotoku-logo-rw.svg",
-    shortcut: "/assets/brand/shotoku-logo-rw.svg",
-    apple: "/assets/brand/shotoku-logo-rw.svg",
+    icon: "/assets/brand/shotoku-favicon.svg",
+    shortcut: "/assets/brand/shotoku-favicon.svg",
+    apple: "/assets/brand/shotoku-favicon.svg",
   },
   openGraph: {
-    title: "Shotoku — Local-first authorization for AI agents",
+    title: "Shotoku - Local-first authorization for AI agents",
     description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
     url: "https://shotoku.dev",
     siteName: "Shotoku",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Shotoku — Local-first authorization for AI agents",
+    title: "Shotoku - Local-first authorization for AI agents",
     description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
   },
 };
