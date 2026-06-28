@@ -8,7 +8,7 @@ This guide covers how rules are written, how they are matched, and the patterns 
 
 ## Where the policy lives
 
-By default, Shotoku looks for `policy.yaml` in the current directory. `shotoku init` creates a starter one for you. Point at a different file with `--policy <path>` on any command, or `policyPath` when calling `authorize()` from code.
+By default, Shotoku looks for `policy.yaml` in the current directory. `shotoku init` creates a starter one for you. Point at a different file with `--policy <path>` on the `authorize` command, or set `policyPath` when calling `authorize()` from code.
 
 ---
 

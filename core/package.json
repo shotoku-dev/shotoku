@@ -1,6 +1,7 @@
 {
   "name": "@shotoku/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "publishConfig": { "access": "public" },
   "type": "module",
   "description": "Core daemon, ledger, and policy engine for Shotoku.",
   "exports": {
