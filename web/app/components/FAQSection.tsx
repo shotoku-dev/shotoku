@@ -2,7 +2,18 @@
 
 import { useState } from 'react';
 
-const FAQ = [
+const LINK = (href: string, label: string) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ color: '#0A0A0A', fontWeight: 500, textDecoration: 'underline', textUnderlineOffset: 3 }}
+  >
+    {label}
+  </a>
+);
+
+const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "How is this different from just writing an if statement before my API call?",
     a: "An if statement is logic. Shotoku is infrastructure. It gives you a structured audit trail, a human approval queue, policy as config instead of code, and MCP integration — so the same rules apply whether your agent runs in your terminal, in Claude, or anywhere else.",
@@ -34,6 +45,12 @@ const FAQ = [
   {
     q: "Is this production-ready?",
     a: "Shotoku is v0.1.0 — early but functional. The core authorization path is stable. Use it for real projects, but expect the API to evolve. File issues and we'll ship fixes fast.",
+  },
+  {
+    q: "Who's behind Shotoku?",
+    a: <>
+      Shotoku is built by {LINK("https://x.com/juliuspsc", "Julius (@juliuspsc)")} and {LINK("https://x.com/prunier_issa", "Issa (@prunier_issa)")} — two developers from France who care deeply about building great software. Shotoku is open-source today, with plans to grow into an enterprise product. Contributions and feedback are very welcome.
+    </>,
   },
 ];
 
