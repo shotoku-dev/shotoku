@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Shotoku — Local-first authorization for AI agents",
   description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
+  icons: {
+    icon: "/assets/brand/shotoku-logo-rw.svg",
+    shortcut: "/assets/brand/shotoku-logo-rw.svg",
+    apple: "/assets/brand/shotoku-logo-rw.svg",
+  },
   openGraph: {
     title: "Shotoku — Local-first authorization for AI agents",
     description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
