@@ -148,6 +148,17 @@ The output names the rule that matched and the check that decided the outcome. I
 
 ---
 
+## Starter templates
+
+Ready-made policies you can copy to `policy.yaml` and adapt:
+
+- [`examples/policy-payments.yaml`](../examples/policy-payments.yaml) — cap agent spending per vendor, hold the rest
+- [`examples/policy-email.yaml`](../examples/policy-email.yaml) — auto-approve known recipients, review the rest
+- [`examples/policy-file-access.yaml`](../examples/policy-file-access.yaml) — allow the workspace scope, block system scopes
+- [`examples/policy-x402.yaml`](../examples/policy-x402.yaml) — micropayments over the x402 rail
+
+---
+
 ## Related
 
 - **[Quickstart](quickstart.md)** — the five-minute tour

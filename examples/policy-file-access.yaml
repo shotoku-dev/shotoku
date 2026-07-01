@@ -1,0 +1,26 @@
+# Default policy: file access
+#
+# Controls agent file operations. Model a file operation as a `custom` action
+# whose `resource` names the SCOPE being touched — not a literal path, since
+# matching is exact or "*". Pass a scope like "workspace" or "system" as the
+# resource when you call authorize().
+#
+# Copy to policy.yaml and adapt the scopes to your setup.
+
+rules:
+  # The agent's own workspace — reading and writing here is auto-approved.
+  - resource: workspace
+    actions: [custom]
+    verdict: approved
+
+  # Sensitive scopes (home directory, credentials, system files) — blocked.
+  - resource: system
+    actions: [custom]
+    verdict: denied
+
+  # Any other scope — a human decides.
+  - resource: "*"
+    actions: [custom]
+    verdict: pending_approval
+
+defaultVerdict: pending_approval
