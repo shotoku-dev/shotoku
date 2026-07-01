@@ -1,8 +1,8 @@
 import { Box, Text, useStdout } from "ink";
 import type { LedgerEntry } from "@shotoku/core";
 
-// Rows consumed by Banner (title art + mask art + tagline + padding) and Footer.
-const CHROME_ROWS = 28;
+// Rows consumed by Banner (mini art + tagline + status + padding) and Footer.
+const CHROME_ROWS = 12;
 // Rows per item: 1 content row + 1 marginBottom + 1 separator.
 const ROWS_PER_ITEM = 3;
 // Rows for the header row + separator.
