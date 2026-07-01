@@ -1,23 +1,13 @@
 import { Box, Text } from "ink";
 import { useEffect, useState } from "react";
-import { MaskArt } from "./MaskArt.js";
 
-const ART = [
-  "███████╗██╗  ██╗ ██████╗ ████████╗ ██████╗ ██╗  ██╗██╗   ██╗",
-  "██╔════╝██║  ██║██╔═══██╗╚══██╔══╝██╔═══██╗██║ ██╔╝██║   ██║",
-  "███████╗███████║██║   ██║   ██║   ██║   ██║█████╔╝ ██║   ██║",
-  "╚════██║██╔══██║██║   ██║   ██║   ██║   ██║██╔═██╗ ██║   ██║",
-  "███████║██║  ██║╚██████╔╝   ██║   ╚██████╔╝██║  ██╗╚██████╔╝",
-  "╚══════╝╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ",
-];
-
-const REDS = [
-  "#FF4455",
-  "#F02035",
-  "#DB0028",
-  "#B80022",
-  "#96001C",
-  "#730014",
+const MINI_ART = [
+  "    _  ,--.",
+  "   ;c),. o}`",
+  "   `._,=,   `.",
+  "       / ,    `.",
+  "       `/L`.    )~",
+  "            /_/\\_\\",
 ];
 
 function formatTime(d: Date): string {
@@ -38,16 +28,17 @@ export function Banner({ decisionCount, pendingCount }: BannerProps) {
   }, []);
 
   return (
-    <Box flexDirection="column" alignItems="center" paddingTop={1} paddingBottom={1}>
-      {ART.map((line, i) => {
-        const shade = REDS[i] ?? "#DB0028";
-        return <Text key={i} color={shade} wrap="truncate-end">{line}</Text>;
-      })}
-      <Box marginTop={1}>
-        <Text color="white">Local-first authorization layer for AI agents.</Text>
-      </Box>
-      <Box marginTop={1}>
-        <MaskArt />
+    <Box flexDirection="column" paddingTop={1} paddingBottom={1} paddingX={4}>
+      <Box flexDirection="row" alignItems="flex-start">
+        <Box flexDirection="column">
+          {MINI_ART.map((line, i) => (
+            <Text key={i} color="#DB0028">{line}</Text>
+          ))}
+        </Box>
+        <Box flexDirection="column" paddingTop={2} paddingLeft={4}>
+          <Text bold color="white">Shotoku</Text>
+          <Text dimColor>the local-first authorization layer for AI agents.</Text>
+        </Box>
       </Box>
       <Box marginTop={1}>
         <Text dimColor>{time}</Text>

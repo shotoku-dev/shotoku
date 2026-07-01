@@ -24,7 +24,6 @@ export function App({ ledgerPath }: AppProps) {
   const [approvals, setApprovals] = useState<ApprovalEntry[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ text: string; ok: boolean } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -69,12 +68,10 @@ export function App({ ledgerPath }: AppProps) {
   useInput((input, key) => {
     if (key.upArrow) {
       setSelectedIndex((i) => Math.max(0, i - 1));
-      setExpandedId(null);
       return;
     }
     if (key.downArrow) {
       setSelectedIndex((i) => Math.min(Math.max(0, pending.length - 1), i + 1));
-      setExpandedId(null);
       return;
     }
     if (key.return) {
@@ -103,12 +100,6 @@ export function App({ ledgerPath }: AppProps) {
         });
       return;
     }
-    if (input === "e") {
-      const entry = pending[selectedIndex];
-      if (!entry) return;
-      setExpandedId((id) => (id === entry.decisionId ? null : entry.decisionId));
-      return;
-    }
     if (input === "h") {
       setShowHistory((v) => !v);
       return;
@@ -119,7 +110,7 @@ export function App({ ledgerPath }: AppProps) {
   });
 
   return (
-    <Box flexDirection="column" alignItems="center">
+    <Box flexDirection="column">
       <Banner decisionCount={decisions.length} pendingCount={pending.length} />
       <Box flexDirection="column" paddingX={4} paddingTop={1}>
         {flash && (
@@ -135,7 +126,7 @@ export function App({ ledgerPath }: AppProps) {
         <PendingPanel
           entries={pending}
           selectedIndex={selectedIndex}
-          expandedId={expandedId}
+          expandedId={pending[selectedIndex]?.decisionId ?? null}
         />
         {showHistory && (
           <Box marginTop={1}>

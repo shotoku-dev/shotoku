@@ -76,10 +76,9 @@ shotoku authorize --actor my-agent --action purchase --resource openai.com --amo
 ✗ DENIED  dec_1d7e3a9f5b22
   • openai.com matched rule
   • Amount $500 exceeds per-transaction limit of $50
-  → Run: shotoku approve dec_1d7e3a9f5b22
 ```
 
-Shotoku tells you exactly which check failed, and how to override it if you choose to.
+Shotoku tells you exactly which check failed. A denied decision is final — to allow higher amounts, update your `policy.yaml` and re-run.
 
 ---
 
