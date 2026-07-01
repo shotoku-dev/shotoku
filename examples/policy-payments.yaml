@@ -1,0 +1,27 @@
+# Default policy: payments
+#
+# Controls agent spending (actions: purchase, api_call). Amounts are in USD.
+# `maxAmount` caps a single charge; `maxDailyAmount` is a rolling 24-hour cap.
+#
+# Copy to policy.yaml and edit the vendors and limits for your setup.
+
+rules:
+  # Trusted API vendors — auto-approve small charges, capped per-tx and per-day.
+  - resource: openai.com
+    actions: [purchase, api_call]
+    verdict: approved
+    maxAmount: 20
+    maxDailyAmount: 100
+
+  - resource: anthropic.com
+    actions: [purchase, api_call]
+    verdict: approved
+    maxAmount: 20
+    maxDailyAmount: 100
+
+  # Any other payment — held for human approval, whatever the amount.
+  - resource: "*"
+    actions: [purchase]
+    verdict: pending_approval
+
+defaultVerdict: pending_approval

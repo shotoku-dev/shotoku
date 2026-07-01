@@ -1,0 +1,25 @@
+# Default policy: email
+#
+# Controls what an agent may send email to (action: send_email).
+# `resource` is the recipient domain. Matching is exact, or "*" for any.
+#
+# Copy to policy.yaml and edit the domains for your setup.
+
+rules:
+  # Internal company mail — auto-approved.
+  - resource: yourcompany.com
+    actions: [send_email]
+    verdict: approved
+
+  # Known transactional senders (receipts, notifications) — auto-approved.
+  - resource: github.com
+    actions: [send_email]
+    verdict: approved
+
+  # Any other recipient — a human approves before it sends.
+  - resource: "*"
+    actions: [send_email]
+    verdict: pending_approval
+
+# Anything that isn't an email also falls through to human review.
+defaultVerdict: pending_approval
