@@ -11,10 +11,23 @@ function ledgerKey(actor: string, resource: string): string {
   return `${actor}|${resource}`;
 }
 
+/**
+ * Match a request resource against a rule pattern. `*` is a wildcard for any
+ * run of characters (e.g. `api.openai.com/v1/*`, `*.openai.com`); every other
+ * character is matched literally. A pattern with no `*` must match exactly.
+ */
+function resourceMatches(pattern: string, resource: string): boolean {
+  if (!pattern.includes("*")) return pattern === resource;
+
+  const regex = pattern
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&") // escape regex metacharacters (incl. *)
+    .replace(/\\\*/g, ".*"); // then turn the escaped wildcards back into ".*"
+
+  return new RegExp(`^${regex}$`).test(resource);
+}
+
 function matchesRule(request: AuthorizeRequest, rule: PolicyRule): boolean {
-  const resourceMatch =
-    rule.resource === "*" || rule.resource === request.resource;
-  if (!resourceMatch) return false;
+  if (!resourceMatches(rule.resource, request.resource)) return false;
 
   if (rule.actions && !rule.actions.includes(request.action)) return false;
   if (rule.rails && (request.rail === undefined || !rule.rails.includes(request.rail))) {

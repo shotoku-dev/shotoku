@@ -170,3 +170,82 @@ describe("evaluatePolicy", () => {
     expect(result.reasons[0]!.type).toBe("blocked");
   });
 });
+
+describe("evaluatePolicy — glob resource matching", () => {
+  it("a trailing wildcard matches sub-paths of a resource", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com/*", verdict: "approved" }],
+    };
+
+    const result = evaluatePolicy(
+      { ...baseRequest, resource: "openai.com/v1/chat" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(result.status).toBe("approved");
+    expect(result.reasons.some((r) => r.type === "policy_match")).toBe(true);
+  });
+
+  it("a wildcard rule does not match an unrelated resource", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com/*", verdict: "approved" }],
+    };
+
+    const result = evaluatePolicy(
+      { ...baseRequest, resource: "evil.com/v1/chat" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(result.status).toBe("pending_approval");
+  });
+
+  it("a leading wildcard matches subdomains", () => {
+    const policy: Policy = {
+      rules: [{ resource: "*.openai.com", verdict: "approved" }],
+    };
+
+    const result = evaluatePolicy(
+      { ...baseRequest, resource: "api.openai.com" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(result.status).toBe("approved");
+  });
+
+  it("an exact resource still matches exactly, not its sub-paths", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "approved" }],
+    };
+
+    const exact = evaluatePolicy(
+      { ...baseRequest, resource: "openai.com" },
+      policy,
+      emptyLedger,
+    );
+    const subPath = evaluatePolicy(
+      { ...baseRequest, resource: "openai.com/v1" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(exact.status).toBe("approved");
+    expect(subPath.status).toBe("pending_approval");
+  });
+
+  it("treats a dot in the pattern as a literal, not 'any character'", () => {
+    const policy: Policy = {
+      rules: [{ resource: "api.openai.com", verdict: "approved" }],
+    };
+
+    const result = evaluatePolicy(
+      { ...baseRequest, resource: "apiXopenai.com" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(result.status).toBe("pending_approval");
+  });
+});
