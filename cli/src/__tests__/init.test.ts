@@ -60,4 +60,9 @@ describe("runInit", () => {
     expect(result.created).toContain("shotoku.config.json");
     expect(result.created).toContain("data/");
   });
+
+  it("returns the effective defaultVerdict of the policy", async () => {
+    const result = await runInit(dir);
+    expect(result.defaultVerdict).toBe("pending_approval");
+  });
 });

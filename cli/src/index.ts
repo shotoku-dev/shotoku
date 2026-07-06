@@ -279,10 +279,21 @@ program
   .description("Initialize Shotoku in the current directory")
   .option("--dir <path>", "Target directory", ".")
   .action(async (opts: { dir: string }) => {
-    const { created, skipped } = await runInit(opts.dir);
+    const { created, skipped, defaultVerdict } = await runInit(opts.dir);
 
     for (const f of created) console.log(`  ✓ Created  ${f}`);
     for (const f of skipped) console.log(`  · Skipped  ${f} (already exists)`);
+
+    console.log("");
+    console.log(`  Default verdict: ${defaultVerdict}`);
+    if (defaultVerdict === "pending_approval") {
+      console.log("  → Any action that matches no rule is held for human approval, never auto-allowed.");
+    } else if (defaultVerdict === "denied") {
+      console.log("  → Any action that matches no rule is blocked outright.");
+    } else {
+      console.log("  → ⚠ Any action that matches no rule is auto-approved without review.");
+    }
+    console.log("  → Change this with `defaultVerdict` in policy.yaml.");
 
     console.log("");
     console.log("Ready. Try:");

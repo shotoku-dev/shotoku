@@ -1,5 +1,7 @@
-import { mkdir, writeFile, access } from "node:fs/promises";
+import { mkdir, writeFile, access, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { parse } from "yaml";
+import type { AuthorizationStatus } from "@shotoku/core";
 
 const POLICY_YAML = `# Shotoku policy
 # Docs: https://github.com/shotoku-dev/shotoku
@@ -32,6 +34,8 @@ const CONFIG = {
 export interface InitResult {
   readonly created: string[];
   readonly skipped: string[];
+  /** The effective verdict for actions that match no rule (safe-by-default). */
+  readonly defaultVerdict: AuthorizationStatus;
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -71,5 +75,17 @@ export async function runInit(baseDir: string): Promise<InitResult> {
     created.push("shotoku.config.json");
   }
 
-  return { created, skipped };
+  // Read back the effective default verdict so `init` can surface it. The engine
+  // treats an omitted defaultVerdict as "pending_approval" (fail toward review),
+  // so we mirror that here.
+  let defaultVerdict: AuthorizationStatus = "pending_approval";
+  try {
+    const raw = await readFile(policyPath, "utf8");
+    const parsed = parse(raw) as { defaultVerdict?: AuthorizationStatus } | null;
+    if (parsed?.defaultVerdict) defaultVerdict = parsed.defaultVerdict;
+  } catch {
+    // Unreadable policy: keep the safe default.
+  }
+
+  return { created, skipped, defaultVerdict };
 }
