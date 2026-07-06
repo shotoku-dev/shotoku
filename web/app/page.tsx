@@ -3,7 +3,6 @@ import HeroPlayground from "./components/HeroPlayground";
 import StackingCardsSection from "./components/StackingCardsSection";
 import CTARow from "./components/CTARow";
 import FAQSection from "./components/FAQSection";
-import PageFooter from "./components/PageFooter";
 
 export default function Home() {
   return (
@@ -31,7 +30,6 @@ export default function Home() {
         </section>
       </main>
 
-      <PageFooter />
     </>
   );
 }

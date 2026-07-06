@@ -7,3 +7,4 @@ dist
 .next
 *.lock.json
 .claude/
+docs/[A-Z]*.md

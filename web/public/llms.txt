@@ -1,0 +1,207 @@
+# Shotoku
+
+> Local-first authorization layer for AI agents.
+
+Shotoku intercepts agent actions — API calls, purchases, code execution, MCP tool use — evaluates them against a local policy file, and records every decision to an append-only local ledger. No cloud dependency in the authorization path. No custody, no wallet, no payment processing.
+
+Last updated: 2026-07-06
+
+---
+
+## What Shotoku is
+
+Shotoku is an authorization layer, not a payment rail. Spending is the first use case. Authorization for any agent action is the category.
+
+Before an agent acts, call `authorize()`. Shotoku reads your policy file and the local ledger (for rolling budget totals), evaluates the request, writes the decision, and returns a verdict with structured reasons. If the policy file is missing or the request is malformed, Shotoku denies — it never defaults to approved.
+
+Three outcomes are possible:
+
+- **approved** — the action passed all policy checks. The agent can proceed.
+- **denied** — a policy rule blocked the action. The agent should stop.
+- **pending_approval** — no rule automatically decided this. A human must approve or deny via `shotoku approve <id>`.
+
+---
+
+## Key concepts
+
+### AI agent authorization
+
+AI agent authorization is the practice of requiring an explicit policy check before an autonomous agent takes an action — spending money, calling an API, executing code, sending a message, or using a tool. Without authorization, agents act on behalf of users with no record, no limits, and no approval step.
+
+Shotoku implements this as a local-first gate: your policy lives on your machine, evaluation happens on your machine, and decisions are stored on your machine. Nothing is sent to a remote service.
+
+### AI agent approval workflow
+
+When an agent requests an action that no rule automatically approves, Shotoku records it as `pending_approval` and stops. A human reviews it with `shotoku status`, approves with `shotoku approve <id>`, or denies with `shotoku deny <id>`. The decision is appended to the ledger and the agent can re-run.
+
+### Hash-chained audit log for AI agents
+
+Every decision Shotoku records includes an integrity block linking it to the hash of the previous entry. This makes the ledger tamper-evident: altering a past record breaks every hash that follows it. The ledger is a plain JSONL file — one JSON object per line — readable in any text editor and verifiable with `shotoku verify`.
+
+### x402 authorization
+
+x402 is an HTTP payment protocol (HTTP 402 Payment Required) for agent-to-service micropayments, settled in stablecoins. Shotoku authorizes the payment intent before execution: when an agent encounters a 402 response, it calls `authorize()` with `action: "purchase"` and `rail: "x402"` before signing. If denied or pending, the payment never fires.
+
+---
+
+## Core API
+
+### authorize(request, options)
+
+```typescript
+import { authorize } from "@shotoku/core";
+
+const response = await authorize(
+  {
+    actor:    "agent-001",
+    action:   "api_call",
+    resource: "api.openai.com",
+    amount:   0.04,
+  },
+  {
+    policyPath: "./policy.yaml",
+    ledgerPath: "./data/decisions.jsonl",
+  },
+);
+
+if (response.approved) {
+  await callOpenAI(prompt);
+}
+```
+
+### AuthorizeRequest
+
+```typescript
+interface AuthorizeRequest {
+  readonly actor:    string;               // agent name or ID
+  readonly action:   AgentAction;          // what the agent wants to do
+  readonly resource: string;               // target domain or service
+  readonly rail?:    ExecutionRail;        // optional: x402 | mcp | api | code | custom
+  readonly amount?:  number;               // optional: USD cost of the action
+  readonly context?: Record<string, unknown>; // optional: extra fields recorded with the decision
+}
+```
+
+### AuthorizeResponse
+
+```typescript
+interface AuthorizeResponse {
+  readonly approved:    boolean;
+  readonly status:      "approved" | "denied" | "pending_approval";
+  readonly reasons:     readonly ReasonItem[];
+  readonly explanation: Explanation;
+  readonly decisionId:  string;   // e.g. dec_abc123
+  readonly timestamp:   string;   // ISO 8601
+}
+```
+
+### AgentAction
+
+```
+purchase | api_call | execute_code | send_email | mcp_tool | custom
+```
+
+### ExecutionRail
+
+```
+x402 | mcp | api | code | custom
+```
+
+---
+
+## Policy format
+
+A policy file is a YAML file on your machine. Rules are evaluated top-to-bottom — the first match wins. Unknown fields are rejected to prevent typos from silently weakening authorization.
+
+```yaml
+version: 1
+defaultVerdict: pending_approval
+
+rules:
+  - resource: "api.openai.com"
+    actions: ["api_call"]
+    verdict: approved
+    maxAmount: 5.00
+    maxDailyAmount: 50.00
+
+  - resource: "api.anthropic.com"
+    actions: ["api_call"]
+    verdict: approved
+    maxAmount: 2.00
+    maxDailyAmount: 20.00
+
+  - resource: "*"
+    actions: ["purchase"]
+    verdict: denied
+```
+
+`maxDailyAmount` is checked against a rolling 24-hour window per actor+resource pair, computed from the local ledger.
+
+---
+
+## CLI commands
+
+```
+shotoku init                          # scaffold policy.yaml and data/ directory
+shotoku authorize --actor --action --resource [--amount]
+shotoku status                        # show pending approvals
+shotoku approve <decisionId>          # approve a pending decision
+shotoku deny <decisionId>             # deny a pending decision
+shotoku history [--actor] [--since] [--status]
+shotoku decision <id>                 # show full decision detail
+shotoku verify                        # verify ledger hash chain integrity
+```
+
+Exit codes: `0` if approved, `1` if denied or pending.
+
+---
+
+## MCP server
+
+Shotoku exposes an MCP (Model Context Protocol) server so agent hosts — Claude, Cursor, Windsurf — can call authorization tools inline, without custom integration code.
+
+```json
+{
+  "mcpServers": {
+    "shotoku": {
+      "command": "node",
+      "args": ["/path/to/shotoku/mcp/dist/index.js"],
+      "env": {
+        "SHOTOKU_POLICY_PATH": "./policy.yaml",
+        "SHOTOKU_LEDGER_PATH": "./data/decisions.jsonl"
+      }
+    }
+  }
+}
+```
+
+MCP tools exposed: `authorize_action`, `get_decision`, `get_pending_approvals`.
+
+---
+
+## What Shotoku is not
+
+- Not a wallet. Shotoku does not hold funds.
+- Not a payment processor. It does not move money.
+- Not a custody provider. It never touches private keys.
+- Not a cloud service. The authorization path requires no network.
+- Not an enterprise compliance suite. It is built for agent developers.
+
+---
+
+## Documentation
+
+- [Quickstart](https://shotoku.dev/docs/quickstart): Install to first decision in five minutes
+- [API reference](https://shotoku.dev/docs/api): authorize(), types, request/response shape
+- [Policies](https://shotoku.dev/docs/policies): Policy YAML format, rules, limits, wildcards
+- [CLI reference](https://shotoku.dev/docs/cli): Every command, flag, and exit code
+- [MCP server](https://shotoku.dev/docs/mcp): Connect Shotoku to Claude, Cursor, and any MCP client
+- [x402](https://shotoku.dev/docs/x402): Authorize HTTP 402 payment intents before they execute
+- [TUI](https://shotoku.dev/docs/tui): Interactive terminal UI for reviewing pending approvals
+- [Snapshots](https://shotoku.dev/docs/snapshots): Sign and verify policy and ledger state
+
+## Source
+
+- GitHub: https://github.com/shotoku-dev/shotoku
+- npm (CLI): https://www.npmjs.com/package/shotoku-cli
+- npm (core): https://www.npmjs.com/package/@shotoku/core

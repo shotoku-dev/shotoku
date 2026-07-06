@@ -1,5 +1,4 @@
 import Navbar from "../components/Navbar";
-import PageFooter from "../components/PageFooter";
 
 const S = {
   page:    { paddingTop: 120, paddingBottom: 96, paddingLeft: 32, paddingRight: 32, maxWidth: 700, margin: "0 auto" } as React.CSSProperties,
@@ -49,7 +48,6 @@ export default function ChangelogPage() {
           </a>.
         </p>
       </div>
-      <PageFooter />
     </>
   );
 }
