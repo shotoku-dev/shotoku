@@ -127,6 +127,7 @@ export interface Policy {
 
 /** Pre-computed daily totals passed into the policy evaluator. Key format: "${actor}|${resource}". */
 export interface LedgerSnapshot {
+  /** Approved spend per actor|resource, in integer micro-units (see money.ts). */
   readonly dailyTotals: Readonly<Record<string, number>>;
   readonly windowStart: string;
 }

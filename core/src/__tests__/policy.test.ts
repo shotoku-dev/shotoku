@@ -42,7 +42,7 @@ describe("evaluatePolicy", () => {
       ],
     };
     const ledger: LedgerSnapshot = {
-      dailyTotals: { "agent-1|openai.com": 95 },
+      dailyTotals: { "agent-1|openai.com": 95_000_000 },
       windowStart: new Date("2026-06-18T00:00:00.000Z").toISOString(),
     };
 

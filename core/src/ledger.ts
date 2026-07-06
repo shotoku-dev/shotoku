@@ -8,6 +8,7 @@ import {
 } from "node:fs/promises";
 import { dirname } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { toMicros } from "./money.js";
 import type {
   ApprovalEntry,
   AuthorizationStatus,
@@ -449,7 +450,7 @@ export async function getLedgerSnapshot(
     if (amount === undefined) continue;
 
     const key = `${entry.request.actor}|${entry.request.resource}`;
-    dailyTotals[key] = (dailyTotals[key] ?? 0) + amount;
+    dailyTotals[key] = (dailyTotals[key] ?? 0) + toMicros(amount);
   }
 
   return { dailyTotals, windowStart: windowStart.toISOString() };

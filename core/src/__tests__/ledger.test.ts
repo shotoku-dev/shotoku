@@ -212,7 +212,29 @@ describe("getLedgerSnapshot", () => {
     );
 
     const snapshot = await getLedgerSnapshot(ledgerPath);
-    expect(snapshot.dailyTotals["agent-1|openai.com"]).toBe(40);
+    expect(snapshot.dailyTotals["agent-1|openai.com"]).toBe(40_000_000);
+  });
+
+  it("sums fractional amounts exactly (no floating-point drift)", async () => {
+    const now = new Date().toISOString();
+    for (const [id, amount] of [
+      ["dec_a", 0.1],
+      ["dec_b", 0.2],
+    ] as const) {
+      await appendDecision(
+        makeEntry({
+          decisionId: id,
+          timestamp: now,
+          request: { ...makeEntry().request, amount },
+          response: { ...makeEntry().response, decisionId: id, timestamp: now },
+        }),
+        ledgerPath,
+      );
+    }
+
+    const snapshot = await getLedgerSnapshot(ledgerPath);
+    // $0.10 + $0.20 = exactly 300000 micro-units, not 0.30000000000000004.
+    expect(snapshot.dailyTotals["agent-1|openai.com"]).toBe(300_000);
   });
 
   it("excludes denied decisions from daily totals", async () => {
@@ -269,6 +291,6 @@ describe("getLedgerSnapshot", () => {
     const snapshot = await getLedgerSnapshot(ledgerPath, {
       now: new Date("2026-06-18T12:00:00.000Z"),
     });
-    expect(snapshot.dailyTotals["agent-1|openai.com"]).toBe(20);
+    expect(snapshot.dailyTotals["agent-1|openai.com"]).toBe(20_000_000);
   });
 });

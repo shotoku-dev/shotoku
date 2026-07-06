@@ -6,6 +6,7 @@ import type {
   PolicyRule,
   ReasonItem,
 } from "./types.js";
+import { toMicros, fromMicros } from "./money.js";
 
 function ledgerKey(actor: string, resource: string): string {
   return `${actor}|${resource}`;
@@ -72,7 +73,7 @@ export function evaluatePolicy(
   }
 
   if (request.amount !== undefined && matchedRule.maxAmount !== undefined) {
-    if (request.amount > matchedRule.maxAmount) {
+    if (toMicros(request.amount) > toMicros(matchedRule.maxAmount)) {
       return {
         status: "denied",
         reasons: [
@@ -92,24 +93,26 @@ export function evaluatePolicy(
 
   if (matchedRule.maxDailyAmount !== undefined) {
     const key = ledgerKey(request.actor, request.resource);
-    const spent = ledger.dailyTotals[key] ?? 0;
-    const incoming = request.amount ?? 0;
+    const spentMicros = ledger.dailyTotals[key] ?? 0;
+    const incomingMicros = toMicros(request.amount ?? 0);
+    const limitMicros = toMicros(matchedRule.maxDailyAmount);
+    const totalMicros = spentMicros + incomingMicros;
 
-    if (spent + incoming > matchedRule.maxDailyAmount) {
+    if (totalMicros > limitMicros) {
       return {
         status: "denied",
         reasons: [
           ...reasons,
           {
             type: "budget_check",
-            text: `Daily total $${spent + incoming} would exceed daily limit of $${matchedRule.maxDailyAmount}`,
+            text: `Daily total $${fromMicros(totalMicros)} would exceed daily limit of $${matchedRule.maxDailyAmount}`,
           },
         ],
       };
     }
     reasons.push({
       type: "budget_check",
-      text: `Daily budget remaining: $${matchedRule.maxDailyAmount - spent - incoming}`,
+      text: `Daily budget remaining: $${fromMicros(limitMicros - totalMicros)}`,
     });
   }
 
