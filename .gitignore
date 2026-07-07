@@ -8,3 +8,4 @@ dist
 *.lock.json
 .claude/
 docs/[A-Z]*.md
+internal-notes/
