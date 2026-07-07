@@ -99,8 +99,11 @@ export interface ApprovalEntry {
 }
 
 export interface PolicyRule {
-  /** Exact resource string or "*" to match any resource. */
+  /** Resource pattern; `*` is a wildcard (e.g. "openai.com/*", "*.openai.com"). */
   readonly resource: string;
+
+  /** Restricts the rule to actors matching this pattern (`*` wildcard, e.g. "team-*"). Omit to match all actors. */
+  readonly actor?: string;
 
   /** Limits which actions this rule applies to. Omit to match all actions. */
   readonly actions?: readonly AgentAction[];

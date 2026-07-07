@@ -49,6 +49,7 @@ Because the first match wins, **put your most specific rules first and your catc
 
 ```yaml
 - resource: openai.com      # required
+  actor: team-*             # optional — match only these actors
   actions: [api_call]       # optional — match only these action types
   rails: [api]              # optional — match only these execution rails
   verdict: approved         # required
@@ -58,7 +59,8 @@ Because the first match wins, **put your most specific rules first and your catc
 
 | Field | Required | What it does |
 |---|---|---|
-| `resource` | yes | The domain or service this rule applies to. Use `"*"` to match anything. |
+| `resource` | yes | The domain or service this rule applies to. `*` is a wildcard (e.g. `openai.com/*`, `*.openai.com`). |
+| `actor` | no | Restricts the rule to actors matching this pattern. `*` is a wildcard, so `team-*` matches `team-alpha`, `team-billing`, etc. Omit to match all actors. |
 | `actions` | no | Restricts the rule to specific action types (`purchase`, `api_call`, `execute_code`, `send_email`, `mcp_tool`, `custom`). Omit to match all actions. |
 | `rails` | no | Restricts the rule to specific execution rails (`x402`, `mcp`, `api`, `code`, `custom`). Omit to match all rails. |
 | `verdict` | yes | What to decide when the rule matches: `approved`, `denied`, or `pending_approval`. |

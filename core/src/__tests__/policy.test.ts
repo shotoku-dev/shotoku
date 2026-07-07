@@ -249,3 +249,59 @@ describe("evaluatePolicy — glob resource matching", () => {
     expect(result.status).toBe("pending_approval");
   });
 });
+
+describe("evaluatePolicy — actor matching", () => {
+  it("a rule with an actor pattern only matches that actor", () => {
+    const policy: Policy = {
+      rules: [{ resource: "*", actor: "billing-agent", verdict: "approved" }],
+    };
+
+    const match = evaluatePolicy(
+      { ...baseRequest, actor: "billing-agent" },
+      policy,
+      emptyLedger,
+    );
+    const other = evaluatePolicy(
+      { ...baseRequest, actor: "other-agent" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(match.status).toBe("approved");
+    expect(other.status).toBe("pending_approval");
+  });
+
+  it("an actor wildcard matches a whole team", () => {
+    const policy: Policy = {
+      rules: [{ resource: "*", actor: "team-*", verdict: "approved" }],
+    };
+
+    const alpha = evaluatePolicy(
+      { ...baseRequest, actor: "team-alpha" },
+      policy,
+      emptyLedger,
+    );
+    const outsider = evaluatePolicy(
+      { ...baseRequest, actor: "rogue" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(alpha.status).toBe("approved");
+    expect(outsider.status).toBe("pending_approval");
+  });
+
+  it("a rule without an actor matches any actor", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "approved" }],
+    };
+
+    const result = evaluatePolicy(
+      { ...baseRequest, actor: "anyone" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(result.status).toBe("approved");
+  });
+});
