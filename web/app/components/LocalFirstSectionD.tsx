@@ -20,13 +20,14 @@ const Blank = () => <div style={{ height: 19 }} />;
 
 export default function LocalFirstSectionD() {
   const narrow = useIsNarrow(1030);
+  const mobile = useIsNarrow(600);
 
   return (
     <div
       style={{
         background: '#CAC3B9',
         borderRadius: 6,
-        padding: narrow ? '24px 28px 0' : '0 64px',
+        padding: mobile ? '24px 48px 0' : narrow ? '24px 28px 0' : '0 64px',
         display: 'flex',
         flexDirection: narrow ? 'column-reverse' : 'row',
         gap: narrow ? 16 : 32,

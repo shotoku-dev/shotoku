@@ -73,6 +73,11 @@
 
   body {
     overflow-x: clip;
+    user-select: none;
+  }
+
+  pre, code, input, textarea, [data-selectable] {
+    user-select: text;
   }
 
   a {

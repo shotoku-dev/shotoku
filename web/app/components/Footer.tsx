@@ -71,16 +71,11 @@ function StatusDot() {
 export default function Footer() {
   return (
     <footer
-      style={{
-        background: "#ffffff",
-        padding: "80px 256px 48px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
-      }}
+      className="px-6 sm:px-16 lg:px-64 py-12 flex flex-col gap-5"
+      style={{ background: "#ffffff" }}
     >
       {/* Top row: logo + nav columns */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 64 }}>
+      <div className="flex flex-col md:flex-row md:items-start gap-10 md:gap-16">
         {/* Brand */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12, flexShrink: 0, width: 220 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -117,9 +112,9 @@ export default function Footer() {
         </div>
 
         {/* Nav columns */}
-        <div style={{ display: "flex", gap: 40, flex: 1, justifyContent: "flex-end" }}>
+        <div className="flex flex-wrap gap-x-10 gap-y-6 md:flex-1 md:justify-end">
           {NAV_COLUMNS.map((col) => (
-            <div key={col.label} style={{ display: "flex", flexDirection: "column", minWidth: 110 }}>
+            <div key={col.label} style={{ display: "flex", flexDirection: "column" }}>
               <span
                 style={{
                   fontFamily: "var(--font-geist), sans-serif",
@@ -158,7 +153,7 @@ export default function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Status */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <StatusDot />

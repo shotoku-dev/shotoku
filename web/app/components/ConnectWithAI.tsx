@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Openai, Claude, Perplexity, Grok } from "@thesvg/react";
+import { IconArrowForward } from "@tabler/icons-react";
 import { CopyIcon, type CopyIconHandle } from "./icons/CopyIcon";
 import { CheckIcon, type CheckIconHandle } from "./icons/CheckIcon";
 
@@ -145,7 +146,8 @@ export default function ConnectWithAI() {
   }, [copied]);
 
   return (
-    <div ref={wrapperRef} style={{ position: "relative", display: "inline-block", marginTop: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+    <div ref={wrapperRef} style={{ position: "relative", display: "inline-block" }}>
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 px-3 py-2 rounded-[10px] transition-[background-color,scale] duration-150 ease-out hover:bg-black/5 active:scale-[0.97]"
@@ -244,6 +246,31 @@ export default function ConnectWithAI() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+      <a
+        href="https://cal.eu/shotoku.julius/design-partner-collaboration"
+        target="_blank"
+        rel="noopener noreferrer"
+        onMouseEnter={e => { const s = e.currentTarget.querySelector<HTMLSpanElement>("[data-sub]"); if (s) s.style.color = "#0A0A0A"; }}
+        onMouseLeave={e => { const s = e.currentTarget.querySelector<HTMLSpanElement>("[data-sub]"); if (s) s.style.color = "rgba(0,0,0,0.38)"; }}
+        style={{
+          fontFamily: "Satoshi, var(--font-geist), sans-serif",
+          textDecoration: "none",
+          letterSpacing: "-0.01em",
+          display: "inline-flex",
+          flexDirection: "column",
+          gap: 3,
+          marginTop: 8,
+        }}
+      >
+        <span style={{ fontSize: 14, color: "#0A0A0A" }}>
+          Want to become a design partner ?
+        </span>
+        <span data-sub="" style={{ fontSize: 14, color: "rgba(0,0,0,0.38)", paddingLeft: 16, display: "flex", alignItems: "center", gap: 4, transition: "color 0.15s" }}>
+          <IconArrowForward size={14} stroke={1.5} />
+          Let&apos;s chat
+        </span>
+      </a>
     </div>
   );
 }
