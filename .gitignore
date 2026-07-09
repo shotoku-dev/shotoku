@@ -9,3 +9,4 @@ dist
 .claude/
 docs/[A-Z]*.md
 internal-notes/
+clawvisor/

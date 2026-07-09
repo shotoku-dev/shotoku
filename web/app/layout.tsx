@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://shotoku.dev"),
   title: "Shotoku - Local-first authorization for AI agents",
   description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
   icons: {

@@ -23,6 +23,7 @@ export default function Navbar() {
         <nav className="flex items-center gap-0.5">
           <a href="/docs" className="px-2.5 py-2.5 text-[13px] font-medium text-white/50 transition-colors duration-150 hover:text-white/80">Docs</a>
           <a href="/changelog" className="px-2.5 py-2.5 text-[13px] font-medium text-white/50 transition-colors duration-150 hover:text-white/80">Changelog</a>
+          <a href="/pricing" className="px-2.5 py-2.5 text-[13px] font-medium text-white/50 transition-colors duration-150 hover:text-white/80">Pricing</a>
           <a href="https://github.com/shotoku-dev/shotoku" target="_blank" rel="noopener noreferrer" className="px-2.5 py-2.5 text-[13px] font-medium text-white/50 transition-colors duration-150 hover:text-white/80">GitHub</a>
         </nav>
       </div>
