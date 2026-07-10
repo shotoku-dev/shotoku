@@ -14,7 +14,8 @@
     "test": "vitest run src"
   },
   "dependencies": {
-    "@shotoku/core": "workspace:*"
+    "@shotoku/core": "workspace:*",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "vitest": "^4.1.9"
