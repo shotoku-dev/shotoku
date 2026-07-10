@@ -2,6 +2,7 @@ packages:
   - core
   - cli
   - mcp
+  - gateway
   - web
 allowBuilds:
   esbuild: true

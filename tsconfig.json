@@ -1,4 +1,4 @@
 {
   "files": [],
-  "references": [{ "path": "./core" }, { "path": "./cli" }, { "path": "./mcp" }]
+  "references": [{ "path": "./core" }, { "path": "./cli" }, { "path": "./mcp" }, { "path": "./gateway" }]
 }

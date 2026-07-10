@@ -1,0 +1,22 @@
+{
+  "name": "shotoku-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "shotoku-gateway": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "pretest": "pnpm --filter @shotoku/core build",
+    "test": "vitest run src"
+  },
+  "dependencies": {
+    "@shotoku/core": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.9"
+  }
+}
