@@ -10,3 +10,4 @@ dist
 docs/[A-Z]*.md
 internal-notes/
 clawvisor/
+docs/internal/

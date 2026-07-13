@@ -2,17 +2,19 @@
 
 # Shotoku
 
-Shotoku is a local-first authorization layer for AI agents.
+Shotoku is spend controls for AI agents.
 
-Before an agent performs an action — calling a paid API, using an MCP tool, executing code, sending an email, deploying infrastructure, or spending money — Shotoku evaluates the request, applies policy, and records the decision locally.
+Before an agent spends money — an x402 payment, a paid API call, a purchase — Shotoku evaluates the request against budgets and policy, applies limits or human approval, and records the decision locally. The same engine authorizes any agent action (MCP tools, code execution, email); spending is the wedge, not the ceiling.
 
 Built first with x402. Designed for any payment or action rail.
 
-No custody ever.
+Deterministic. No custody ever. Local-first.
 
 ## Product One-Liner
 
-Shotoku lets developers require approvals, enforce limits, and record auditable decisions before AI agents act.
+Spend controls for AI agents.
+
+Long form: Shotoku lets AI agents spend money safely — budgets, human approvals, and a tamper-evident audit trail, enforced deterministically on your machine before the payment happens. No custody, ever.
 
 ## Core Question
 
@@ -80,20 +82,40 @@ Shotoku is not:
 
 ## Important Positioning Rule
 
-Do not position Shotoku as only an “agent spending” product.
+Lead with spending everywhere public. Mention the general engine only as the expansion story, never as the headline. (Rationale: docs/internal/revamp.md — the generic "authorization layer" tagline is contested; spend enforcement is the defensible wedge.)
 
-Spending is the first wedge. Authorization for agent actions is the category.
+Never say "payment layer" or "wallet" — Shotoku authorizes payments, it does not move them. The differentiator triad appears in every public description: **deterministic · no custody · local-first**.
 
 Good:
 
 ```txt
-Local-first authorization layer for AI agents.
+Spend controls for AI agents.
+```
+
+Good (GitHub/npm descriptions):
+
+```txt
+Local-first spend controls for AI agents.
 ```
 
 Bad:
 
 ```txt
 Payment layer for AI agents.
+```
+
+Bad (contested, do not lead with it):
+
+```txt
+The authorization layer for AI agents.
+```
+
+The expansion sentence, when someone asks "just payments?":
+
+```txt
+The same engine authorizes any agent action — the request model is
+already rail-agnostic (x402, MCP, API, code). Spending is where the
+pain is sharpest today, so that's where we start.
 ```
 
 Good:
@@ -1151,14 +1173,14 @@ A developer should understand Shotoku in under 10 seconds.
 Hero message:
 
 ```txt
-See, approve, and audit what your agents do.
+Give your agents a budget, not your card.
 ```
 
 Subtext:
 
 ```txt
-Not another payment rail. Not a cloud policy engine.
-Runs on your machine.
+Budgets, approvals, and a tamper-evident audit trail for AI agent
+spending. Deterministic. No custody. Runs on your machine.
 ```
 
 Tasks:
@@ -1484,28 +1506,26 @@ chore: Block 4 complete
 ## Core Pitch
 
 ```txt
-Shotoku is a local-first authorization layer for AI agents.
+Shotoku is spend controls for AI agents.
 
-Agents can spend money, call APIs, execute code, and use tools autonomously. Shotoku gives developers a simple way to see, approve, deny, explain, and audit what agents do — running entirely on their machine.
+Agents can spend money autonomously — x402 payments, paid APIs, purchases. Shotoku lets developers set budgets, require human approvals, and keep a tamper-evident audit trail, enforced deterministically before the payment happens. Runs entirely on their machine. No custody, ever.
 ```
 
 ## Show HN Title
 
 ```txt
-Show HN: Shotoku – Local-first authorization layer for AI agents
+Show HN: Shotoku – Give your AI agents a spending budget (local, no custody)
 ```
 
 ## Short Social Post
 
 ```txt
-Shipped Shotoku: a local-first authorization layer for AI agents.
+Shipped Shotoku: spend controls for AI agents.
 
-Agents act. Shotoku checks first.
+Agents spend. Shotoku checks first.
 
-approve()
-deny()
-explain()
-audit()
+Budgets. Approvals. An audit trail.
+Before the payment happens.
 
 Runs on your machine. No cloud. No custody.
 ```
@@ -1538,4 +1558,4 @@ Do not turn the product into a wallet.
 
 Do not let x402 become the whole identity.
 
-Build the local authorization layer first.
+Build the local spend-control layer first. The general authorization engine is the expansion, not the headline.
