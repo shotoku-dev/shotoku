@@ -38,6 +38,14 @@ export default [
     },
   },
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "web/.next/**"],
+    files: ["**/*.mjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
+    ignores: ["**/dist/**", "**/node_modules/**", "web/.next/**", "clawvisor/**"],
   },
 ];
