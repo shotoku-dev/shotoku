@@ -167,6 +167,9 @@ export function formatResponse(response: AuthorizeResponse): string {
     for (const reason of reasons) {
       lines.push(`  • ${reason.text}`);
     }
+    if (response.receipt !== undefined) {
+      lines.push(`  Receipt: ${response.receipt}`);
+    }
     lines.push(`  Recorded at ${formatTime(timestamp)}`);
   } else if (status === "denied") {
     lines.push(`${DENIED}  ${decisionId}`);

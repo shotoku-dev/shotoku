@@ -23,6 +23,15 @@ describe("formatResponse", () => {
     expect(out).toContain("Recorded at");
   });
 
+  it("approved output includes the receipt when one was issued", () => {
+    const out = formatResponse({ ...base, receipt: "rcpt.abc.def" });
+    expect(out).toContain("Receipt: rcpt.abc.def");
+  });
+
+  it("approved output has no receipt line when none was issued", () => {
+    expect(formatResponse(base)).not.toContain("Receipt:");
+  });
+
   it("denied output starts with ✗ DENIED and includes approve hint", () => {
     const response: AuthorizeResponse = {
       ...base,

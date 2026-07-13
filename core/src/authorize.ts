@@ -5,6 +5,7 @@ import type { AuthorizeRequest, AuthorizeResponse, Policy } from "./types.js";
 import { evaluatePolicy } from "./policy.js";
 import { appendDecision, getLedgerSnapshot, withLedgerLock } from "./ledger.js";
 import { buildExplanation } from "./explain.js";
+import { createReceipt } from "./receipt.js";
 import { ShotokuError, errorCode, errorMessage } from "./errors.js";
 import {
   isAgentAction,
@@ -105,6 +106,12 @@ export async function authorize(
   options: {
     readonly policyPath: string;
     readonly ledgerPath: string;
+
+    /** When set, approved decisions carry a signed receipt (see receipt.ts). */
+    readonly receiptSecret?: string;
+
+    /** Receipt lifetime in seconds. Defaults to 300. */
+    readonly receiptTtlSeconds?: number;
   },
 ): Promise<AuthorizeResponse> {
   const id = decisionId();
@@ -152,6 +159,23 @@ export async function authorize(
     const snapshot = await getLedgerSnapshot(options.ledgerPath);
     const result = evaluatePolicy(request, loadedPolicy, snapshot);
 
+    const receipt =
+      result.status === "approved" && options.receiptSecret !== undefined
+        ? createReceipt({
+            decisionId: id,
+            actor: requestForLedger.actor,
+            action: requestForLedger.action,
+            resource: requestForLedger.resource,
+            ...(requestForLedger.amount !== undefined
+              ? { amount: requestForLedger.amount }
+              : {}),
+            secret: options.receiptSecret,
+            ...(options.receiptTtlSeconds !== undefined
+              ? { ttlSeconds: options.receiptTtlSeconds }
+              : {}),
+          })
+        : undefined;
+
     const response: AuthorizeResponse = {
       approved: result.status === "approved",
       status: result.status,
@@ -159,6 +183,7 @@ export async function authorize(
       explanation: buildExplanation(result.status, result.reasons, id),
       decisionId: id,
       timestamp,
+      ...(receipt !== undefined ? { receipt } : {}),
     };
 
     await appendDecision(

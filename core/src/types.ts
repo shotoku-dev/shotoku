@@ -59,6 +59,32 @@ export interface AuthorizeResponse {
   readonly explanation: Explanation;
   readonly decisionId: string;
   readonly timestamp: string;
+
+  /**
+   * Compact signed token present only on approved decisions when a receipt
+   * secret is configured. Downstream infrastructure verifies it with
+   * `verifyReceipt()` before executing the action.
+   */
+  readonly receipt?: string;
+}
+
+/** Claims carried inside a signed decision receipt. */
+export interface ReceiptPayload {
+  readonly v: 1;
+  readonly decisionId: string;
+  readonly actor: string;
+  readonly action: AgentAction;
+  readonly resource: string;
+  readonly amount?: number;
+  /** Expiry, in seconds since the Unix epoch. */
+  readonly exp: number;
+}
+
+export interface ReceiptVerification {
+  readonly valid: boolean;
+  /** Present only when the receipt is valid. */
+  readonly payload?: ReceiptPayload;
+  readonly reasons: readonly string[];
 }
 
 export interface LedgerIntegrity {

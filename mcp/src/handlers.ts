@@ -59,6 +59,7 @@ async function handleAuthorizeAction(
   }
 
   const config = await loadConfig();
+  const receiptSecret = process.env["SHOTOKU_RECEIPT_SECRET"];
   const response = await authorize(
     {
       actor,
@@ -67,7 +68,11 @@ async function handleAuthorizeAction(
       ...(amount !== undefined ? { amount } : {}),
       ...(context !== undefined ? { context } : {}),
     },
-    { policyPath: config.policyPath, ledgerPath: config.ledgerPath },
+    {
+      policyPath: config.policyPath,
+      ledgerPath: config.ledgerPath,
+      ...(receiptSecret?.trim() ? { receiptSecret } : {}),
+    },
   );
 
   return jsonResult({ response });
