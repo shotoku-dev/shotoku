@@ -12,12 +12,12 @@ export default function Home() {
       <main className="pt-[52px]">
         <section className="px-6 sm:px-16 lg:px-64 pt-20 pb-8 flex flex-col gap-10">
           <h1 className="text-[1.625rem] sm:text-[2rem] lg:text-[2.625rem] font-medium tracking-tight leading-[1.15] text-balance text-left text-[#0A0A0A] max-w-full lg:max-w-[60%]" style={{ fontFamily: "Satoshi, sans-serif" }}>
-            See, approve and audit what your agents do.
+            Give your agents a budget, not your card.
           </h1>
           <p className="text-[15px] sm:text-[16px] leading-[1.6] max-w-[480px] -mt-5" style={{ fontFamily: "Satoshi, sans-serif", color: "rgba(0,0,0,0.5)" }}>
-            One function call before your agent acts. You set the rules,
-            Shotoku enforces them, and every decision is recorded — entirely
-            on your machine.
+            Budgets, approvals, and a tamper-evident audit trail for AI agent
+            spending — enforced before the payment happens, entirely on your
+            machine. Deterministic. No custody.
           </p>
           <CTARow githubLabel="GitHub" />
           <HeroPlayground />
@@ -29,8 +29,8 @@ export default function Home() {
 
         <section className="px-6 sm:px-16 lg:px-64 pt-8 pb-4 flex flex-col gap-4">
           <p className="text-[1.125rem] sm:text-[1.25rem] lg:text-[1.5rem] font-medium tracking-tight leading-[1.2] text-[#0A0A0A]" style={{ fontFamily: "Satoshi, sans-serif" }}>
-            Your agents are already acting.
-            <span className="text-[rgba(0,0,0,0.35)]"> Start with why.</span>
+            Your agents are already spending.
+            <span className="text-[rgba(0,0,0,0.35)]"> Set the limits.</span>
           </p>
           <CTARow />
         </section>

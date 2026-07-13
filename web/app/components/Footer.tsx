@@ -107,7 +107,7 @@ export default function Footer() {
               margin: 0,
             }}
           >
-            Local-first authorization layer for AI agents.
+            Spend controls for AI agents. Local-first, no custody.
           </p>
         </div>
 

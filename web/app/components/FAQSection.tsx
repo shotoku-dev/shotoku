@@ -15,16 +15,24 @@ const LINK = (href: string, label: string) => (
 
 const FAQ: { q: string; a: React.ReactNode }[] = [
   {
+    q: "How do I stop my AI agent from overspending?",
+    a: "Give it a budget. Policy rules take maxAmount (per transaction) and maxDailyAmount (a rolling 24-hour budget) per vendor. A request over either limit is denied before the payment happens, with a reason naming the exact cap it hit.",
+  },
+  {
     q: "How is this different from just writing an if statement before my API call?",
-    a: "An if statement is logic. Shotoku is infrastructure. It gives you a structured audit trail, a human approval queue, policy as config instead of code, and MCP integration — so the same rules apply whether your agent runs in your terminal, in Claude, or anywhere else.",
+    a: "An if statement is logic. Shotoku is infrastructure. It gives you rolling budgets, a structured audit trail, a human approval queue, policy as config instead of code, and MCP integration — so the same rules apply whether your agent runs in your terminal, in Claude, or anywhere else.",
   },
   {
     q: "What stops an agent from bypassing Shotoku entirely?",
-    a: "Nothing enforces it at the runtime level — Shotoku is a call you add, not a firewall. The value is that it makes the safe path the easy path: one function call, structured decisions, full audit log. If you need hard enforcement, pair it with network-level controls.",
+    a: "Signed receipts. Set SHOTOKU_RECEIPT_SECRET and every approved decision carries a short-lived signed token. The infrastructure that executes the action — your payment proxy, MCP gateway, or CI — verifies the receipt first, so nothing runs without an approval. Shotoku still never touches your credentials or funds.",
+  },
+  {
+    q: "Does Shotoku touch my money or keys?",
+    a: "Never. Shotoku holds no funds, stores no credentials or private keys, and never signs or settles a payment. It only decides whether a spend is allowed and records that decision — your agent's own wallet or payment rail does the executing.",
   },
   {
     q: "Isn't this just a logger with extra steps?",
-    a: "Logging records what happened. Shotoku decides what should happen before it does. The approval queue, policy evaluation, and structured reasons are what make it authorization rather than observability.",
+    a: "Logging records what happened. Shotoku decides what should happen before it does. The budget checks, approval queue, policy evaluation, and structured reasons are what make it enforcement rather than observability.",
   },
   {
     q: "Do I need an account or internet connection?",

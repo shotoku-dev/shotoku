@@ -15,16 +15,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://shotoku.dev"),
-  title: "Shotoku - Local-first authorization for AI agents",
-  description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
+  title: "Shotoku - Spend controls for AI agents",
+  description: "Give your AI agents a budget. Spending limits, human approvals, and a tamper-evident audit trail — enforced locally before the payment happens. No cloud. No custody.",
   icons: {
     icon: "/assets/brand/shotoku-favicon.svg",
     shortcut: "/assets/brand/shotoku-favicon.svg",
     apple: "/assets/brand/shotoku-favicon.svg",
   },
   openGraph: {
-    title: "Shotoku - Local-first authorization for AI agents",
-    description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
+    title: "Shotoku - Spend controls for AI agents",
+    description: "Give your AI agents a budget. Spending limits, human approvals, and a tamper-evident audit trail — enforced locally before the payment happens. No cloud. No custody.",
     url: "https://shotoku.dev",
     siteName: "Shotoku",
     type: "website",
@@ -33,14 +33,14 @@ export const metadata: Metadata = {
         url: "/assets/brand/shotoku-open-graph.png",
         width: 1200,
         height: 630,
-        alt: "Shotoku - Local-first authorization for AI agents",
+        alt: "Shotoku - Spend controls for AI agents",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Shotoku - Local-first authorization for AI agents",
-    description: "See, approve, and audit what your AI agents do before they act. Runs entirely on your machine. No cloud. No custody.",
+    title: "Shotoku - Spend controls for AI agents",
+    description: "Give your AI agents a budget. Spending limits, human approvals, and a tamper-evident audit trail — enforced locally before the payment happens. No cloud. No custody.",
     images: ["/assets/brand/shotoku-open-graph.png"],
   },
 };

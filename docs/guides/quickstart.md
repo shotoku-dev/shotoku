@@ -22,6 +22,8 @@ npm install -g shotoku-cli
 >
 > Then use `pnpm --filter shotoku-cli dev --` in place of `shotoku` in the commands below.
 
+Want to watch it work before configuring anything? Run `shotoku demo` — a simulated payments run: two purchases approved, a third denied when the daily budget runs out, an unknown vendor held for approval. Nothing real happens.
+
 ---
 
 ## 2. Initialize
@@ -46,10 +48,10 @@ The starter `policy.yaml` allowlists `openai.com` and `anthropic.com` up to $50 
 
 ## 3. Your first decision
 
-Ask Shotoku whether an agent may spend $5 calling OpenAI:
+Ask Shotoku whether an agent may spend $5 at OpenAI:
 
 ```bash
-shotoku authorize --actor my-agent --action api_call --resource openai.com --amount 5
+shotoku authorize --actor my-agent --action purchase --resource openai.com --amount 5
 ```
 
 ```txt

@@ -8,20 +8,33 @@ const EXPANDED_C = ['shotoku', 'data'];
 
 const FILE_BG: React.CSSProperties = { background: 'rgba(0,0,0,0.05)', borderRadius: 4 };
 
-const RULES = [
+interface PolicyRuleRow {
+  resource: string;
+  actions: string | null;
+  limits?: readonly (readonly [string, string])[];
+  verdict: string;
+  verdictColor: string;
+  comment: string;
+}
+
+const RULES: PolicyRuleRow[] = [
   {
     resource: 'openai.com',
-    actions: '[api_call]',
+    actions: '[purchase, api_call]',
+    limits: [
+      ['maxAmount', '50'],
+      ['maxDailyAmount', '200'],
+    ],
     verdict: 'approved',
     verdictColor: '#16a34a',
-    comment: 'safe actions pass',
+    comment: 'within budget, passes',
   },
   {
     resource: 'stripe.com',
     actions: '[purchase]',
     verdict: 'pending_approval',
     verdictColor: '#ca8a04',
-    comment: 'risky actions wait',
+    comment: 'big spends wait for you',
   },
   {
     resource: '"*"',
@@ -93,7 +106,7 @@ function LocalFirstSectionC() {
             margin: 0,
           }}
         >
-          Agents follow the rules you set.
+          Budgets and rules, in one YAML file.
         </p>
       </div>
 
@@ -171,6 +184,15 @@ function LocalFirstSectionC() {
                   <span style={{ color: VAL }}>{rule.actions}</span>
                 </div>
               )}
+
+              {/* budget limits */}
+              {rule.limits?.map(([key, value]) => (
+                <div key={key} style={{ paddingLeft: 20 }}>
+                  <span style={{ color: KEY }}>{key}</span>
+                  <span style={{ color: SEP }}>: </span>
+                  <span style={{ color: VAL }}>{value}</span>
+                </div>
+              ))}
 
               {/* verdict on line 1, comment indented to align under the value on line 2 */}
               <div style={{ paddingLeft: 20 }}>

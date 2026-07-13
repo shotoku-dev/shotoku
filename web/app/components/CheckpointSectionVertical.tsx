@@ -117,7 +117,7 @@ export default function CheckpointSectionVertical() {
               fontFamily: "Satoshi, var(--font-geist), sans-serif",
             }}
           >
-            Agents act. Shotoku checks first.
+            Agents spend. Shotoku checks first.
           </h2>
           <p
             style={{

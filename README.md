@@ -1,22 +1,25 @@
 # Shotoku
 
-**Local-first authorization layer for AI agents.**
+**Spend controls for AI agents.**
 
 [![npm](https://img.shields.io/npm/v/shotoku-cli)](https://www.npmjs.com/package/shotoku-cli)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 <!-- TODO: demo GIF here once recorded (Day 28) -->
 
-Shotoku decides whether an AI agent is allowed to perform an action — calling a paid API, using an MCP tool, executing code, sending an email, or spending money — **before** it happens. It evaluates the request against a local policy, applies your limits, and records an auditable decision. No cloud. No custody. Never holds funds or keys.
+Shotoku lets AI agents spend money safely — budgets, human approvals, and a tamper-evident audit trail, enforced deterministically on your machine **before** the payment happens. No cloud. No custody. Never holds funds or keys.
 
-Built first with [x402](docs/x402.md). Designed for any rail.
+The same engine authorizes any agent action — the request model is rail-agnostic (x402, MCP, API, code). Spending is where the pain is sharpest today, so that's where it starts.
+
+Built first with [x402](docs/guides/x402.md). Designed for any rail.
 
 ## What you can do with it
 
-- **Cap agent spending** — per-transaction and rolling 24-hour limits per vendor. Over-limit payments are denied, not silently allowed.
+- **Give agents a budget** — per-transaction and rolling 24-hour limits per vendor. Over-budget payments are denied, not silently allowed.
 - **Require human approval** — hold risky actions as `pending_approval` until you run `shotoku approve`.
 - **Authorize agent payments (x402)** — decide on a payment once the price is known, before the wallet signs.
-- **Let agents ask via MCP** — an MCP-compatible agent (like Claude) checks Shotoku mid-task, automatically.
+- **Prove enforcement with receipts** — approved decisions carry a short-lived signed token your infrastructure verifies before executing.
+- **Let agents ask via MCP** — an MCP-compatible agent (like Claude) checks its own budget mid-task, automatically.
 - **Audit everything** — every decision is written to a local, append-only, hash-chained ledger you can read in any text editor.
 
 ## Install
@@ -25,14 +28,24 @@ Built first with [x402](docs/x402.md). Designed for any rail.
 npm install -g shotoku-cli
 ```
 
+## See it in 30 seconds
+
+No setup, nothing real happens:
+
+```bash
+shotoku demo
+```
+
+Four simulated decisions: two purchases approved, a third denied when the daily budget runs out, and an unknown vendor held for human approval.
+
 ## Quickstart
 
 ```bash
 # Initialize in your project directory
 shotoku init
 
-# Evaluate an action
-shotoku authorize --actor my-agent --action api_call --resource openai.com --amount 5
+# Evaluate a spend
+shotoku authorize --actor my-agent --action purchase --resource openai.com --amount 5
 ```
 
 ```
@@ -50,7 +63,7 @@ shotoku decision dec_063a20380ba7    # full detail for one decision
 shotoku approve dec_063a20380ba7     # approve a pending decision
 ```
 
-See the [Quickstart guide](docs/quickstart.md) for the full five-minute tour.
+See the [Quickstart guide](docs/guides/quickstart.md) for the full five-minute tour.
 
 ## How it works
 
@@ -89,7 +102,16 @@ shotoku snapshot verify --snapshot shotoku.snapshot.json
 
 Shotoku does not store the snapshot secret. Provide it through your environment or secret manager.
 
-See [Writing policies](docs/policies.md) for rules, limits, and matching in depth.
+**Signed receipts** make approvals enforceable: with `SHOTOKU_RECEIPT_SECRET` set, every approved decision carries a compact HMAC-signed token (decision ID, actor, action, resource, amount, 5-minute expiry). Downstream infrastructure — a payment proxy, a CI job — verifies it before executing, so an agent cannot skip the check:
+
+```bash
+export SHOTOKU_RECEIPT_SECRET="use-a-long-local-secret"
+shotoku authorize --actor my-agent --action purchase --resource openai.com --amount 5
+# ✓ APPROVED … Receipt: rcpt.eyJhY3Rvci…
+shotoku receipt verify rcpt.eyJhY3Rvci…
+```
+
+See [Writing policies](docs/guides/policies.md) for rules, limits, and matching in depth.
 
 ## Use with AI agents (MCP)
 
@@ -99,11 +121,11 @@ Shotoku ships an MCP server, so any MCP-compatible agent (like Claude Desktop) c
 - `get_decision` — look up a past decision by ID
 - `get_pending_approvals` — list what is waiting for a human
 
-The agent asks before it acts; if your policy requires approval, it pauses and tells you. See the [MCP integration guide](docs/mcp.md).
+The agent asks before it acts; if your policy requires approval, it pauses and tells you. See the [MCP integration guide](docs/guides/mcp.md).
 
 ## Use with x402 payments
 
-When an agent hits an HTTP `402 Payment Required`, Shotoku authorizes the payment **after the amount is known and before the wallet signs** — the only safe point to decide. Shotoku never signs or settles a payment; it only decides whether it is allowed. See the [x402 integration guide](docs/x402.md).
+When an agent hits an HTTP `402 Payment Required`, Shotoku authorizes the payment **after the amount is known and before the wallet signs** — the only safe point to decide. Shotoku never signs or settles a payment; it only decides whether it is allowed. See the [x402 integration guide](docs/guides/x402.md).
 
 ## Core question
 
@@ -147,11 +169,11 @@ The `defaultVerdict` applies — `pending_approval` unless you set otherwise. It
 
 ## Documentation
 
-- [Quickstart](docs/quickstart.md) — install to first decision in five minutes
-- [Writing policies](docs/policies.md) — rules, limits, allowlists
-- [API reference](docs/api.md) — every function and type
-- [MCP integration](docs/mcp.md) — connect an AI agent
-- [x402 integration](docs/x402.md) — authorize agent payments
+- [Quickstart](docs/guides/quickstart.md) — install to first decision in five minutes
+- [Writing policies](docs/guides/policies.md) — rules, limits, allowlists
+- [API reference](docs/reference/api.md) — every function and type
+- [MCP integration](docs/guides/mcp.md) — connect an AI agent
+- [x402 integration](docs/guides/x402.md) — authorize agent payments
 
 ## Packages
 

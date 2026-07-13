@@ -18,10 +18,10 @@ import { CreditCardIcon, type CreditCardIconHandle } from "./icons/CreditCardIco
 // ── Data ───────────────────────────────────────────────────────────────────────
 
 const CARDS = [
-  { label: "Call APIs",     hint: "POST /v1/messages",   Icon: WebhookIcon    },
-  { label: "Execute code",  hint: "node script.ts",      Icon: FolderCodeIcon },
-  { label: "Use MCP tools", hint: "tool.invoke()",       Icon: BlocksIcon     },
-  { label: "Spend money",   hint: "$42 payment request", Icon: CreditCardIcon },
+  { label: "Spend money",    hint: "$42 payment request", Icon: CreditCardIcon },
+  { label: "Call paid APIs", hint: "POST /v1/messages",   Icon: WebhookIcon    },
+  { label: "Use MCP tools",  hint: "tool.invoke()",       Icon: BlocksIcon     },
+  { label: "Execute code",   hint: "node script.ts",      Icon: FolderCodeIcon },
 ] as const;
 
 interface SvgPath { d: string; key: string }
@@ -142,7 +142,7 @@ function ShotokuPill({ innerRef }: { innerRef: React.RefObject<HTMLDivElement | 
             whiteSpace: "nowrap",
           }}
         >
-          Policy Check → Approval Gate → Audit Log
+          Budget Check → Approval Gate → Audit Log
         </span>
       </motion.div>
     </motion.div>
@@ -164,10 +164,10 @@ const CheckpointSection = forwardRef<CheckpointSectionHandle>(function Checkpoin
   const shotokuRef   = useRef<HTMLDivElement>(null);
   const decisionRef  = useRef<HTMLDivElement>(null);
 
-  const iconRef0 = useRef<WebhookIconHandle>(null);
-  const iconRef1 = useRef<FolderCodeIconHandle>(null);
+  const iconRef0 = useRef<CreditCardIconHandle>(null);
+  const iconRef1 = useRef<WebhookIconHandle>(null);
   const iconRef2 = useRef<BlocksIconHandle>(null);
-  const iconRef3 = useRef<CreditCardIconHandle>(null);
+  const iconRef3 = useRef<FolderCodeIconHandle>(null);
   const iconRefs = [iconRef0, iconRef1, iconRef2, iconRef3] as const;
 
   useImperativeHandle(ref, () => ({
@@ -249,7 +249,7 @@ const CheckpointSection = forwardRef<CheckpointSectionHandle>(function Checkpoin
               fontFamily: "Satoshi, var(--font-geist), sans-serif",
             }}
           >
-            Agents act.<br />Shotoku checks first.
+            Agents spend.<br />Shotoku checks first.
           </h2>
           <p
             style={{

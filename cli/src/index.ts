@@ -66,7 +66,7 @@ function parseAmountOption(value: string): number {
 
 program
   .name("shotoku")
-  .description("Local-first authorization layer for AI agents")
+  .description("Spend controls for AI agents — local-first, deterministic, no custody")
   .version("0.0.0");
 
 program
@@ -352,7 +352,9 @@ program
 
     console.log("");
     console.log("Ready. Try:");
-    console.log("  shotoku authorize --actor my-agent --action api_call --resource openai.com --amount 5");
+    console.log("  shotoku authorize --actor my-agent --action purchase --resource openai.com --amount 5");
+    console.log("Or watch a simulated run first:");
+    console.log("  shotoku demo");
   });
 
 program

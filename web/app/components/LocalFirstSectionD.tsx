@@ -149,7 +149,8 @@ export default function LocalFirstSectionD() {
           <div style={{ paddingLeft: '4em', color: CMT }}>decisionId: &quot;dec_4f8a91&quot;,</div>
           <div style={{ paddingLeft: '4em', color: CMT }}>reasons: [</div>
           <div style={{ paddingLeft: '6em', color: CMT }}>&quot;OpenAI is allowlisted&quot;,</div>
-          <div style={{ paddingLeft: '6em', color: CMT }}>&quot;Purchase is below $50 limit&quot;</div>
+          <div style={{ paddingLeft: '6em', color: CMT }}>&quot;Purchase is below $50 limit&quot;,</div>
+          <div style={{ paddingLeft: '6em', color: CMT }}>&quot;Daily budget remaining: $175.01&quot;</div>
           <div style={{ paddingLeft: '4em', color: CMT }}>],</div>
           <div style={{ paddingLeft: '2em', color: CMT }}>{'}'}</div>
           <div style={{ color: CMT }}>{'*/'}</div>
@@ -182,7 +183,7 @@ export default function LocalFirstSectionD() {
             margin: 0,
           }}
         >
-          Add authorization to any agent in minutes.
+          Add spend controls to any agent in minutes.
         </p>
       </div>
     </div>

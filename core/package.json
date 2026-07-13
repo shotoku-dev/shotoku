@@ -2,7 +2,7 @@
   "name": "@shotoku/core",
   "version": "0.1.0",
   "type": "module",
-  "description": "Core daemon, ledger, and policy engine for Shotoku.",
+  "description": "Local-first spend controls for AI agents — policy engine, budgets, signed receipts, and tamper-evident ledger.",
   "license": "MIT",
   "homepage": "https://github.com/shotoku-dev/shotoku#readme",
   "repository": {
@@ -12,8 +12,10 @@
   },
   "bugs": "https://github.com/shotoku-dev/shotoku/issues",
   "keywords": [
-    "authorization",
+    "spend-controls",
+    "budgets",
     "ai-agents",
+    "authorization",
     "policy",
     "audit",
     "x402",

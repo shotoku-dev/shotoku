@@ -2,7 +2,7 @@
   "name": "shotoku-cli",
   "version": "0.1.0",
   "type": "module",
-  "description": "Command-line interface for Shotoku — local-first authorization for AI agents.",
+  "description": "Shotoku CLI — local-first spend controls for AI agents. Budgets, approvals, audit.",
   "license": "MIT",
   "homepage": "https://github.com/shotoku-dev/shotoku#readme",
   "repository": {
@@ -12,8 +12,10 @@
   },
   "bugs": "https://github.com/shotoku-dev/shotoku/issues",
   "keywords": [
-    "authorization",
+    "spend-controls",
+    "budgets",
     "ai-agents",
+    "authorization",
     "cli",
     "policy",
     "audit",

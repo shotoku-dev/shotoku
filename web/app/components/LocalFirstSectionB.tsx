@@ -9,18 +9,18 @@ interface Props { reversed?: boolean }
 type View = 'log' | 'raw';
 
 const CLEAN_DECISIONS = [
-  { id: 'dec_01', status: 'approved',         color: '#16a34a' },
-  { id: 'dec_02', status: 'pending_approval', color: '#ca8a04' },
-  { id: 'dec_03', status: 'denied',           color: '#dc2626' },
-  { id: 'apr_01', status: 'approved dec_02',  color: '#16a34a' },
+  { id: 'dec_01', status: 'approved',         amount: '$12.00',  color: '#16a34a' },
+  { id: 'dec_02', status: 'pending_approval', amount: '$89.99',  color: '#ca8a04' },
+  { id: 'dec_03', status: 'denied',           amount: '$210.00', color: '#dc2626' },
+  { id: 'apr_01', status: 'approved dec_02',  amount: '',        color: '#16a34a' },
 ];
 
 interface JsonEntry { [key: string]: string }
 
 const JSON_ENTRIES: JsonEntry[] = [
-  { id: 'dec_01', status: 'approved',         actor: 'agent-1' },
-  { id: 'dec_02', status: 'pending_approval', actor: 'agent-1' },
-  { id: 'dec_03', status: 'denied',           actor: 'agent-1' },
+  { id: 'dec_01', status: 'approved',         amount: '12.00' },
+  { id: 'dec_02', status: 'pending_approval', amount: '89.99' },
+  { id: 'dec_03', status: 'denied',           amount: '210.00' },
   { id: 'apr_01', type: 'approval', decision: 'dec_02', status: 'approved' },
 ];
 
@@ -95,7 +95,7 @@ function LocalFirstSectionB({ reversed }: Props) {
             margin: 0,
           }}
         >
-          Authorization decisions stay on your machine.
+          Every spending decision stays on your machine.
         </p>
       </div>
 
@@ -208,6 +208,7 @@ function LocalFirstSectionB({ reversed }: Props) {
                 >
                   <span style={{ color: 'rgba(0,0,0,0.30)', flexShrink: 0, width: 48 }}>{d.id}</span>
                   <span style={{ color: d.color }}>{d.status}</span>
+                  <span style={{ color: 'rgba(0,0,0,0.30)', marginLeft: 'auto' }}>{d.amount}</span>
                 </div>
               ))}
             </div>
