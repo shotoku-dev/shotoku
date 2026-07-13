@@ -19,6 +19,7 @@ import {
   toUserSafeMessage,
   validActions,
   validStatuses,
+  verifyReceipt,
   verifySignedSnapshot,
   type AuthorizationStatus,
 } from "@shotoku/core";
@@ -33,6 +34,7 @@ import {
   type HistoryOptions,
 } from "./format.js";
 import { runInit } from "./init.js";
+import { DEMO_SCENARIO_NAMES, isDemoScenario, runDemo } from "./demo.js";
 import { resolveRuntimePaths } from "./config.js";
 
 const VALID_ACTIONS = validActions();
@@ -93,6 +95,7 @@ program
     }
 
     const paths = await resolveRuntimePaths(opts);
+    const receiptSecret = process.env["SHOTOKU_RECEIPT_SECRET"];
     const response = await authorize(
       {
         actor: opts.actor,
@@ -100,7 +103,10 @@ program
         resource: opts.resource,
         ...(amount !== undefined ? { amount } : {}),
       },
-      paths,
+      {
+        ...paths,
+        ...(receiptSecret?.trim() ? { receiptSecret } : {}),
+      },
     );
 
     console.log(formatResponse(response));
@@ -272,6 +278,55 @@ snapshot
 
     console.error(formatError(result.reasons.join(" ")));
     process.exit(1);
+  });
+
+program
+  .command("demo")
+  .description("Run a simulated agent spending scenario — nothing real happens")
+  .option(
+    "--scenario <name>",
+    `Scenario to run (${DEMO_SCENARIO_NAMES.join(", ")})`,
+    "payments",
+  )
+  .action(async (opts: { scenario: string }) => {
+    if (!isDemoScenario(opts.scenario)) {
+      console.error(
+        formatError(
+          `Invalid scenario "${opts.scenario}". Valid scenarios: ${DEMO_SCENARIO_NAMES.join(", ")}`,
+        ),
+      );
+      process.exit(1);
+    }
+    await runDemo({ scenario: opts.scenario });
+  });
+
+const receipt = program
+  .command("receipt")
+  .description("Verify signed decision receipts");
+
+receipt
+  .command("verify <token>")
+  .description("Verify a receipt issued on an approved decision")
+  .action((token: string) => {
+    const secret = process.env["SHOTOKU_RECEIPT_SECRET"];
+    if (!secret?.trim()) {
+      console.error(formatError("Set SHOTOKU_RECEIPT_SECRET before verifying receipts."));
+      process.exit(1);
+    }
+
+    const result = verifyReceipt(token, { secret });
+    if (!result.valid || !result.payload) {
+      console.error(formatError(result.reasons.join(" ")));
+      process.exit(1);
+    }
+
+    const { payload } = result;
+    console.log(`✓ Receipt valid  ${payload.decisionId}`);
+    console.log(`  Actor:    ${payload.actor}`);
+    console.log(`  Action:   ${payload.action}`);
+    console.log(`  Resource: ${payload.resource}`);
+    if (payload.amount !== undefined) console.log(`  Amount:   $${payload.amount}`);
+    console.log(`  Expires:  ${new Date(payload.exp * 1000).toISOString()}`);
   });
 
 program
