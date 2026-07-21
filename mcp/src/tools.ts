@@ -93,3 +93,21 @@ export const tools: Tool[] = [
     },
   },
 ];
+
+/**
+ * Tools an agent must not be able to call while Shotoku is gating it — an agent
+ * that can approve its own pending decisions defeats the entire point.
+ */
+export const APPROVAL_TOOLS: ReadonlySet<string> = new Set([
+  "approve_decision",
+  "deny_decision",
+]);
+
+/**
+ * Shotoku's own tools. Approval tools are withheld unless explicitly enabled
+ * (`SHOTOKU_MCP_ALLOW_APPROVALS=1`) for a trusted, human-driven session.
+ * Approvals normally happen out-of-band: the CLI, the TUI, or Slack.
+ */
+export function shotokuTools(allowApprovals: boolean): Tool[] {
+  return allowApprovals ? tools : tools.filter((t) => !APPROVAL_TOOLS.has(t.name));
+}

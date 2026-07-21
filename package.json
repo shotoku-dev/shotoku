@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "demo": "pnpm build && node scripts/demo.mjs",
     "demo:tui": "pnpm build && node scripts/demo-tui.mjs",
+    "demo:mcp": "pnpm build && node mcp/demo-drive.mjs",
     "demo:gateway": "pnpm build && node scripts/demo-gateway.mjs"
   },
   "devDependencies": {
