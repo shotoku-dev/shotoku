@@ -6,6 +6,7 @@ import {
   stat,
   unlink,
 } from "node:fs/promises";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { dirname } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { toMicros } from "./money.js";
@@ -35,6 +36,7 @@ interface LedgerReadState {
 const LEDGER_LOCK_RETRY_MS = 25;
 const LEDGER_LOCK_TIMEOUT_MS = 5_000;
 const LEDGER_LOCK_STALE_MS = 30_000;
+const LEDGER_TORN_READ_RETRY_MS = 20;
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
 function isApproval(record: LedgerRecord): record is ApprovalEntry {
@@ -178,49 +180,64 @@ async function ensureLedgerDir(ledgerPath: string): Promise<void> {
   await mkdir(dirname(ledgerPath), { recursive: true });
 }
 
-async function readLedgerState(ledgerPath: string): Promise<LedgerReadState> {
-  let raw: string;
+function emptyLedgerState(): LedgerReadState {
+  return {
+    records: [],
+    report: {
+      recordCount: 0,
+      legacyRecordCount: 0,
+      headHash: LEDGER_GENESIS_HASH,
+    },
+  };
+}
+
+async function readLedgerFile(ledgerPath: string): Promise<string | undefined> {
   try {
-    raw = await readFile(ledgerPath, "utf8");
+    return await readFile(ledgerPath, "utf8");
   } catch (error) {
     const code = typeof error === "object" && error !== null
       ? (error as { readonly code?: unknown }).code
       : undefined;
-    if (code === "ENOENT") {
-      return {
-        records: [],
-        report: {
-          recordCount: 0,
-          legacyRecordCount: 0,
-          headHash: LEDGER_GENESIS_HASH,
-        },
-      };
-    }
+    if (code === "ENOENT") return undefined;
     throw new ShotokuError(
       "ledger_read_failed",
       `Could not read ledger "${ledgerPath}": ${errorMessage(error)}`,
     );
   }
+}
 
-  if (!raw.trim()) {
-    return {
-      records: [],
-      report: {
-        recordCount: 0,
-        legacyRecordCount: 0,
-        headHash: LEDGER_GENESIS_HASH,
-      },
-    };
+/**
+ * Readers deliberately take no lock — the TUI polls every few seconds and must
+ * not contend with every authorize against the lock timeout. So a read can land
+ * mid-append and see a half-written final line.
+ *
+ * Every committed record is written as `${json}\n`, so a file that does not end
+ * in a newline has an append in flight. We give the writer a moment to finish,
+ * then ignore a trailing fragment that is still incomplete: it was never
+ * committed, carries no integrity claim, and is not part of the chain. Any
+ * newline-terminated record that fails to parse or verify is real corruption
+ * and still throws.
+ */
+async function readLedgerState(ledgerPath: string): Promise<LedgerReadState> {
+  let raw = await readLedgerFile(ledgerPath);
+
+  if (raw !== undefined && raw.length > 0 && !raw.endsWith("\n")) {
+    await sleep(LEDGER_TORN_READ_RETRY_MS);
+    raw = await readLedgerFile(ledgerPath);
   }
+
+  if (raw === undefined || !raw.trim()) return emptyLedgerState();
 
   const records: LedgerRecord[] = [];
   const lines = raw.split("\n");
+  const lastLineIsUncommitted = !raw.endsWith("\n");
   let previousHash = LEDGER_GENESIS_HASH;
   let legacyRecordCount = 0;
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i]?.trim();
     if (!line) continue;
+    if (lastLineIsUncommitted && i === lines.length - 1) continue;
 
     const record = parseLedgerRecord(line, i + 1);
     const integrity = verifyRecordIntegrity(
@@ -260,10 +277,31 @@ async function removeStaleLock(lockPath: string): Promise<void> {
   }
 }
 
+/**
+ * Ledger paths locked by the current async call chain. Scoped to the chain
+ * rather than the process: two `authorize()` calls started side by side get no
+ * store and contend for the file lock normally, while work started *inside* a
+ * lock inherits ownership and can re-enter it.
+ */
+const heldLocks = new AsyncLocalStorage<ReadonlySet<string>>();
+
+/**
+ * Serialises a read-modify-write cycle on the ledger across processes, using an
+ * exclusively-created lockfile. Re-entrant within a call chain that already
+ * holds the lock, so an inner `appendDecision` cannot deadlock against its own
+ * outer lock.
+ */
 export async function withLedgerLock<T>(
   ledgerPath: string,
   operation: () => Promise<T>,
 ): Promise<T> {
+  const owned = heldLocks.getStore();
+  if (owned?.has(ledgerPath)) return operation();
+
+  const nested = new Set(owned ?? []);
+  nested.add(ledgerPath);
+  const run = (): Promise<T> => heldLocks.run(nested, operation);
+
   await ensureLedgerDir(ledgerPath);
   const lockPath = `${ledgerPath}.lock`;
   const start = Date.now();
@@ -278,6 +316,13 @@ export async function withLedgerLock<T>(
         ? (error as { readonly code?: unknown }).code
         : undefined;
       if (code !== "EEXIST") {
+        // We may already own the lockfile: open() succeeded and writeFile threw.
+        // Releasing it here matters — the `finally` below is never reached on
+        // this path, and a leaked lockfile blocks the ledger until it goes stale.
+        if (handle) {
+          await handle.close().catch(() => undefined);
+          await unlink(lockPath).catch(() => undefined);
+        }
         throw new ShotokuError(
           "ledger_lock_timeout",
           `Could not lock ledger "${ledgerPath}": ${errorMessage(error)}`,
@@ -296,7 +341,7 @@ export async function withLedgerLock<T>(
 
     if (handle) {
       try {
-        return await operation();
+        return await run();
       } finally {
         await handle.close();
         await unlink(lockPath).catch(() => undefined);
@@ -305,44 +350,51 @@ export async function withLedgerLock<T>(
   }
 }
 
-export async function appendDecision(
-  entry: LedgerEntry,
+/**
+ * The hash chain is positional: `withIntegrity` reads the file to learn the
+ * head hash and the next sequence number. Two writers doing that concurrently
+ * both claim the same position and break the chain permanently, so every path
+ * that reaches this function is serialised by the ledger lock.
+ */
+async function appendRecord(
+  record: LedgerRecord,
   ledgerPath: string,
+  label: "decision" | "approval",
 ): Promise<void> {
   try {
     await ensureLedgerDir(ledgerPath);
     await appendFile(
       ledgerPath,
-      `${JSON.stringify(await withIntegrity(entry, ledgerPath))}\n`,
+      `${JSON.stringify(await withIntegrity(record, ledgerPath))}\n`,
       "utf8",
     );
   } catch (error) {
     if (error instanceof ShotokuError) throw error;
     throw new ShotokuError(
       "ledger_write_failed",
-      `Could not write decision ledger "${ledgerPath}": ${errorMessage(error)}`,
+      `Could not write ${label} ledger "${ledgerPath}": ${errorMessage(error)}`,
     );
   }
 }
 
+/** Appends a decision under the ledger lock. Safe to call from inside one. */
+export async function appendDecision(
+  entry: LedgerEntry,
+  ledgerPath: string,
+): Promise<void> {
+  await withLedgerLock(ledgerPath, () =>
+    appendRecord(entry, ledgerPath, "decision"),
+  );
+}
+
+/** Appends an approval under the ledger lock. Safe to call from inside one. */
 export async function appendApproval(
   entry: ApprovalEntry,
   ledgerPath: string,
 ): Promise<void> {
-  try {
-    await ensureLedgerDir(ledgerPath);
-    await appendFile(
-      ledgerPath,
-      `${JSON.stringify(await withIntegrity(entry, ledgerPath))}\n`,
-      "utf8",
-    );
-  } catch (error) {
-    if (error instanceof ShotokuError) throw error;
-    throw new ShotokuError(
-      "ledger_write_failed",
-      `Could not write approval ledger "${ledgerPath}": ${errorMessage(error)}`,
-    );
-  }
+  await withLedgerLock(ledgerPath, () =>
+    appendRecord(entry, ledgerPath, "approval"),
+  );
 }
 
 async function withIntegrity<T extends LedgerRecord>(

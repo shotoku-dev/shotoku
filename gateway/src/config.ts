@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+
 export interface GatewayConfig {
   readonly policyPath: string;
   readonly ledgerPath: string;
@@ -14,8 +16,11 @@ export function loadConfig(): GatewayConfig {
   const port = portRaw ? Number.parseInt(portRaw, 10) : DEFAULT_PORT;
 
   return {
-    policyPath: process.env["SHOTOKU_POLICY"] ?? "policy.yaml",
-    ledgerPath: process.env["SHOTOKU_LEDGER"] ?? "data/decisions.jsonl",
+    // Absolute, because the ledger lock is keyed on the path string: a relative
+    // path here and an absolute one in the CLI produce two different lockfiles
+    // for the same file, and the two processes stop excluding each other.
+    policyPath: resolve(process.env["SHOTOKU_POLICY"] ?? "policy.yaml"),
+    ledgerPath: resolve(process.env["SHOTOKU_LEDGER"] ?? "data/decisions.jsonl"),
     port: Number.isInteger(port) && port > 0 ? port : DEFAULT_PORT,
     defaultActor: process.env["SHOTOKU_GATEWAY_ACTOR"] ?? "gateway",
   };
