@@ -34,12 +34,15 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 
 async function handleAuthorizeAction(
   args: Record<string, unknown>,
+  actor: string,
 ): Promise<CallToolResult> {
-  const { actor, action, resource, amount, context } = args;
+  // `actor` is deliberately not read from args: identity comes from the
+  // connected client, not from whatever the model decided to call itself. A
+  // stray actor key is ignored rather than rejected — clients pass model output
+  // through verbatim, and erroring would turn a cosmetic mismatch into a
+  // broken tool call.
+  const { action, resource, amount, context } = args;
 
-  if (typeof actor !== "string" || !actor) {
-    return errorResult("Missing required argument: actor");
-  }
   if (!isAgentAction(action)) {
     return errorResult(
       `Invalid or missing action. Valid values: ${VALID_ACTIONS.join(", ")}`,
@@ -75,7 +78,7 @@ async function handleAuthorizeAction(
     },
   );
 
-  return jsonResult({ response });
+  return jsonResult({ actor, response });
 }
 
 async function handleGetDecision(
@@ -132,8 +135,9 @@ async function handleApprovalAction(
 export async function handleToolCall(
   name: string,
   args: Record<string, unknown>,
+  actor: string,
 ): Promise<CallToolResult> {
-  if (name === "authorize_action") return handleAuthorizeAction(args);
+  if (name === "authorize_action") return handleAuthorizeAction(args, actor);
   if (name === "get_decision") return handleGetDecision(args);
   if (name === "get_pending_approvals") return handleGetPendingApprovals();
   if (name === "approve_decision") return handleApprovalAction(args, "approved");

@@ -4,14 +4,11 @@ export const tools: Tool[] = [
   {
     name: "authorize_action",
     description:
-      "Evaluate whether an agent is allowed to perform an action. Returns a full authorization decision with reasons.",
+      "Evaluate whether an agent is allowed to perform an action. Returns a full authorization decision with reasons. " +
+      "Shotoku sets the acting identity from the connected client; it is not a parameter.",
     inputSchema: {
       type: "object",
       properties: {
-        actor: {
-          type: "string",
-          description: "Identifier for the agent or user making the request.",
-        },
         action: {
           type: "string",
           enum: [
@@ -38,7 +35,7 @@ export const tools: Tool[] = [
           additionalProperties: true,
         },
       },
-      required: ["actor", "action", "resource"],
+      required: ["action", "resource"],
     },
   },
   {

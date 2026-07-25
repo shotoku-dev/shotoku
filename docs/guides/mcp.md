@@ -89,11 +89,12 @@ The main gate. The agent calls this before performing any action — spending mo
 
 | Field | Required | What it means |
 |---|---|---|
-| `actor` | yes | Who is acting — the agent's name or ID |
 | `action` | yes | What the agent wants to do (`purchase`, `api_call`, `execute_code`, `send_email`, `mcp_tool`, `custom`) |
 | `resource` | yes | What it's acting on — a domain, service name, or endpoint |
 | `amount` | no | How much it costs in USD, if applicable |
 | `context` | no | Any extra details you want recorded with the decision |
+
+There is deliberately no `actor` field. Identity comes from the connected client, not from the call — see [Who the decision is attributed to](#who-the-decision-is-attributed-to).
 
 Shotoku checks your `policy.yaml`, records the decision to the local ledger, and returns one of three outcomes:
 
@@ -121,6 +122,40 @@ Example response:
   "timestamp": "2026-06-22T15:02:00.000Z"
 }
 ```
+
+---
+
+## Who the decision is attributed to
+
+Every decision is recorded against an **actor** — the name of the agent that asked. Shotoku sets it; the agent does not.
+
+An MCP client announces its own name during the initialize handshake, before it can make a single tool call, and the model on the other side never sees that value. So a connection from Claude Desktop is recorded as `claude-desktop`, one from Cursor as `cursor`, and so on, with no configuration.
+
+To name a server yourself — one entry per agent, each with its own budget and rules — set `SHOTOKU_MCP_ACTOR` in that server's config block:
+
+```json
+{
+  "mcpServers": {
+    "shotoku-billing": {
+      "command": "npx",
+      "args": ["-y", "shotoku-mcp"],
+      "env": { "SHOTOKU_MCP_ACTOR": "billing-agent" }
+    }
+  }
+}
+```
+
+Then write rules that apply to that agent alone:
+
+```yaml
+rules:
+  - resource: "*"
+    actor: billing-agent
+    verdict: approved
+    maxDailyAmount: 50
+```
+
+**What this does and does not guarantee.** It makes agents *distinguishable*, not *unforgeable*. An agent with shell access can edit a config file, or skip Shotoku altogether. The guarantee is narrower and still worth having: every call that goes through Shotoku is attributed to a named agent, and **an agent cannot rename itself through the protocol**. That is what makes the ledger worth reading.
 
 ---
 
@@ -177,7 +212,7 @@ Here is what a typical exchange looks like once Shotoku is connected:
 **You:** Research the top three AI coding tools and summarize pricing.
 
 **Agent** *(internally)*: I need to call an external API for this. Let me check with Shotoku first.
-→ calls `authorize_action` with `{ actor: "my-agent", action: "api_call", resource: "openai.com", amount: 0.05 }`
+→ calls `authorize_action` with `{ action: "api_call", resource: "openai.com", amount: 0.05 }`
 
 **Shotoku** *(checks policy, records decision)*: approved
 

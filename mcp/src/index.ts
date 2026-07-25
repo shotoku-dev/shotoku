@@ -6,6 +6,7 @@ import {
   type CallToolResult,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+import { resolveActor } from "./actor.js";
 import { APPROVAL_TOOLS, shotokuTools } from "./tools.js";
 import { handleToolCall } from "./handlers.js";
 import { loadConfig } from "./config.js";
@@ -22,7 +23,6 @@ import {
 } from "./wrap.js";
 
 const allowApprovals = process.env["SHOTOKU_MCP_ALLOW_APPROVALS"] === "1";
-const actor = process.env["SHOTOKU_MCP_ACTOR"] ?? "mcp-agent";
 
 const config = await loadConfig();
 const upstreams = await connectUpstreams(await loadUpstreamConfigs());
@@ -46,9 +46,19 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, () => ({ tools: exposedTools }));
 
+/**
+ * Resolved per call, not once at startup: the client only announces itself
+ * during the initialize handshake, which happens after this module is
+ * evaluated and after `server.connect()` below.
+ */
+function currentActor(): string {
+  return resolveActor(server.getClientVersion()?.name);
+}
+
 server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
   const name = request.params.name;
   const args = request.params.arguments ?? {};
+  const actor = currentActor();
 
   // Hiding an approval tool is not enough — refuse the call outright.
   if (!allowApprovals && APPROVAL_TOOLS.has(name)) {
@@ -85,7 +95,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     return callUpstream(upstream, wrapped.tool, args);
   }
 
-  return handleToolCall(name, args);
+  return handleToolCall(name, args, actor);
 });
 
 const transport = new StdioServerTransport();
