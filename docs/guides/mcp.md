@@ -137,8 +137,8 @@ To name a server yourself — one entry per agent, each with its own budget and 
 {
   "mcpServers": {
     "shotoku-billing": {
-      "command": "npx",
-      "args": ["-y", "shotoku-mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/shotoku/mcp/dist/index.js"],
       "env": { "SHOTOKU_MCP_ACTOR": "billing-agent" }
     }
   }
