@@ -32,19 +32,29 @@ const VALID_STATUSES = [
   "pending_approval",
 ] as const satisfies readonly AuthorizationStatus[];
 
-const POLICY_KEYS = new Set([
-  "rules",
-  "defaultVerdict",
-]);
+/**
+ * The accepted keys are derived from the types themselves, so adding a field to
+ * `Policy` or `PolicyRule` without teaching the validator about it is a compile
+ * error rather than a silent runtime rejection. `PolicyRule.actor` was missing
+ * here once, which made every policy file using it fail to load.
+ */
+const POLICY_FIELDS = {
+  rules: true,
+  defaultVerdict: true,
+} as const satisfies Record<keyof Policy, true>;
 
-const RULE_KEYS = new Set([
-  "resource",
-  "actions",
-  "rails",
-  "verdict",
-  "maxAmount",
-  "maxDailyAmount",
-]);
+const RULE_FIELDS = {
+  resource: true,
+  actor: true,
+  actions: true,
+  rails: true,
+  verdict: true,
+  maxAmount: true,
+  maxDailyAmount: true,
+} as const satisfies Record<keyof PolicyRule, true>;
+
+const POLICY_KEYS: ReadonlySet<string> = new Set(Object.keys(POLICY_FIELDS));
+const RULE_KEYS: ReadonlySet<string> = new Set(Object.keys(RULE_FIELDS));
 
 const MAX_ID_LENGTH = 256;
 const MAX_RESOURCE_LENGTH = 512;
@@ -250,6 +260,25 @@ function validateRule(value: unknown, index: number): PolicyRule {
     resource: value["resource"],
     verdict: value["verdict"],
   };
+
+  if (value["actor"] !== undefined) {
+    // A pattern, not an identifier: "team-*" is a valid pattern and an invalid
+    // actor name. Matching happens in policy.ts via patternMatches.
+    const actor = value["actor"];
+    if (typeof actor !== "string" || !actor.trim()) {
+      throw new ShotokuError(
+        "policy_invalid",
+        `rules[${index}].actor must be a non-empty string`,
+      );
+    }
+    if (actor.length > MAX_ID_LENGTH) {
+      throw new ShotokuError(
+        "policy_invalid",
+        `rules[${index}].actor must be at most ${MAX_ID_LENGTH} characters`,
+      );
+    }
+    Object.assign(rule, { actor });
+  }
 
   if (value["actions"] !== undefined) {
     Object.assign(rule, {

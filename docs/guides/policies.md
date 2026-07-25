@@ -38,8 +38,9 @@ Rules are evaluated **top to bottom. The first rule that matches wins** — late
 A rule matches a request when **all** of these are true:
 
 1. The `resource` matches — either an exact string, or `"*"` (matches anything).
-2. The `actions` matches — the request's action is in the rule's `actions` list, or the rule omits `actions` (then it matches every action).
-3. The `rails` matches — the request's `rail` is in the rule's `rails` list, or the rule omits `rails` (then it matches every rail).
+2. The `actor` matches — the request's actor matches the rule's `actor` pattern, or the rule omits `actor` (then it matches every actor).
+3. The `actions` matches — the request's action is in the rule's `actions` list, or the rule omits `actions` (then it matches every action).
+4. The `rails` matches — the request's `rail` is in the rule's `rails` list, or the rule omits `rails` (then it matches every rail).
 
 Because the first match wins, **put your most specific rules first and your catch-alls last.**
 

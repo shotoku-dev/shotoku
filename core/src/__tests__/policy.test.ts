@@ -1,10 +1,22 @@
 import { describe, it, expect } from "vitest";
+import { parse } from "yaml";
 import { evaluatePolicy } from "../policy.js";
+import { validatePolicy } from "../validation.js";
 import type {
   AuthorizeRequest,
   Policy,
   LedgerSnapshot,
 } from "../types.js";
+
+/**
+ * Builds a policy the way a user does — through YAML and the validator — rather
+ * than as a TypeScript literal. The actor tests below use this deliberately:
+ * hand-built `Policy` objects passed while `validatePolicy` rejected `actor`
+ * outright, so the engine looked correct and every real policy file failed.
+ */
+function policyFromYaml(raw: string): Policy {
+  return validatePolicy(parse(raw));
+}
 
 const emptyLedger: LedgerSnapshot = {
   dailyTotals: {},
@@ -252,9 +264,9 @@ describe("evaluatePolicy — glob resource matching", () => {
 
 describe("evaluatePolicy — actor matching", () => {
   it("a rule with an actor pattern only matches that actor", () => {
-    const policy: Policy = {
-      rules: [{ resource: "*", actor: "billing-agent", verdict: "approved" }],
-    };
+    const policy = policyFromYaml(
+      "rules:\n  - resource: '*'\n    actor: billing-agent\n    verdict: approved\n",
+    );
 
     const match = evaluatePolicy(
       { ...baseRequest, actor: "billing-agent" },
@@ -272,9 +284,9 @@ describe("evaluatePolicy — actor matching", () => {
   });
 
   it("an actor wildcard matches a whole team", () => {
-    const policy: Policy = {
-      rules: [{ resource: "*", actor: "team-*", verdict: "approved" }],
-    };
+    const policy = policyFromYaml(
+      "rules:\n  - resource: '*'\n    actor: team-*\n    verdict: approved\n",
+    );
 
     const alpha = evaluatePolicy(
       { ...baseRequest, actor: "team-alpha" },
@@ -292,9 +304,9 @@ describe("evaluatePolicy — actor matching", () => {
   });
 
   it("a rule without an actor matches any actor", () => {
-    const policy: Policy = {
-      rules: [{ resource: "openai.com", verdict: "approved" }],
-    };
+    const policy = policyFromYaml(
+      "rules:\n  - resource: openai.com\n    verdict: approved\n",
+    );
 
     const result = evaluatePolicy(
       { ...baseRequest, actor: "anyone" },

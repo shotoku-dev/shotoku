@@ -316,6 +316,7 @@ Field reference:
 |---|---|---|---|
 | `resource` | string | yes | Exact resource string or `"*"` to match all |
 | `verdict` | string | yes | `approved`, `denied`, or `pending_approval` |
+| `actor` | string | no | Limit to actors matching this pattern (`*` wildcard, e.g. `team-*`). Omit to match all |
 | `actions` | string[] | no | Limit to specific actions. Omit to match all |
 | `rails` | string[] | no | Limit to specific rails. Omit to match all |
 | `maxAmount` | number | no | Per-transaction ceiling (USD or major units) |
