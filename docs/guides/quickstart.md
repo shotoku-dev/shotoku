@@ -12,7 +12,7 @@ Shotoku runs entirely on your machine. Nothing is sent anywhere; every decision 
 npm install -g shotoku-cli
 ```
 
-> **Not published yet / working from the repo?** Run from source instead:
+> **Working from the repo?** Run from source instead:
 >
 > ```bash
 > git clone https://github.com/shotoku-dev/shotoku

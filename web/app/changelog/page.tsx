@@ -23,6 +23,21 @@ export default function ChangelogPage() {
         <p style={S.meta}>What&apos;s new in Shotoku.</p>
 
         <div style={S.entry}>
+          <div style={S.version}>v0.2.0-beta</div>
+          <div style={S.date}>July 2026</div>
+          <p style={S.p}>Enforcement layer: gateway and MCP wrapping mode.</p>
+          <ul style={S.ul}>
+            <li style={S.li}>Local enforcement gateway — forward proxy that blocks requests before they leave the machine</li>
+            <li style={S.li}>MCP wrapping mode — gate any upstream MCP tool server, block agent self-approval</li>
+            <li style={S.li}>Fail-closed boot — gateway refuses to start without a valid policy</li>
+            <li style={S.li}>Signed receipts — approved decisions carry a short-lived HMAC token for downstream verification</li>
+            <li style={S.li}>Signed snapshots — tamper-evident policy + ledger state you can verify at any point</li>
+          </ul>
+        </div>
+
+        <hr style={S.divider} />
+
+        <div style={S.entry}>
           <div style={S.version}>v0.1.0-beta</div>
           <div style={S.date}>June 2026</div>
           <p style={S.p}>First public beta. Core authorization flow works end-to-end.</p>

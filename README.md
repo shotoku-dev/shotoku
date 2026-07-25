@@ -5,7 +5,7 @@
 [![npm](https://img.shields.io/npm/v/shotoku-cli)](https://www.npmjs.com/package/shotoku-cli)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-<!-- TODO: demo GIF here once recorded (Day 28) -->
+![Shotoku demo](assets/demo.gif)
 
 Shotoku lets AI agents spend money safely — budgets, human approvals, and a tamper-evident audit trail, enforced deterministically on your machine **before** the payment happens. No cloud. No custody. Never holds funds or keys.
 
