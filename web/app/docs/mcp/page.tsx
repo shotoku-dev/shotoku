@@ -131,13 +131,16 @@ export default function McpPage() {
       <Table
         headers={["Field", "Required", "What it means"]}
         rows={[
-          ["actor",    "yes", "Who is acting — the agent's name or ID"],
           ["action",   "yes", <>What the agent wants to do (<InlineCode>purchase</InlineCode>, <InlineCode>api_call</InlineCode>, <InlineCode>execute_code</InlineCode>, <InlineCode>send_email</InlineCode>, <InlineCode>mcp_tool</InlineCode>, <InlineCode>custom</InlineCode>)</>],
           ["resource", "yes", "What it's acting on — a domain, service name, or endpoint"],
           ["amount",   "no",  "How much it costs in USD, if applicable"],
           ["context",  "no",  "Any extra details you want recorded with the decision (must be JSON-serializable, max 16 KB)"],
         ]}
       />
+      <p style={S.p}>
+        There is deliberately no <InlineCode>actor</InlineCode> field. Identity comes from the
+        connected client, not from the call — see <em>Who the decision is attributed to</em> below.
+      </p>
       <CodeBlock
         lang="json"
         filename="Example response"
@@ -185,6 +188,54 @@ export default function McpPage() {
 
       <hr style={S.divider} />
 
+      {/* Identity */}
+      <h2 style={S.h2} id="identity">Who the decision is attributed to</h2>
+      <p style={S.p}>
+        Every decision is recorded against an <strong>actor</strong> — the name of the agent that
+        asked. Shotoku sets it; the agent does not.
+      </p>
+      <p style={S.p}>
+        An MCP client announces its own name during the initialize handshake, before it can make a
+        single tool call, and the model on the other side never sees that value. A connection from
+        Claude Desktop is recorded as <InlineCode>claude-desktop</InlineCode>, one from Cursor as{" "}
+        <InlineCode>cursor</InlineCode>, with no configuration.
+      </p>
+      <p style={S.p}>
+        To name a server yourself — one entry per agent, each with its own budget and rules — set{" "}
+        <InlineCode>SHOTOKU_MCP_ACTOR</InlineCode> in that server&rsquo;s config block:
+      </p>
+      <CodeBlock
+        lang="json"
+        code={`{
+  "mcpServers": {
+    "shotoku-billing": {
+      "command": "node",
+      "args": ["/absolute/path/to/shotoku/mcp/dist/index.js"],
+      "env": { "SHOTOKU_MCP_ACTOR": "billing-agent" }
+    }
+  }
+}`}
+      />
+      <p style={S.p}>Then write rules that apply to that agent alone:</p>
+      <CodeBlock
+        lang="yaml"
+        filename="policy.yaml"
+        code={`rules:
+  - resource: "*"
+    actor: billing-agent
+    verdict: approved
+    maxDailyAmount: 50`}
+      />
+      <p style={S.p}>
+        <strong>What this does and does not guarantee.</strong> It makes agents{" "}
+        <em>distinguishable</em>, not <em>unforgeable</em>. An agent with shell access can edit a
+        config file, or skip Shotoku altogether. The guarantee is narrower and still worth having:
+        every call that goes through Shotoku is attributed to a named agent, and an agent cannot
+        rename itself through the protocol. That is what makes the ledger worth reading.
+      </p>
+
+      <hr style={S.divider} />
+
       {/* Walkthrough */}
       <h2 style={S.h2}>Walkthrough</h2>
       <p style={S.p}>What a typical exchange looks like once Shotoku is connected:</p>
@@ -195,7 +246,7 @@ You: Research the top three AI coding tools and summarize pricing.
 
 # Agent calls authorize_action before doing anything
 Agent → authorize_action({
-  actor: "my-agent", action: "api_call",
+  action: "api_call",
   resource: "openai.com", amount: 0.05
 })
 

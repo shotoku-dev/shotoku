@@ -137,6 +137,9 @@ rules:
 
 `maxDailyAmount` is checked against a rolling 24-hour window per actor+resource pair, computed from the local ledger.
 
+A rule may also carry an optional `actor` pattern (`*` wildcard, e.g. `actor: team-*`) to scope it
+to specific agents. Omit it and the rule matches every agent.
+
 ---
 
 ## CLI commands
@@ -167,8 +170,8 @@ Shotoku exposes an MCP (Model Context Protocol) server so agent hosts — Claude
       "command": "node",
       "args": ["/path/to/shotoku/mcp/dist/index.js"],
       "env": {
-        "SHOTOKU_POLICY_PATH": "./policy.yaml",
-        "SHOTOKU_LEDGER_PATH": "./data/decisions.jsonl"
+        "SHOTOKU_POLICY": "./policy.yaml",
+        "SHOTOKU_LEDGER": "./data/decisions.jsonl"
       }
     }
   }
@@ -176,6 +179,11 @@ Shotoku exposes an MCP (Model Context Protocol) server so agent hosts — Claude
 ```
 
 MCP tools exposed: `authorize_action`, `get_decision`, `get_pending_approvals`.
+
+`authorize_action` takes `action`, `resource`, and optionally `amount` and `context`. It does
+NOT take an `actor`: identity comes from the connected MCP client, which announces its name
+during the initialize handshake, so the agent cannot choose the name its own decision is
+recorded under. Override it per server with `SHOTOKU_MCP_ACTOR`.
 
 ---
 

@@ -109,6 +109,7 @@ rules:
         headers={["Field", "Type", "What it does"]}
         rows={[
           ["resource",       "string",             <>The domain or service this rule applies to. Use <InlineCode>&quot;*&quot;</InlineCode> to match anything not matched by an earlier rule.</>],
+          ["actor",          "string",             <>Optional. Limits this rule to agents matching this pattern — <InlineCode>*</InlineCode> is a wildcard, so <InlineCode>team-*</InlineCode> matches <InlineCode>team-alpha</InlineCode> and <InlineCode>team-billing</InlineCode>. Omit to match all agents.</>],
           ["actions",        "AgentAction[]",      <>Optional. Limits this rule to specific action types. Omit to match all actions.</>],
           ["rails",          "ExecutionRail[]",    <>Optional. Limits this rule to specific execution rails (<InlineCode>x402</InlineCode>, <InlineCode>mcp</InlineCode>, etc.). Omit to match all rails.</>],
           ["verdict",        "AuthorizationStatus", <>The outcome when this rule matches: <InlineCode>approved</InlineCode>, <InlineCode>denied</InlineCode>, or <InlineCode>pending_approval</InlineCode>.</>],
