@@ -1,0 +1,88 @@
+name: Publish
+
+# Releases are cut by pushing a tag, never from a laptop. Two reasons:
+# a version can no longer reach npm without a commit behind it, and publishing
+# stops depending on which of us is available.
+#
+#   pnpm build && pnpm test        # locally, first
+#   git tag v0.2.1 && git push origin v0.2.1
+#
+# The tag must match the version in core/package.json. See the guard below.
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for npm provenance: the package is signed with an attestation
+      # tying it to this workflow and this commit.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The tag is the release. If it disagrees with the manifests, stop --
+      # a published version that no commit describes is not auditable.
+      - name: Tag must match package versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          core="$(node -p "require('./core/package.json').version")"
+          cli="$(node -p "require('./cli/package.json').version")"
+          echo "tag=$tag  core=$core  cli=$cli"
+          if [ "$tag" != "$core" ]; then
+            echo "::error::Tag v$tag does not match core/package.json ($core)."
+            exit 1
+          fi
+          if npm view "@shotoku/core@$core" version >/dev/null 2>&1; then
+            echo "::error::@shotoku/core@$core is already published."
+            exit 1
+          fi
+          if npm view "shotoku-cli@$cli" version >/dev/null 2>&1; then
+            echo "::error::shotoku-cli@$cli is already published."
+            exit 1
+          fi
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      # `pnpm publish`, never `npm publish`: rewriting the cli's
+      # `@shotoku/core: workspace:*` to a real version number is a pnpm feature.
+      # npm publishes the literal `workspace:*` and every install then fails.
+      #
+      # core first, for the same reason -- the cli's rewritten dependency has to
+      # resolve to a version that already exists on the registry.
+      - name: Publish @shotoku/core
+        working-directory: core
+        run: pnpm publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish shotoku-cli
+        working-directory: cli
+        run: pnpm publish --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

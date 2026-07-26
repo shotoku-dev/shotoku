@@ -1,6 +1,6 @@
 {
   "name": "@shotoku/core",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "Local-first spend controls for AI agents — policy engine, budgets, signed receipts, and tamper-evident ledger.",
   "license": "MIT",

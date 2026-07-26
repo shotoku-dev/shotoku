@@ -1,6 +1,6 @@
 {
   "name": "shotoku-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Shotoku CLI — local-first spend controls for AI agents. Budgets, approvals, audit.",
   "license": "MIT",
