@@ -134,19 +134,20 @@ export default function QuickstartPage() {
       <CodeBlock
         lang="yaml"
         filename="policy.yaml"
-        code={`version: 1
-allowlist:
+        code={`rules:
   - resource: "api.openai.com"
     actions: ["api_call"]
-    limits:
-      per_request: 5.00
-      daily: 50.00
+    verdict: approved
+    maxAmount: 5.00
+    maxDailyAmount: 50.00
 
   - resource: "api.anthropic.com"
     actions: ["api_call"]
-    limits:
-      per_request: 2.00
-      daily: 20.00`}
+    verdict: approved
+    maxAmount: 2.00
+    maxDailyAmount: 20.00
+
+defaultVerdict: pending_approval`}
       />
       <p style={S.p}>
         The <InlineCode>daily</InlineCode> limit is computed from the rolling

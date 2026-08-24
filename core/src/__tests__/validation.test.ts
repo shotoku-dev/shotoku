@@ -119,6 +119,45 @@ describe("validatePolicy — published examples are executable", () => {
     }
   });
 
+  /**
+   * The website restates the docs by hand rather than rendering them, so it
+   * drifts independently. It had been teaching a policy format that does not
+   * exist -- `allowlist`, `limits`, `per_request` -- which validatePolicy
+   * rejects outright, so anyone following the quickstart had every request
+   * denied with a message about an unknown field.
+   */
+  it("accepts every YAML block published on the website", async () => {
+    const docsDir = join(repoRoot, "web/app/docs");
+    const pages = await readdir(docsDir, { withFileTypes: true });
+    let checked = 0;
+
+    for (const entry of pages) {
+      if (!entry.isDirectory()) continue;
+      const file = join(docsDir, entry.name, "page.tsx");
+
+      let source: string;
+      try {
+        source = await readFile(file, "utf8");
+      } catch {
+        continue;
+      }
+
+      for (const match of source.matchAll(/lang="yaml"[\s\S]{0,160}?code=\{`([\s\S]*?)`\}/g)) {
+        const block = match[1]!.replace(/\`/g, "`");
+        // Skip blocks that interpolate: they are illustrative, not literal.
+        if (block.includes("${")) continue;
+        checked += 1;
+        expect(
+          () => loadPolicyYaml(block),
+          `${entry.name}/page.tsx:
+${block}`,
+        ).not.toThrow();
+      }
+    }
+
+    expect(checked).toBeGreaterThan(0);
+  });
+
   it("accepts every shipped example policy", async () => {
     const dir = join(repoRoot, "examples");
     const files = (await readdir(dir)).filter((f) => f.endsWith(".yaml"));

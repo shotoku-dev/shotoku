@@ -59,8 +59,7 @@ export default function PoliciesPage() {
       <CodeBlock
         lang="yaml"
         filename="policy.yaml"
-        code={`version: 1
-defaultVerdict: pending_approval
+        code={`defaultVerdict: pending_approval
 
 rules:
   # Known AI APIs: approve up to budget
@@ -94,9 +93,9 @@ rules:
       <Table
         headers={["Field", "Type", "What it does"]}
         rows={[
-          ["version",        "number",           "Policy format version. Currently 1."],
           ["defaultVerdict", "AuthorizationStatus", <>What happens when no rule matches. Defaults to <InlineCode>pending_approval</InlineCode> if omitted.</>],
           ["rules",          "PolicyRule[]",     "The ordered list of rules. Evaluated top-to-bottom — the first match wins."],
+          ["grantTtlSeconds", "number",           <>Optional. How long a human approval stays redeemable, in seconds. Defaults to 900 (fifteen minutes).</>],
         ]}
       />
 
@@ -193,8 +192,7 @@ rules:
       <CodeBlock
         lang="yaml"
         filename="policy-x402.yaml"
-        code={`version: 1
-defaultVerdict: pending_approval
+        code={`defaultVerdict: pending_approval
 
 rules:
   # Trust low-cost data endpoints
