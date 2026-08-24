@@ -20,6 +20,7 @@ import type {
 } from "./types.js";
 import { ShotokuError, errorMessage } from "./errors.js";
 import { isAuthorizationStatus } from "./validation.js";
+import { canonicalizeLedgerPath } from "./paths.js";
 import {
   LEDGER_GENESIS_HASH,
   hashLedgerRecord,
@@ -290,20 +291,30 @@ const heldLocks = new AsyncLocalStorage<ReadonlySet<string>>();
  * exclusively-created lockfile. Re-entrant within a call chain that already
  * holds the lock, so an inner `appendDecision` cannot deadlock against its own
  * outer lock.
+ *
+ * The path is canonicalised first, and everything downstream — the lockfile name
+ * and the re-entrancy set — is keyed on that canonical form. Without it, two
+ * spellings of one file (`C:\` vs `c:\`, a symlinked directory, a `..`
+ * segment) create two lockfiles and the mutual exclusion silently does not
+ * exist. Canonicalising in both places matters: keying the lockfile on the
+ * canonical path while testing re-entrancy against the raw one would make every
+ * nested append wait for a lock its own caller already holds.
  */
 export async function withLedgerLock<T>(
   ledgerPath: string,
   operation: () => Promise<T>,
 ): Promise<T> {
+  await ensureLedgerDir(ledgerPath);
+  const canonical = await canonicalizeLedgerPath(ledgerPath);
+
   const owned = heldLocks.getStore();
-  if (owned?.has(ledgerPath)) return operation();
+  if (owned?.has(canonical)) return operation();
 
   const nested = new Set(owned ?? []);
-  nested.add(ledgerPath);
+  nested.add(canonical);
   const run = (): Promise<T> => heldLocks.run(nested, operation);
 
-  await ensureLedgerDir(ledgerPath);
-  const lockPath = `${ledgerPath}.lock`;
+  const lockPath = `${canonical}.lock`;
   const start = Date.now();
 
   while (true) {
