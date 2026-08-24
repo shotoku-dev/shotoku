@@ -22,6 +22,11 @@ function resolveFrom(baseDir: string, path: string): string {
   return isAbsolute(path) ? path : resolve(baseDir, path);
 }
 
+function nonEmpty(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function parseConfig(raw: string, configPath: string): ConfigFile {
   let parsed: unknown;
   try {
@@ -67,6 +72,17 @@ async function loadConfig(configPath: string): Promise<ConfigFile | undefined> {
   }
 }
 
+/**
+ * SHOTOKU_POLICY and SHOTOKU_LEDGER sit above the config file, matching the MCP
+ * server's precedence exactly (mcp/src/config.ts). They have to: the MCP server
+ * writes pending approvals to the path in its environment, and a CLI that
+ * ignored that variable showed an empty approval queue while a gated action was
+ * waiting. For an approval tool, silently displaying "nothing to review" when
+ * there is something to review fails on the unsafe side.
+ *
+ * Reading env below the config file would leave the two diverging for anyone who
+ * has both, which is the bug itself.
+ */
 export async function resolveRuntimePaths(
   options: RuntimePathOptions,
   cwd: string = process.cwd(),
@@ -75,11 +91,20 @@ export async function resolveRuntimePaths(
   const config = await loadConfig(configPath);
   const configDir = dirname(configPath);
 
-  const policyPath = options.policy ?? config?.policyPath ?? "policy.yaml";
-  const ledgerPath = options.ledger ?? config?.ledgerPath ?? "data/decisions.jsonl";
+  // An env var set to an empty string is a misconfiguration, not a path.
+  const envPolicy = nonEmpty(process.env["SHOTOKU_POLICY"]);
+  const envLedger = nonEmpty(process.env["SHOTOKU_LEDGER"]);
 
+  const policyOverride = options.policy ?? envPolicy;
+  const ledgerOverride = options.ledger ?? envLedger;
+
+  const policyPath = policyOverride ?? config?.policyPath ?? "policy.yaml";
+  const ledgerPath = ledgerOverride ?? config?.ledgerPath ?? "data/decisions.jsonl";
+
+  // A flag or an env value is relative to where the user is standing; a config
+  // file value is relative to the config file.
   return {
-    policyPath: resolveFrom(options.policy ? cwd : configDir, policyPath),
-    ledgerPath: resolveFrom(options.ledger ? cwd : configDir, ledgerPath),
+    policyPath: resolveFrom(policyOverride === undefined ? configDir : cwd, policyPath),
+    ledgerPath: resolveFrom(ledgerOverride === undefined ? configDir : cwd, ledgerPath),
   };
 }
