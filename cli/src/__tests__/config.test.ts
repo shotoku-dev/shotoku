@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { resolveRuntimePaths } from "../config.js";
@@ -42,13 +42,64 @@ describe("resolveRuntimePaths", () => {
     expect(paths.ledgerPath).toBe(join(dir, "ledger.override.jsonl"));
   });
 
-  it("falls back to conventional paths when no config exists", async () => {
+  /**
+   * Changed deliberately. A directory with no config used to get a cwd-relative
+   * ledger, which is how one machine ended up with four of them: the CLI, the
+   * MCP server and the gateway each invented their own from wherever they
+   * happened to be started.
+   */
+  it("falls back to the Shotoku home when no config exists", async () => {
     const dir = await mkdtemp(join(tmpdir(), "shotoku-config-test-"));
+    const home = await mkdtemp(join(tmpdir(), "shotoku-home-test-"));
+    const previousHome = process.env["SHOTOKU_HOME"];
+    process.env["SHOTOKU_HOME"] = home;
 
-    const paths = await resolveRuntimePaths({}, dir);
+    try {
+      const paths = await resolveRuntimePaths({}, dir);
 
-    expect(paths.policyPath).toBe(join(dir, "policy.yaml"));
-    expect(paths.ledgerPath).toBe(join(dir, "data/decisions.jsonl"));
+      expect(paths.policyPath).toBe(join(home, "policy.yaml"));
+      expect(paths.ledgerPath).toBe(join(home, "data/decisions.jsonl"));
+    } finally {
+      if (previousHome === undefined) delete process.env["SHOTOKU_HOME"];
+      else process.env["SHOTOKU_HOME"] = previousHome;
+    }
+  });
+
+  /**
+   * Upgrading must never look like it erased a history. A project that
+   * predates the home directory keeps the ledger it already has.
+   */
+  it("keeps using a ledger that already exists in the working directory", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-test-"));
+    const home = await mkdtemp(join(tmpdir(), "shotoku-home-test-"));
+    await mkdir(join(dir, "data"), { recursive: true });
+    await writeFile(join(dir, "data", "decisions.jsonl"), "", "utf8");
+
+    const previousHome = process.env["SHOTOKU_HOME"];
+    process.env["SHOTOKU_HOME"] = home;
+
+    try {
+      const paths = await resolveRuntimePaths({}, dir);
+      expect(paths.ledgerPath).toBe(join(dir, "data/decisions.jsonl"));
+    } finally {
+      if (previousHome === undefined) delete process.env["SHOTOKU_HOME"];
+      else process.env["SHOTOKU_HOME"] = previousHome;
+    }
+  });
+
+  it("finds a config file from a subdirectory", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-test-"));
+    await writeFile(
+      join(dir, "shotoku.config.json"),
+      JSON.stringify({ ledgerPath: "logs/decisions.jsonl" }),
+      "utf8",
+    );
+    const deep = join(dir, "src", "nested");
+    await mkdir(deep, { recursive: true });
+
+    const paths = await resolveRuntimePaths({}, deep);
+
+    expect(paths.ledgerPath).toBe(join(dir, "logs/decisions.jsonl"));
   });
 });
 

@@ -3,7 +3,7 @@ import { createGatewayServer } from "./server.js";
 import { loadConfig } from "./config.js";
 import { assertPolicyLoads } from "./startup.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 
 // Fail closed at boot — refuse to start without a valid policy.
 try {

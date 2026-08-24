@@ -32,10 +32,11 @@ import {
   formatResponse,
   formatStatus,
   type HistoryOptions,
+  formatWhere,
 } from "./format.js";
 import { runInit } from "./init.js";
 import { DEMO_SCENARIO_NAMES, isDemoScenario, runDemo } from "./demo.js";
-import { resolveRuntimePaths } from "./config.js";
+import { explainRuntimePaths, resolveRuntimePaths } from "./config.js";
 
 const VALID_ACTIONS = validActions();
 const VALID_STATUSES = validStatuses();
@@ -181,6 +182,17 @@ program
     const entries = await readDecisions(ledgerPath);
     const approvals = await readApprovals(ledgerPath);
     console.log(formatStatus(entries, approvals));
+  });
+
+program
+  .command("where")
+  .description("Show which policy and ledger this directory resolves to, and why")
+  .option("--policy <path>", "Path to policy file")
+  .option("--ledger <path>", "Path to ledger file")
+  .option("--config <path>", "Path to shotoku.config.json")
+  .action(async (opts: { policy?: string; ledger?: string; config?: string }) => {
+    const paths = await explainRuntimePaths(opts);
+    console.log(await formatWhere(paths, process.cwd()));
   });
 
 program

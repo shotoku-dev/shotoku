@@ -4,6 +4,8 @@ import type {
   AuthorizationStatus,
   LedgerEntry,
 } from "@shotoku/core";
+import { stat } from "node:fs/promises";
+import { describePathSource, type ShotokuPaths } from "@shotoku/core";
 
 const APPROVED = "✓ APPROVED";
 const DENIED = "✗ DENIED";
@@ -191,4 +193,51 @@ export function formatResponse(response: AuthorizeResponse): string {
 
 export function formatError(message: string): string {
   return `✗ Error: ${message}`;
+}
+
+/**
+ * Answers "which files am I actually talking to, and what decided that".
+ *
+ * Every path in Shotoku used to be inferred silently, so a ledger that resolved
+ * somewhere unexpected looked identical to a ledger with nothing in it. This
+ * command is the one place that difference is visible.
+ */
+export async function formatWhere(
+  paths: ShotokuPaths,
+  cwd: string,
+): Promise<string> {
+  const lines: string[] = [];
+
+  lines.push(`Working directory  ${cwd}`);
+  lines.push(`Shotoku home       ${paths.home}`);
+  lines.push(
+    `Config file        ${paths.configPath ?? "none found (searched this directory and its parents)"}`,
+  );
+  lines.push("");
+
+  for (const [label, resolved] of [
+    ["Policy", paths.policy],
+    ["Ledger", paths.ledger],
+  ] as const) {
+    const present = await fileExists(resolved.path);
+    lines.push(`${label}`);
+    lines.push(`  path    ${resolved.path}`);
+    lines.push(`  from    ${describePathSource(resolved)}`);
+    lines.push(`  status  ${present ? "exists" : "does not exist yet"}`);
+    lines.push("");
+  }
+
+  lines.push("Every Shotoku process resolves the same way. If the MCP server and");
+  lines.push("this command disagree, compare their environments first.");
+
+  return lines.join("\n");
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
 }

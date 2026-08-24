@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { resolveShotokuPaths } from "@shotoku/core";
 
 export interface GatewayConfig {
   readonly policyPath: string;
@@ -10,17 +10,23 @@ export interface GatewayConfig {
 
 const DEFAULT_PORT = 8788;
 
-/** Load gateway config from the environment, with safe local defaults. */
-export function loadConfig(): GatewayConfig {
+/**
+ * Load gateway config, resolving paths through the shared resolver in core.
+ *
+ * This package used to resolve paths on its own, and did it differently from
+ * everyone else: environment variables only, no config file, and a path left
+ * relative to the working directory. Since the ledger lock is keyed on the path
+ * string, that relative path produced a different lockfile than the absolute one
+ * the CLI used, so the gateway and the CLI never actually excluded each other.
+ */
+export async function loadConfig(): Promise<GatewayConfig> {
   const portRaw = process.env["SHOTOKU_GATEWAY_PORT"];
   const port = portRaw ? Number.parseInt(portRaw, 10) : DEFAULT_PORT;
+  const paths = await resolveShotokuPaths();
 
   return {
-    // Absolute, because the ledger lock is keyed on the path string: a relative
-    // path here and an absolute one in the CLI produce two different lockfiles
-    // for the same file, and the two processes stop excluding each other.
-    policyPath: resolve(process.env["SHOTOKU_POLICY"] ?? "policy.yaml"),
-    ledgerPath: resolve(process.env["SHOTOKU_LEDGER"] ?? "data/decisions.jsonl"),
+    policyPath: paths.policy.path,
+    ledgerPath: paths.ledger.path,
     port: Number.isInteger(port) && port > 0 ? port : DEFAULT_PORT,
     defaultActor: process.env["SHOTOKU_GATEWAY_ACTOR"] ?? "gateway",
   };
