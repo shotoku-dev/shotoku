@@ -74,8 +74,8 @@ Once your agent host is running, confirm that it discovered the Shotoku tools:
 - `authorize_action`
 - `get_decision`
 - `get_pending_approvals`
-- `approve_decision`
-- `deny_decision`
+
+Three tools, not five. `approve_decision` and `deny_decision` are withheld by default and refused if called: an agent that can approve its own pending decisions defeats the entire point of the product. See [Approvals happen out-of-band](#approvals-happen-out-of-band).
 
 How you verify depends on your host. In Claude Desktop, click the tools icon (hammer) in a new conversation and look for the **shotoku** section.
 
@@ -177,34 +177,6 @@ If nothing is waiting, it returns: `No pending approvals.`
 
 ---
 
-### `approve_decision`
-
-Approves a decision that is currently pending human review.
-
-Input:
-
-```json
-{ "decisionId": "dec_abc123" }
-```
-
-Shotoku appends a new approval record to the ledger. It does not mutate the original decision. That keeps the audit trail honest: you can see both the original decision and the later human action.
-
----
-
-### `deny_decision`
-
-Denies a decision that is currently pending human review.
-
-Input:
-
-```json
-{ "decisionId": "dec_abc123" }
-```
-
-Like approval, denial is append-only. The original decision remains in the ledger, and the denial is recorded as a separate action.
-
----
-
 ## Walkthrough
 
 Here is what a typical exchange looks like once Shotoku is connected:
@@ -227,14 +199,184 @@ Or if your policy requires approval:
 
 ---
 
+## Gating other MCP servers
+
+Everything above assumes the agent *chooses* to ask Shotoku. It can also decline to ask.
+
+Wrapping removes that choice. Shotoku connects to your other MCP servers, re-exposes their tools as its own, and gates every call. The agent talks to Shotoku and nothing else — it never sees the servers behind it.
+
+```
+before          agent ──────────────────────► obsidian
+after           agent ──► shotoku ──► policy ──► obsidian
+```
+
+### Turning it on
+
+List the servers to put behind Shotoku in a file — the format is the same `mcpServers` shape your agent host already uses, so you can usually move entries across unchanged:
+
+```json
+{
+  "mcpServers": {
+    "obsidian": {
+      "command": "/path/to/obsidian-mcp-server",
+      "env": { "OBSIDIAN_API_KEY": "..." }
+    },
+    "reddit": {
+      "command": "npx",
+      "args": ["-y", "reddit-mcp-buddy"]
+    }
+  }
+}
+```
+
+Point Shotoku at it, and **remove those servers from your host config** — otherwise the agent keeps a direct route to them and the gate is decorative:
+
+```json
+{
+  "mcpServers": {
+    "shotoku": {
+      "command": "node",
+      "args": ["/absolute/path/to/shotoku/mcp/dist/index.js"],
+      "env": {
+        "SHOTOKU_MCP_UPSTREAMS": "/absolute/path/to/upstreams.json",
+        "SHOTOKU_LEDGER": "/absolute/path/to/data/decisions.jsonl"
+      }
+    }
+  }
+}
+```
+
+Restart your host. Where you previously saw `search_vault`, you now see `obsidian__search_vault`.
+
+### Writing rules for wrapped tools
+
+A wrapped tool is named `<server>__<tool>`, and **that name is the `resource` in your policy**. This is the single most useful thing to know about wrapping:
+
+```yaml
+rules:
+  # Reading is free
+  - resource: obsidian__get_*
+    verdict: approved
+  - resource: obsidian__search_*
+    verdict: approved
+
+  # Writing is allowed, and recorded
+  - resource: obsidian__create_*
+    verdict: approved
+
+  # Deleting is not something an agent decides alone
+  - resource: obsidian__delete_*
+    verdict: pending_approval
+
+defaultVerdict: pending_approval
+```
+
+Wrapped calls are recorded as `action: mcp_tool` on the `mcp` rail, so `actions` and `rails` narrow rules further if you need them.
+
+`defaultVerdict: pending_approval` is worth keeping here. A new tool appearing in an upstream server — after an update, say — is then held for review rather than silently allowed.
+
+### What the agent sees when it is blocked
+
+```
+Blocked by Shotoku — this action was not authorized.
+  status:   pending_approval
+  decision: dec_cd9b9664cf9f
+  reason:   obsidian__delete_vault_file matched rule
+  A human must approve this out-of-band (`shotoku approve dec_cd9b9664cf9f`,
+  the Shotoku TUI, or Slack). You cannot approve it yourself — ask the user.
+  Once they approve, retry this exact call: the approval is redeemable once,
+  for these arguments only. Changing anything requires a new approval.
+```
+
+A denial says so plainly and tells the agent not to retry.
+
+### What is recorded, and what is not
+
+The decision records the server, the tool, and the **names** of the arguments — never their values. Tool arguments routinely carry API keys, file contents and personal data, and an audit log is not a place to accumulate them.
+
+The values are still bound to the approval, through a digest. That is what stops an approval for one file from being redeemed against another.
+
+---
+
+## Approvals happen out-of-band
+
+`approve_decision` and `deny_decision` exist, but a default install does not expose them, and calling one is refused outright. An agent that can approve its own pending decisions has not been gated at all — it has been given a form to fill in.
+
+So approval happens somewhere the agent cannot reach:
+
+```bash
+shotoku status
+shotoku approve dec_abc123
+```
+
+or in the TUI (`shotoku tui`).
+
+`SHOTOKU_MCP_ALLOW_APPROVALS=1` lifts the restriction. It is meant for a human driving the server directly, and it removes the separation the product exists to provide.
+
+### After you approve
+
+An approval is redeemable **once**, by the next call that matches it exactly — same agent, same tool, same arguments, same amount. The agent retries, the call goes through, and the grant is spent.
+
+```
+agent   → obsidian__delete_vault_file   ◷ pending, dec_21028c
+you     → shotoku approve dec_21028c
+agent   → obsidian__delete_vault_file   ✓ approved
+agent   → obsidian__delete_vault_file   ◷ pending again
+```
+
+That last line is the design, not a bug. Approving an action is not approving it forever — standing permission is what `policy.yaml` is for. Approvals expire too, after fifteen minutes by default (`grantTtlSeconds`).
+
+`shotoku status` shows approvals that are waiting to be used, so an approval never disappears into nothing:
+
+```
+1 approval waiting to be used by the agent:
+  ✓  claude-desktop · obsidian__delete_vault_file · expires in 12m
+```
+
+---
+
+## When something is wrong
+
+**The host says the server failed to start.** Almost always the upstreams file: check it is valid JSON and that the path in `SHOTOKU_MCP_UPSTREAMS` is absolute. The server writes the reason to stderr; your host will have it in its MCP logs.
+
+**No `<server>__<tool>` tools appear.** Wrapping is off or found nothing. `SHOTOKU_MCP_UPSTREAMS` must be set and point at a file containing an `mcpServers` object, and each entry needs a `command`.
+
+**`shotoku status` shows nothing, but the agent says it is blocked.** The CLI and the server are reading different ledgers. Run `shotoku where` in your terminal, and compare it with the `SHOTOKU_LEDGER` in your host config.
+
+**Everything is denied, including things your policy allows.** The policy file failed to load, and Shotoku fails closed. Run any `shotoku authorize` command; the reason names the problem.
+
+**An approval does not let the retry through.** Something in the call changed — a different argument, a different amount — or more than fifteen minutes passed. The grant binds to the exact call that was approved.
+
+---
+
 ## Environment variables
 
 | Variable | Default | What it controls |
 |---|---|---|
+| `SHOTOKU_MCP_UPSTREAMS` | unset | Path to the upstream servers file. Setting it turns on wrapping |
+| `SHOTOKU_MCP_ACTOR` | the client name | Overrides the agent name recorded in the ledger |
+| `SHOTOKU_MCP_ALLOW_APPROVALS` | unset | `1` exposes the approval tools to the agent. Read the warning below first |
+| `SHOTOKU_HOME` | `~/.shotoku` | Where policy and ledger live when nothing else says otherwise |
 | `SHOTOKU_CONFIG` | `shotoku.config.json` | Path to the Shotoku config file |
-| `SHOTOKU_POLICY` | `policy.yaml` | Path to your policy file |
-| `SHOTOKU_LEDGER` | `data/decisions.jsonl` | Path to the local decision ledger |
+| `SHOTOKU_POLICY` | from the home | Path to your policy file |
+| `SHOTOKU_LEDGER` | from the home | Path to the local decision ledger |
+| `SHOTOKU_RECEIPT_SECRET` | unset | When set, approved decisions carry a signed receipt |
 
-If `SHOTOKU_POLICY` or `SHOTOKU_LEDGER` are set, they win. Otherwise the server reads `shotoku.config.json`. If no config file exists, it falls back to `policy.yaml` and `data/decisions.jsonl`.
+**`SHOTOKU_MCP_ALLOW_APPROVALS=1` disables the product's core separation.** It hands the agent the tools to approve and deny its own pending decisions. There is no scenario in normal use where you want this; it exists for a human driving the server directly.
 
-Relative paths inside `shotoku.config.json` are resolved from the config file directory. Relative paths in environment variables are resolved from the working directory where the server starts. Using absolute paths (as shown in the setup above) avoids ambiguity.
+### Which files the server actually uses
+
+The MCP server is launched by your agent host, which chooses the working directory — often the filesystem root. That makes path resolution worth being explicit about. Every Shotoku process resolves the same way, highest priority first:
+
+1. `SHOTOKU_POLICY` / `SHOTOKU_LEDGER`
+2. a `shotoku.config.json`, searched for from the working directory upward
+3. an existing `./data/decisions.jsonl` beside the working directory
+4. `$SHOTOKU_HOME`, otherwise `~/.shotoku`
+
+To see what any directory resolves to, and what decided it:
+
+```bash
+shotoku where
+```
+
+Run that, and run it again with the environment your MCP server has. If the two disagree, the server is writing decisions the CLI cannot see — which shows up as `shotoku status` reporting an empty approval queue while an action waits.

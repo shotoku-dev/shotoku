@@ -101,6 +101,37 @@ export default function CliPage() {
         Each pending entry includes the actor, resource, amount, age, and a hint to approve or deny.
       </p>
       <CodeBlock lang="bash" code={`shotoku status --ledger ./path/to/decisions.jsonl`} />
+      <p style={S.p}>
+        It also lists approvals waiting to be used by an agent. An approval is redeemable
+        once, by the next matching call, and expires after fifteen minutes by default — so
+        it is worth being able to see one before it lapses.
+      </p>
+
+      <hr style={S.divider} />
+
+      {/* where */}
+      <h2 style={S.h2}>where</h2>
+      <CodeBlock lang="bash" code={`shotoku where`} />
+      <p style={S.p}>
+        Prints the policy and ledger this directory resolves to, what decided each one, and
+        whether the file exists yet.
+      </p>
+      <CodeBlock
+        lang="text"
+        code={`Working directory  /Users/you/projects/agent
+Shotoku home       /Users/you/.shotoku
+Config file        /Users/you/projects/agent/shotoku.config.json
+
+Ledger
+  path    /Users/you/projects/agent/data/decisions.jsonl
+  from    config file /Users/you/projects/agent/shotoku.config.json
+  status  exists`}
+      />
+      <p style={S.p}>
+        Reach for this whenever a command shows less than you expect. An empty history and a
+        history you are not looking at read identically otherwise — which is exactly what
+        happens when your MCP server writes to one ledger and your terminal reads another.
+      </p>
 
       <hr style={S.divider} />
 

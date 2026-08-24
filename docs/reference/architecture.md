@@ -42,10 +42,13 @@ authorize(request, options)
   │
   └── withLedgerLock(options.ledgerPath)      — exclusive file lock
         │
-        ├── getLedgerSnapshot(ledgerPath)     — compute 24h daily totals
+        ├── getLedgerSnapshot(ledgerPath)     — 24h daily totals + open grants
         │
         ├── evaluatePolicy(request, policy, snapshot) — pure function, no I/O
         │     └── returns EvaluationResult { status, reasons }
+        │
+        ├── applyGrant(result, request, policy, snapshot, now)  — pure
+        │     └── redeems a human approval: pending_approval → approved only
         │
         ├── buildExplanation(status, reasons, id)
         │     └── returns Explanation { summary, hint? }
@@ -90,7 +93,7 @@ evaluatePolicy(
 Evaluation order:
 
 1. Validate `amount` (non-negative finite number).
-2. Find the first rule where `resource`, `actions`, and `rails` all match. `resource: "*"` matches any resource. `actions`/`rails` are optional filters; omitting them means "match all".
+2. Find the first rule where `resource`, `actor`, `actions`, and `rails` all match. `resource: "*"` matches any resource, and `actor`/`actions`/`rails` are optional filters — omitting one means "match all". `resource` and `actor` support `*` as a wildcard for any run of characters.
 3. If no rule matches → use `policy.defaultVerdict` (defaults to `pending_approval`).
 4. If the matched rule's `verdict` is not `approved` → return that verdict immediately.
 5. Check `maxAmount` (per-transaction limit). Deny if exceeded.
@@ -98,6 +101,8 @@ Evaluation order:
 7. Return `approved` with all accumulated reasons.
 
 Rule matching is **first-match-wins**. Rule order in the YAML file matters.
+
+`applyGrant` runs afterwards, as a separate pure function rather than a branch inside the evaluator. It upgrades `pending_approval` to `approved` when an unredeemed human approval matches the request signature, and **never touches any other verdict** — a grant must not lift a denial, least of all one caused by an exhausted budget. Keeping it separate makes that structural instead of a convention about branch order, and leaves `evaluatePolicy`, a published export, unchanged. See `core/src/grant.ts` for the signature and expiry rules.
 
 ### `ledger.ts`
 
@@ -108,7 +113,13 @@ Append-only local ledger stored as newline-delimited JSON (`decisions.jsonl`). T
 
 The original decision record is **never mutated**. Human resolutions are appended as new records.
 
-**Locking:** Uses an exclusive `.lock` file (`decisions.jsonl.lock`) before any write. Polls every 25ms, times out after 5 seconds, removes stale locks (>30 seconds old). Only the snapshot read inside `getLedgerSnapshot` does not require the lock; all writes do.
+**Locking:** Uses an exclusive `.lock` file (`decisions.jsonl.lock`) before any write. Polls every 25ms, times out after 5 seconds, removes stale locks (>30 seconds old).
+
+The path is canonicalised first (`core/src/paths.ts`) and both the lockfile name and the re-entrancy set are keyed on that canonical form. The lock is keyed on a *string*, not an inode, so without this two spellings of one file — a symlink, a `..` segment, Windows drive-letter casing — produce two lockfiles and no mutual exclusion at all.
+
+The lock is re-entrant within an async call chain (`AsyncLocalStorage`), so `authorize()` can hold it across its whole read-evaluate-append cycle while `appendDecision` acquires it on its own behalf. Writers that merely run side by side still contend normally.
+
+**Readers take no lock**, deliberately: the TUI polls every few seconds and must not contend with every authorize against the 5s timeout. A read can therefore land mid-append. Every committed record ends in a newline, so a file that does not is an append in flight — `readLedgerState` retries once, then ignores a trailing fragment that is still incomplete. Any newline-terminated record that fails to parse or verify is real corruption and still throws.
 
 **Hash chain:** Every record gets an `integrity` block appended at write time:
 
@@ -125,7 +136,7 @@ The original decision record is **never mutated**. Human resolutions are appende
 
 `hashLedgerRecord(previousHash, recordBody)` computes `sha256(canonicalJson({ previousHash, record: body }))`. The genesis hash is `sha256:000...000` (64 zeros). Old records without an `integrity` block are treated as legacy — they validate as a structural pass but are flagged in the integrity report.
 
-**Snapshot:** `getLedgerSnapshot` scans all approved decisions in the last 24 hours and aggregates `amount` by key `"${actor}|${resource}"`. This snapshot is passed to `evaluatePolicy` for daily limit checks.
+**Snapshot:** `getLedgerSnapshot` reads the ledger once and produces both the 24-hour spend totals, aggregated by key `"${actor}|${resource}"`, and the list of open grants. A grant is open while an approved decision has an approval record and no later decision references it — derived by set difference, like `getPendingApprovals`, so recording a grant on the redeeming decision is also what spends it.
 
 Key functions:
 
@@ -138,7 +149,8 @@ Key functions:
 | `getDecisionById` | Find a single decision by ID |
 | `getApprovalForDecision` | Find the approval record for a decision |
 | `getPendingApprovals` | Return all `pending_approval` decisions that have no approval record |
-| `getLedgerSnapshot` | Compute 24h daily totals for budget checks |
+| `getLedgerSnapshot` | Compute 24h daily totals and open grants |
+| `getOpenGrants` | Human approvals not yet redeemed, for `shotoku status` |
 | `getLedgerIntegrity` | Return head hash and record counts for snapshot verification |
 | `withLedgerLock` | Exclusive lock wrapper for any write operation |
 
@@ -423,19 +435,23 @@ Launches an Ink-based terminal UI in the alternate screen buffer. Components:
 
 ## MCP Package (`shotoku-mcp`)
 
-Stdio transport. Connects to Claude or any MCP-compatible host. Exposes 5 tools:
+Stdio transport. Connects to Claude or any MCP-compatible host. Exposes 3 tools by default:
 
 | Tool | Description |
 |---|---|
 | `authorize_action` | Run an authorization check. Returns full `AuthorizeResponse` as JSON |
 | `get_decision` | Fetch a single decision by ID |
 | `get_pending_approvals` | List all unresolved pending decisions |
-| `approve_decision` | Approve a pending decision by ID |
-| `deny_decision` | Deny a pending decision by ID |
 
-Config is loaded from `shotoku.config.json` in the working directory via `mcp/src/config.ts`. All tools share the same policy and ledger paths.
+`approve_decision` and `deny_decision` are defined but withheld from the tool list and refused if called, unless `SHOTOKU_MCP_ALLOW_APPROVALS=1`. An agent that can approve its own pending decisions is not gated (`mcp/src/tools.ts`, `mcp/src/server.ts`).
 
-The MCP server calls the same `authorize()`, `approve()`, `deny()` functions as the CLI — there is no separate MCP-specific logic.
+**Identity.** The actor is resolved per call from `SHOTOKU_MCP_ACTOR`, else the client name announced during the MCP initialize handshake, else `unregistered` (`mcp/src/actor.ts`). `authorize_action` deliberately has no `actor` input: the model must not choose the name its own decision is recorded under.
+
+**Wrapping.** With `SHOTOKU_MCP_UPSTREAMS` set, the server connects to the listed MCP servers and re-exposes each of their tools as `<server>__<tool>`, gating every call as `action: mcp_tool` on the `mcp` rail (`mcp/src/upstream.ts`, `mcp/src/wrap.ts`). Only argument *names* reach the ledger; a digest of the values is carried as `fingerprint` so a human approval binds to the exact call.
+
+Paths are resolved by `resolveShotokuPaths` in `core/src/paths.ts`, the same resolver the CLI and gateway use.
+
+Beyond the wrapping layer, the MCP server calls the same `authorize()`, `approve()`, `deny()` functions as the CLI.
 
 ---
 

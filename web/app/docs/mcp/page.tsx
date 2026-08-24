@@ -92,8 +92,9 @@ export default function McpPage() {
 }`}
       />
       <p style={S.p}>
-        Use absolute paths. Relative paths are resolved from the working directory where the
-        server starts, which may differ by host.
+        Use absolute paths. Your host chooses the working directory the server starts in,
+        and it is often not the one you expect — see <em>Which files the server actually
+        uses</em> below.
       </p>
       <p style={S.p}>
         For Claude Desktop, add this to{" "}
@@ -110,13 +111,18 @@ export default function McpPage() {
       <h2 style={S.h2}>Verifying the connection</h2>
       <p style={S.p}>
         In Claude Desktop, click the tools icon (hammer) in a new conversation and look
-        for the <strong>shotoku</strong> section. You should see five tools:
+        for the <strong>shotoku</strong> section. You should see three tools:
       </p>
       <ul style={S.ul}>
-        {["authorize_action", "get_decision", "get_pending_approvals", "approve_decision", "deny_decision"].map((t) => (
+        {["authorize_action", "get_decision", "get_pending_approvals"].map((t) => (
           <li key={t} style={S.li}><InlineCode>{t}</InlineCode></li>
         ))}
       </ul>
+      <p style={S.p}>
+        Three, not five. <InlineCode>approve_decision</InlineCode> and{" "}
+        <InlineCode>deny_decision</InlineCode> are withheld by default and refused if
+        called: an agent that can approve its own pending decisions defeats the point.
+      </p>
 
       <hr style={S.divider} />
 
@@ -171,22 +177,6 @@ export default function McpPage() {
         naturally: &ldquo;You have 2 pending approvals — want to review them?&rdquo; Returns
         an empty message when the queue is clear.
       </p>
-
-      <h3 style={S.h3}>approve_decision</h3>
-      <p style={S.p}>
-        Approves a pending decision. Shotoku appends a new approval record to the ledger —
-        it never mutates the original decision. Both the decision and the human approval
-        are preserved in the audit trail.
-      </p>
-      <CodeBlock lang="json" code={`{ "decisionId": "dec_abc123" }`} />
-
-      <h3 style={S.h3}>deny_decision</h3>
-      <p style={S.p}>
-        Denies a pending decision. Same append-only behavior as approval.
-      </p>
-      <CodeBlock lang="json" code={`{ "decisionId": "dec_abc123" }`} />
-
-      <hr style={S.divider} />
 
       {/* Identity */}
       <h2 style={S.h2} id="identity">Who the decision is attributed to</h2>
@@ -269,20 +259,249 @@ shotoku approve dec_abc123
 
       <hr style={S.divider} />
 
+      {/* Wrapping */}
+      <h2 style={S.h2} id="wrapping">Gating other MCP servers</h2>
+      <p style={S.p}>
+        Everything above assumes the agent <em>chooses</em> to ask Shotoku. It can also
+        decline to ask.
+      </p>
+      <p style={S.p}>
+        Wrapping removes that choice. Shotoku connects to your other MCP servers,
+        re-exposes their tools as its own, and gates every call. The agent talks to
+        Shotoku and nothing else — it never sees the servers behind it.
+      </p>
+      <CodeBlock
+        lang="text"
+        code={`before    agent ──────────────────────► obsidian
+after     agent ──► shotoku ──► policy ──► obsidian`}
+      />
+
+      <h3 style={S.h3}>Turning it on</h3>
+      <p style={S.p}>
+        List the servers to put behind Shotoku in a file. The format is the same{" "}
+        <InlineCode>mcpServers</InlineCode> shape your agent host already uses, so entries
+        usually move across unchanged.
+      </p>
+      <CodeBlock
+        lang="json"
+        filename="upstreams.json"
+        code={`{
+  "mcpServers": {
+    "obsidian": {
+      "command": "/path/to/obsidian-mcp-server",
+      "env": { "OBSIDIAN_API_KEY": "..." }
+    },
+    "reddit": {
+      "command": "npx",
+      "args": ["-y", "reddit-mcp-buddy"]
+    }
+  }
+}`}
+      />
+      <p style={S.p}>
+        Point Shotoku at it — and <strong>remove those servers from your host config</strong>.
+        Leave them and the agent keeps a direct route, which makes the gate decorative.
+      </p>
+      <CodeBlock
+        lang="json"
+        code={`{
+  "mcpServers": {
+    "shotoku": {
+      "command": "node",
+      "args": ["/absolute/path/to/shotoku/mcp/dist/index.js"],
+      "env": {
+        "SHOTOKU_MCP_UPSTREAMS": "/absolute/path/to/upstreams.json",
+        "SHOTOKU_LEDGER": "/absolute/path/to/data/decisions.jsonl"
+      }
+    }
+  }
+}`}
+      />
+      <p style={S.p}>
+        Restart your host. Where you previously saw <InlineCode>search_vault</InlineCode>,
+        you now see <InlineCode>obsidian__search_vault</InlineCode>.
+      </p>
+
+      <h3 style={S.h3}>Writing rules for wrapped tools</h3>
+      <p style={S.p}>
+        A wrapped tool is named <InlineCode>&lt;server&gt;__&lt;tool&gt;</InlineCode>, and{" "}
+        <strong>that name is the <InlineCode>resource</InlineCode> in your policy</strong>.
+        This is the single most useful thing to know about wrapping.
+      </p>
+      <CodeBlock
+        lang="yaml"
+        filename="policy.yaml"
+        code={`rules:
+  # Reading is free
+  - resource: obsidian__get_*
+    verdict: approved
+  - resource: obsidian__search_*
+    verdict: approved
+
+  # Writing is allowed, and recorded
+  - resource: obsidian__create_*
+    verdict: approved
+
+  # Deleting is not something an agent decides alone
+  - resource: obsidian__delete_*
+    verdict: pending_approval
+
+defaultVerdict: pending_approval`}
+      />
+      <p style={S.p}>
+        Wrapped calls are recorded as <InlineCode>action: mcp_tool</InlineCode> on the{" "}
+        <InlineCode>mcp</InlineCode> rail, so <InlineCode>actions</InlineCode> and{" "}
+        <InlineCode>rails</InlineCode> narrow rules further if you need them.
+      </p>
+      <p style={S.p}>
+        Keeping <InlineCode>defaultVerdict: pending_approval</InlineCode> matters here. A new
+        tool appearing in an upstream server — after an update, say — is then held for review
+        rather than silently allowed.
+      </p>
+
+      <h3 style={S.h3}>What the agent sees when it is blocked</h3>
+      <CodeBlock
+        lang="text"
+        code={`Blocked by Shotoku — this action was not authorized.
+  status:   pending_approval
+  decision: dec_cd9b9664cf9f
+  reason:   obsidian__delete_vault_file matched rule
+  A human must approve this out-of-band (\`shotoku approve dec_cd9b9664cf9f\`,
+  the Shotoku TUI, or Slack). You cannot approve it yourself — ask the user.
+  Once they approve, retry this exact call: the approval is redeemable once,
+  for these arguments only. Changing anything requires a new approval.`}
+      />
+
+      <h3 style={S.h3}>What is recorded, and what is not</h3>
+      <p style={S.p}>
+        The decision records the server, the tool, and the <strong>names</strong> of the
+        arguments — never their values. Tool arguments routinely carry API keys, file
+        contents and personal data, and an audit log is not a place to accumulate them.
+      </p>
+      <p style={S.p}>
+        The values are still bound to the approval, through a digest. That is what stops an
+        approval for one file from being redeemed against another.
+      </p>
+
+      <hr style={S.divider} />
+
+      {/* Approvals */}
+      <h2 style={S.h2} id="approvals">Approvals happen out-of-band</h2>
+      <p style={S.p}>
+        <InlineCode>approve_decision</InlineCode> and <InlineCode>deny_decision</InlineCode>{" "}
+        exist, but a default install does not expose them, and calling one is refused
+        outright. An agent that can approve its own pending decisions has not been gated at
+        all — it has been given a form to fill in.
+      </p>
+      <p style={S.p}>So approval happens somewhere the agent cannot reach:</p>
+      <CodeBlock
+        lang="bash"
+        code={`shotoku status
+shotoku approve dec_abc123`}
+      />
+      <p style={S.p}>
+        Or in the TUI (<InlineCode>shotoku tui</InlineCode>).{" "}
+        <InlineCode>SHOTOKU_MCP_ALLOW_APPROVALS=1</InlineCode> lifts the restriction; it is
+        meant for a human driving the server directly, and it removes the separation the
+        product exists to provide.
+      </p>
+
+      <h3 style={S.h3}>After you approve</h3>
+      <p style={S.p}>
+        An approval is redeemable <strong>once</strong>, by the next call that matches it
+        exactly — same agent, same tool, same arguments, same amount. The agent retries, the
+        call goes through, and the grant is spent.
+      </p>
+      <CodeBlock
+        lang="text"
+        code={`agent   → obsidian__delete_vault_file   ◷ pending, dec_21028c
+you     → shotoku approve dec_21028c
+agent   → obsidian__delete_vault_file   ✓ approved
+agent   → obsidian__delete_vault_file   ◷ pending again`}
+      />
+      <p style={S.p}>
+        That last line is the design, not a bug. Approving an action is not approving it
+        forever — standing permission is what <InlineCode>policy.yaml</InlineCode> is for.
+        Approvals expire too, after fifteen minutes by default
+        (<InlineCode>grantTtlSeconds</InlineCode>).
+      </p>
+      <p style={S.p}>
+        <InlineCode>shotoku status</InlineCode> shows approvals waiting to be used, so an
+        approval never disappears into nothing:
+      </p>
+      <CodeBlock
+        lang="text"
+        code={`1 approval waiting to be used by the agent:
+  ✓  claude-desktop · obsidian__delete_vault_file · expires in 12m`}
+      />
+
+      <hr style={S.divider} />
+
+      {/* Troubleshooting */}
+      <h2 style={S.h2}>When something is wrong</h2>
+      <Table
+        headers={["Symptom", "Almost always"]}
+        rows={[
+          [
+            "The host says the server failed to start",
+            <>The upstreams file. Check it is valid JSON and that the path in <InlineCode>SHOTOKU_MCP_UPSTREAMS</InlineCode> is absolute. The reason goes to stderr, which your host keeps in its MCP logs.</>,
+          ],
+          [
+            "No <server>__<tool> tools appear",
+            <>Wrapping is off or found nothing. <InlineCode>SHOTOKU_MCP_UPSTREAMS</InlineCode> must point at a file containing an <InlineCode>mcpServers</InlineCode> object, and each entry needs a <InlineCode>command</InlineCode>.</>,
+          ],
+          [
+            "shotoku status is empty but the agent says it is blocked",
+            <>The CLI and the server are reading different ledgers. Run <InlineCode>shotoku where</InlineCode> and compare it with the <InlineCode>SHOTOKU_LEDGER</InlineCode> in your host config.</>,
+          ],
+          [
+            "Everything is denied, including allowed things",
+            <>The policy file failed to load, and Shotoku fails closed. Run any <InlineCode>shotoku authorize</InlineCode>; the reason names the problem.</>,
+          ],
+          [
+            "An approval does not let the retry through",
+            "Something in the call changed — a different argument, a different amount — or more than fifteen minutes passed. The grant binds to the exact call that was approved.",
+          ],
+        ]}
+      />
+
+      <hr style={S.divider} />
+
       {/* Environment variables */}
       <h2 style={S.h2}>Environment variables</h2>
       <Table
         headers={["Variable", "Default", "What it controls"]}
         rows={[
-          ["SHOTOKU_CONFIG", "shotoku.config.json",   "Path to the Shotoku config file"],
-          ["SHOTOKU_POLICY", "policy.yaml",            "Path to your policy file (overrides config)"],
-          ["SHOTOKU_LEDGER", "data/decisions.jsonl",   "Path to the local decision ledger (overrides config)"],
+          ["SHOTOKU_MCP_UPSTREAMS", "unset", "Path to the upstream servers file. Setting it turns on wrapping"],
+          ["SHOTOKU_MCP_ACTOR", "the client name", "Overrides the agent name recorded in the ledger"],
+          ["SHOTOKU_MCP_ALLOW_APPROVALS", "unset", <><InlineCode>1</InlineCode> exposes the approval tools to the agent. It removes the separation the product exists to provide</>],
+          ["SHOTOKU_HOME", "~/.shotoku", "Where policy and ledger live when nothing else says otherwise"],
+          ["SHOTOKU_CONFIG", "shotoku.config.json", "Path to the Shotoku config file"],
+          ["SHOTOKU_POLICY", "from the home", "Path to your policy file"],
+          ["SHOTOKU_LEDGER", "from the home", "Path to the local decision ledger"],
+          ["SHOTOKU_RECEIPT_SECRET", "unset", "When set, approved decisions carry a signed receipt"],
         ]}
       />
+
+      <h3 style={S.h3}>Which files the server actually uses</h3>
       <p style={S.p}>
-        If <InlineCode>SHOTOKU_POLICY</InlineCode> or <InlineCode>SHOTOKU_LEDGER</InlineCode> are set
-        they take precedence. Otherwise the server reads <InlineCode>shotoku.config.json</InlineCode>.
-        If no config file exists it falls back to the defaults above.
+        Your agent host launches the MCP server and chooses its working directory — often
+        the filesystem root. That makes resolution worth being explicit about. Every
+        Shotoku process resolves the same way, highest priority first:
+      </p>
+      <ol style={S.ul}>
+        <li style={S.li}><InlineCode>SHOTOKU_POLICY</InlineCode> / <InlineCode>SHOTOKU_LEDGER</InlineCode></li>
+        <li style={S.li}>a <InlineCode>shotoku.config.json</InlineCode>, searched for from the working directory upward</li>
+        <li style={S.li}>an existing <InlineCode>./data/decisions.jsonl</InlineCode> beside the working directory</li>
+        <li style={S.li}><InlineCode>$SHOTOKU_HOME</InlineCode>, otherwise <InlineCode>~/.shotoku</InlineCode></li>
+      </ol>
+      <p style={S.p}>
+        To see what a directory resolves to, and what decided it:
+      </p>
+      <CodeBlock lang="bash" code={`shotoku where`} />
+      <p style={S.p}>
+        Run it in your terminal, then compare with the environment your MCP server has. If
+        the two disagree, the server is writing decisions the CLI cannot see.
       </p>
     </div>
   );

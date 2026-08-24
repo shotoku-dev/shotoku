@@ -64,8 +64,8 @@ function HighlightedConfig() {
       <JsonLine><P v="{" /></JsonLine>
       <JsonLine>{sp(2)}<K v="mcpServers" /><P v=": {" /></JsonLine>
       <JsonLine>{sp(4)}<K v="shotoku" /><P v=": {" /></JsonLine>
-      <JsonLine>{sp(6)}<K v="command" /><P v=": " /><S v="npx" /><P v="," /></JsonLine>
-      <JsonLine>{sp(6)}<K v="args" /><P v=": [" /><S v="shotoku-mcp" /><P v="]" /></JsonLine>
+      <JsonLine>{sp(6)}<K v="command" /><P v=": " /><S v="node" /><P v="," /></JsonLine>
+      <JsonLine>{sp(6)}<K v="args" /><P v=": [" /><S v="/path/to/shotoku/mcp/dist/index.js" /><P v="]" /></JsonLine>
       <JsonLine>{sp(4)}<P v="}" /></JsonLine>
       <JsonLine>{sp(2)}<P v="}" /></JsonLine>
       <JsonLine><P v="}" /></JsonLine>
@@ -100,11 +100,14 @@ function IconSlot({ def }: { def: IconDef }) {
   return <Icon className="w-[15px] h-[15px]" style={{ display: "block", ...style }} />;
 }
 
+// shotoku-mcp is not published to npm yet, so `npx shotoku-mcp` resolves to
+// nothing. Until it is, the server runs from a built checkout -- the same form
+// the MCP guide documents.
 const MCP_CONFIG = `{
   "mcpServers": {
     "shotoku": {
-      "command": "npx",
-      "args": ["shotoku-mcp"]
+      "command": "node",
+      "args": ["/path/to/shotoku/mcp/dist/index.js"]
     }
   }
 }`;
