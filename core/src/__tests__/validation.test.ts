@@ -143,7 +143,7 @@ describe("validatePolicy — published examples are executable", () => {
       }
 
       for (const match of source.matchAll(/lang="yaml"[\s\S]{0,160}?code=\{`([\s\S]*?)`\}/g)) {
-        const block = match[1]!.replace(/\`/g, "`");
+        const block = match[1]!;
         // Skip blocks that interpolate: they are illustrative, not literal.
         if (block.includes("${")) continue;
         checked += 1;
