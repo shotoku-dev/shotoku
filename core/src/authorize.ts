@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import type { AuthorizeRequest, AuthorizeResponse, Policy } from "./types.js";
-import { evaluatePolicy } from "./policy.js";
+import { applyGrant, evaluatePolicy } from "./policy.js";
 import { appendDecision, getLedgerSnapshot, withLedgerLock } from "./ledger.js";
 import { buildExplanation } from "./explain.js";
 import { createReceipt } from "./receipt.js";
@@ -53,6 +53,12 @@ function safeRequestForLedger(
     ...(isExecutionRail(request.rail) ? { rail: request.rail } : {}),
     ...(typeof request.amount === "number" && Number.isFinite(request.amount)
       ? { amount: request.amount }
+      : {}),
+    // Must survive into the ledger: the grant signature is recomputed from the
+    // stored request, so dropping it here would silently mean no approval ever
+    // matches a retry.
+    ...(typeof request.fingerprint === "string" && request.fingerprint
+      ? { fingerprint: request.fingerprint }
       : {}),
   };
 
@@ -157,7 +163,18 @@ export async function authorize(
 
   return withLedgerLock(options.ledgerPath, async () => {
     const snapshot = await getLedgerSnapshot(options.ledgerPath);
-    const result = evaluatePolicy(request, loadedPolicy, snapshot);
+    const evaluated = evaluatePolicy(requestForLedger, loadedPolicy, snapshot);
+
+    // Composed after the evaluator, never inside it: a grant lifts
+    // pending_approval and must never lift a denial, least of all one caused by
+    // an exhausted budget.
+    const { result, grant } = applyGrant(
+      evaluated,
+      requestForLedger,
+      loadedPolicy,
+      snapshot,
+      new Date(timestamp),
+    );
 
     const receipt =
       result.status === "approved" && options.receiptSecret !== undefined
@@ -187,7 +204,15 @@ export async function authorize(
     };
 
     await appendDecision(
-      { decisionId: id, timestamp, request: requestForLedger, response },
+      {
+        decisionId: id,
+        timestamp,
+        request: requestForLedger,
+        response,
+        // Recording the grant here is also what spends it: a grant is open only
+        // while no decision references it.
+        ...(grant !== undefined ? { grant } : {}),
+      },
       options.ledgerPath,
     );
     return response;

@@ -17,10 +17,12 @@ import type {
   LedgerIntegrityReport,
   LedgerEntry,
   LedgerSnapshot,
+  OpenGrant,
 } from "./types.js";
 import { ShotokuError, errorMessage } from "./errors.js";
 import { isAuthorizationStatus } from "./validation.js";
 import { canonicalizeLedgerPath } from "./paths.js";
+import { grantSignature } from "./grant.js";
 import {
   LEDGER_GENESIS_HASH,
   hashLedgerRecord,
@@ -494,27 +496,83 @@ export async function getLedgerIntegrity(
   return (await readLedgerState(ledgerPath)).report;
 }
 
+/**
+ * Human approvals that have not been redeemed yet.
+ *
+ * Derived by set difference rather than stored, exactly like
+ * `getPendingApprovals`: a grant is open while an approved decision has an
+ * approval record and no later decision references it. Spending a grant is
+ * therefore just writing the decision that references it, which needs no new
+ * record type and cannot drift out of sync with the ledger it describes.
+ */
+function deriveOpenGrants(records: readonly LedgerRecord[]): readonly OpenGrant[] {
+  const decisions = new Map<string, LedgerEntry>();
+  const spent = new Set<string>();
+
+  for (const record of records) {
+    if (isApproval(record)) continue;
+    decisions.set(record.decisionId, record);
+    if (record.grant) spent.add(record.grant.approvalId);
+  }
+
+  const open: OpenGrant[] = [];
+
+  for (const record of records) {
+    if (!isApproval(record)) continue;
+    // A denial is recorded the same way an approval is; it grants nothing.
+    if (record.verdict !== "approved") continue;
+    if (spent.has(record.approvalId)) continue;
+
+    const decision = decisions.get(record.decisionId);
+    if (!decision) continue;
+
+    open.push({
+      approvalId: record.approvalId,
+      decisionId: record.decisionId,
+      approvedAt: record.timestamp,
+      signature: grantSignature(decision.request),
+    });
+  }
+
+  return open;
+}
+
 export async function getLedgerSnapshot(
   ledgerPath: string,
   options: { readonly now?: Date } = {},
 ): Promise<LedgerSnapshot> {
-  const entries = await readDecisions(ledgerPath);
+  // One read for both spend totals and grants. authorize() already reads the
+  // whole file twice per call; a third pass would steepen an existing quadratic
+  // curve on exactly the path where the lock timeout is reachable.
+  const records = await readRecords(ledgerPath);
 
   const now = options.now ?? new Date();
   const windowStart = new Date(now.getTime() - DAY_MS);
 
   const dailyTotals: Record<string, number> = {};
 
-  for (const entry of entries) {
-    if (!entry.response.approved) continue;
-    if (new Date(entry.timestamp) < windowStart) continue;
+  for (const record of records) {
+    if (isApproval(record)) continue;
+    if (!record.response.approved) continue;
+    if (new Date(record.timestamp) < windowStart) continue;
 
-    const amount = entry.request.amount;
+    const amount = record.request.amount;
     if (amount === undefined) continue;
 
-    const key = `${entry.request.actor}|${entry.request.resource}`;
+    const key = `${record.request.actor}|${record.request.resource}`;
     dailyTotals[key] = (dailyTotals[key] ?? 0) + toMicros(amount);
   }
 
-  return { dailyTotals, windowStart: windowStart.toISOString() };
+  return {
+    dailyTotals,
+    windowStart: windowStart.toISOString(),
+    openGrants: deriveOpenGrants(records),
+  };
+}
+
+/** Open grants on their own, for `shotoku status`. */
+export async function getOpenGrants(
+  ledgerPath: string,
+): Promise<readonly OpenGrant[]> {
+  return deriveOpenGrants(await readRecords(ledgerPath));
 }

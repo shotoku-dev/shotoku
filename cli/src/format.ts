@@ -5,7 +5,13 @@ import type {
   LedgerEntry,
 } from "@shotoku/core";
 import { stat } from "node:fs/promises";
-import { describePathSource, type ShotokuPaths } from "@shotoku/core";
+import {
+  DEFAULT_GRANT_TTL_SECONDS,
+  describePathSource,
+  isGrantExpired,
+  type OpenGrant,
+  type ShotokuPaths,
+} from "@shotoku/core";
 
 const APPROVED = "✓ APPROVED";
 const DENIED = "✗ DENIED";
@@ -86,6 +92,8 @@ export function formatHistoryTable(entries: LedgerEntry[], options: HistoryOptio
 export function formatStatus(
   entries: LedgerEntry[],
   approvals: ApprovalEntry[] = [],
+  openGrants: readonly OpenGrant[] = [],
+  grantTtlSeconds: number = DEFAULT_GRANT_TTL_SECONDS,
 ): string {
   const actioned = new Set(approvals.map((a) => a.decisionId));
   const pending = entries.filter(
@@ -109,6 +117,28 @@ export function formatStatus(
       }
       lines.push(`     → shotoku approve ${entry.decisionId}  |  shotoku deny ${entry.decisionId}`);
     }
+  }
+
+  // Without this an approved grant is invisible: getPendingApprovals excludes it
+  // and nothing else mentions it, so the natural next thought after approving is
+  // "I approved it, now what?" -- the same confusion grants exist to remove.
+  const live = openGrants.filter(
+    (grant) => !isGrantExpired(grant, grantTtlSeconds, new Date()),
+  );
+
+  if (live.length > 0) {
+    lines.push("");
+    lines.push(
+      `${live.length} approval${live.length === 1 ? "" : "s"} waiting to be used by the agent:`,
+    );
+    for (const grant of live) {
+      const source = entries.find((e) => e.decisionId === grant.decisionId);
+      const what = source
+        ? `${source.request.actor} · ${source.request.resource}`
+        : grant.decisionId;
+      lines.push(`  ✓  ${what} · ${formatGrantExpiry(grant, grantTtlSeconds)}`);
+    }
+    lines.push("  Each is good for one matching call. Retrying anything else asks again.");
   }
 
   if (last) {
@@ -240,4 +270,14 @@ async function fileExists(path: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+
+function formatGrantExpiry(grant: OpenGrant, ttlSeconds: number): string {
+  const expiresAt = new Date(grant.approvedAt).getTime() + ttlSeconds * 1_000;
+  const remaining = Math.max(0, expiresAt - Date.now());
+  const minutes = Math.floor(remaining / 60_000);
+
+  if (minutes >= 1) return `expires in ${minutes}m`;
+  return `expires in ${Math.floor(remaining / 1_000)}s`;
 }

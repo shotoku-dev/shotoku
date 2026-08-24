@@ -1,12 +1,14 @@
 import type {
   AuthorizeRequest,
   EvaluationResult,
+  GrantReference,
   LedgerSnapshot,
   Policy,
   PolicyRule,
   ReasonItem,
 } from "./types.js";
 import { toMicros, fromMicros } from "./money.js";
+import { findRedeemableGrant, grantTtlSeconds } from "./grant.js";
 
 function ledgerKey(actor: string, resource: string): string {
   return `${actor}|${resource}`;
@@ -120,4 +122,56 @@ export function evaluatePolicy(
   }
 
   return { status: matchedRule.verdict, reasons };
+}
+
+/**
+ * Redeems a human approval, turning a `pending_approval` verdict into an
+ * `approved` one.
+ *
+ * Deliberately a separate function composed after `evaluatePolicy` rather than a
+ * branch inside it. Two reasons, both structural:
+ *
+ * A grant must never lift a `denied` verdict. A rule can say `approved` and
+ * still deny because `maxDailyAmount` is exhausted, and no human clicking
+ * approve should spend budget that is already gone. Keeping the upgrade in its
+ * own function makes that invariant impossible to violate rather than a
+ * convention buried in the evaluator branch order.
+ *
+ * And `evaluatePolicy` is a published export of `@shotoku/core`; changing its
+ * signature would break every embedding caller. This also lets the clock arrive
+ * as an explicit argument instead of being smuggled into `LedgerSnapshot`.
+ */
+export function applyGrant(
+  result: EvaluationResult,
+  request: AuthorizeRequest,
+  policy: Policy,
+  ledger: LedgerSnapshot,
+  now: Date,
+): GrantOutcome {
+  if (result.status !== "pending_approval") return { result };
+
+  const grants = ledger.openGrants ?? [];
+  if (grants.length === 0) return { result };
+
+  const grant = findRedeemableGrant(request, grants, grantTtlSeconds(policy), now);
+  if (!grant) return { result };
+
+  const reasons: ReasonItem[] = [
+    ...result.reasons,
+    {
+      type: "policy_match",
+      text: `Approved by a human as ${grant.decisionId}`,
+    },
+  ];
+
+  return {
+    result: { status: "approved", reasons },
+    grant: { approvalId: grant.approvalId, decisionId: grant.decisionId },
+  };
+}
+
+export interface GrantOutcome {
+  readonly result: EvaluationResult;
+  /** Present when a grant was redeemed; recorded on the resulting decision. */
+  readonly grant?: GrantReference;
 }

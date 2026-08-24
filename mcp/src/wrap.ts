@@ -1,5 +1,6 @@
 import {
   authorize,
+  fingerprintOf,
   type AuthorizationStatus,
   type Explanation,
   type ReasonItem,
@@ -72,6 +73,11 @@ export async function authorizeToolCall(
       action: "mcp_tool",
       resource: wrappedToolName(server, tool),
       rail: "mcp",
+      // Binds a human approval to these exact arguments. Without it, approving
+      // a write to one path would issue a grant the agent could redeem against
+      // any other -- the resource is only `<server>__<tool>`. The digest is
+      // recorded; the values are not.
+      fingerprint: fingerprintOf(args),
       context: {
         server,
         tool,
@@ -106,8 +112,9 @@ export function blockedToolMessage(decision: WrapDecision): string {
   if (decision.status === "pending_approval") {
     lines.push(
       `  A human must approve this out-of-band (\`shotoku approve ${decision.decisionId}\`,`,
-      `  the Shotoku TUI, or Slack). You cannot approve it yourself — ask the user,`,
-      `  then retry this tool call.`,
+      `  the Shotoku TUI, or Slack). You cannot approve it yourself — ask the user.`,
+      `  Once they approve, retry this exact call: the approval is redeemable once,`,
+      `  for these arguments only. Changing anything requires a new approval.`,
     );
   } else {
     lines.push(`  This is a final denial. Do not retry; tell the user why.`);

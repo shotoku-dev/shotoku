@@ -220,3 +220,37 @@ describe("torn writes are distinguished from real corruption", () => {
     await expect(readDecisions(ledgerPath)).rejects.toThrow(/corrupt/);
   });
 });
+
+/**
+ * A grant is spent by writing the decision that references it, inside the same
+ * lock that read it. Two racing retries therefore serialise and exactly one wins
+ * -- provided both processes agree on the ledger path, which is what path
+ * canonicalisation guarantees.
+ */
+describe("a grant is redeemed exactly once under concurrency", () => {
+  it("lets one of twenty racing retries through", async () => {
+    await writeFile(
+      policyPath,
+      "rules:\n  - resource: openai.com\n    verdict: pending_approval\n",
+    );
+
+    const seed = await authorize(request(0), { policyPath, ledgerPath });
+    expect(seed.status).toBe("pending_approval");
+    await approve(seed.decisionId, { ledgerPath });
+
+    const outcomes = await Promise.all(
+      Array.from({ length: WRITERS }, () =>
+        authorize(request(0), { policyPath, ledgerPath }),
+      ),
+    );
+
+    const approved = outcomes.filter((r) => r.status === "approved");
+    expect(approved).toHaveLength(1);
+    expect(outcomes.filter((r) => r.status === "pending_approval")).toHaveLength(
+      WRITERS - 1,
+    );
+
+    const report = await getLedgerIntegrity(ledgerPath);
+    expect(report.recordCount).toBe(WRITERS + 2); // seed + approval + retries
+  }, 30_000);
+});

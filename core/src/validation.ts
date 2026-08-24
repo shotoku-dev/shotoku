@@ -41,6 +41,7 @@ const VALID_STATUSES = [
 const POLICY_FIELDS = {
   rules: true,
   defaultVerdict: true,
+  grantTtlSeconds: true,
 } as const satisfies Record<keyof Policy, true>;
 
 const RULE_FIELDS = {
@@ -337,6 +338,16 @@ export function validatePolicy(value: unknown): Policy {
     rules: value["rules"].map((rule, index) => validateRule(rule, index)),
   };
 
+
+  if (value["grantTtlSeconds"] !== undefined) {
+    const error = validateNonNegativeNumber(
+      value["grantTtlSeconds"],
+      "grantTtlSeconds",
+    );
+    if (error) throw new ShotokuError("policy_invalid", error);
+    Object.assign(policy, { grantTtlSeconds: value["grantTtlSeconds"] });
+  }
+
   if (value["defaultVerdict"] !== undefined) {
     if (!isAuthorizationStatus(value["defaultVerdict"])) {
       throw new ShotokuError(
@@ -344,7 +355,7 @@ export function validatePolicy(value: unknown): Policy {
         "defaultVerdict must be approved, denied, or pending_approval",
       );
     }
-    return { ...policy, defaultVerdict: value["defaultVerdict"] };
+    Object.assign(policy, { defaultVerdict: value["defaultVerdict"] });
   }
 
   return policy;

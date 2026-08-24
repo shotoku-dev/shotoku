@@ -14,6 +14,7 @@ import {
   isAgentAction,
   isAuthorizationStatus,
   readApprovals,
+  getOpenGrants,
   readDecisions,
   parseSignedSnapshot,
   toUserSafeMessage,
@@ -181,7 +182,8 @@ program
     const { ledgerPath } = await resolveRuntimePaths(opts);
     const entries = await readDecisions(ledgerPath);
     const approvals = await readApprovals(ledgerPath);
-    console.log(formatStatus(entries, approvals));
+    const openGrants = await getOpenGrants(ledgerPath);
+    console.log(formatStatus(entries, approvals, openGrants));
   });
 
 program

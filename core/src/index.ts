@@ -12,3 +12,4 @@ export * from "./integrity.js";
 export * from "./snapshot.js";
 export * from "./receipt.js";
 export * from "./paths.js";
+export * from "./grant.js";

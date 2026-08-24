@@ -24,6 +24,17 @@ export interface AuthorizeRequest {
   /** Monetary amount when applicable. */
   readonly amount?: number;
 
+  /**
+   * Digest of the request details that are not already in `resource` but that a
+   * human approval should be bound to — MCP tool arguments, for example.
+   *
+   * A grant matches only when the fingerprint matches, so approving
+   * `fs__write_file` for one path does not hand the agent a grant it can redeem
+   * against another. Only the digest is recorded; the values themselves never
+   * reach the ledger.
+   */
+  readonly fingerprint?: string;
+
   /** Additional metadata. */
   readonly context?: Record<string, unknown>;
 }
@@ -94,12 +105,48 @@ export interface LedgerIntegrity {
   readonly hash: string;
 }
 
+/** The approval a decision redeemed, recorded on the decision that consumed it. */
+export interface GrantReference {
+  /** The approval record that created the grant. */
+  readonly approvalId: string;
+
+  /** The original pending decision a human approved. */
+  readonly decisionId: string;
+}
+
 export interface LedgerEntry {
   readonly decisionId: string;
   readonly timestamp: string;
   readonly request: AuthorizeRequest;
   readonly response: AuthorizeResponse;
+
+  /**
+   * Set when this decision was approved by redeeming a human approval of an
+   * earlier, identical request. Its presence is also what marks that grant as
+   * spent — a grant is open only while no decision references it.
+   */
+  readonly grant?: GrantReference;
+
   readonly integrity?: LedgerIntegrity;
+}
+
+/**
+ * A human approval that has not been redeemed yet.
+ *
+ * Approvals used to be write-only audit data: `evaluatePolicy` never saw them,
+ * so a human could approve a pending decision and the agent retrying would get
+ * a fresh decision with the same pending verdict, forever. A grant is what makes
+ * an approval mean something to the next request.
+ */
+export interface OpenGrant {
+  readonly approvalId: string;
+  readonly decisionId: string;
+
+  /** When the human approved. Expiry runs from here, not from the decision. */
+  readonly approvedAt: string;
+
+  /** Signature of the request that was approved. See `grantSignature`. */
+  readonly signature: string;
 }
 
 /**
@@ -152,6 +199,15 @@ export interface Policy {
 
   /** Verdict when no rule matches the request. Defaults to "pending_approval". */
   readonly defaultVerdict?: AuthorizationStatus;
+
+  /**
+   * How long a human approval stays redeemable, in seconds. Defaults to 900.
+   *
+   * Expiry runs from the approval, not from the decision: a decision may sit
+   * pending for an hour before anyone looks at it, and anchoring on the decision
+   * would make long-pending approvals expire the moment they are granted.
+   */
+  readonly grantTtlSeconds?: number;
 }
 
 /** Pre-computed daily totals passed into the policy evaluator. Key format: "${actor}|${resource}". */
@@ -159,6 +215,12 @@ export interface LedgerSnapshot {
   /** Approved spend per actor|resource, in integer micro-units (see money.ts). */
   readonly dailyTotals: Readonly<Record<string, number>>;
   readonly windowStart: string;
+
+  /**
+   * Human approvals not yet redeemed. Optional so that hand-built snapshots —
+   * in tests and in embedding code — keep compiling.
+   */
+  readonly openGrants?: readonly OpenGrant[];
 }
 
 export interface LedgerIntegrityReport {
