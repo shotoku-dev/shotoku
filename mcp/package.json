@@ -1,6 +1,6 @@
 {
   "name": "shotoku-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Shotoku MCP server - gate any MCP tool call against a local spend and action policy.",
   "license": "MIT",

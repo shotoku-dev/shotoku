@@ -14,56 +14,55 @@ The MCP server is for your agent — it calls Shotoku automatically, mid-task, b
 
 ---
 
-## Prerequisites
+## Install
 
-- Node.js installed
-- An MCP-compatible agent host (Claude Desktop, a custom agent, or any host that supports MCP tool servers)
-- Shotoku cloned and built (`pnpm install && pnpm build` from the repo root)
+Nothing to clone or build:
+
+```bash
+npx shotoku-mcp
+```
+
+It speaks MCP over stdin, so running it by hand just sits there waiting — that is correct. Your agent host is what launches it.
+
+You will also want the CLI, which is how you review and approve what the agent asked for:
+
+```bash
+npm install -g shotoku-cli
+```
 
 ---
 
 ## Setup
 
-### 1. Build the MCP server
+### 1. Give Shotoku a home
 
-From the repo root:
+Your agent host launches the server with a working directory it chooses — often the filesystem root. A fixed home means that never matters:
 
 ```bash
-pnpm build
+mkdir -p ~/shotoku-home
+cd ~/shotoku-home
+shotoku init
 ```
 
-This produces `mcp/dist/index.js` — the file your agent host will run.
-
 ### 2. Register Shotoku with your agent host
-
-Most MCP hosts accept a JSON config that tells them which servers to run. The entry looks like this:
 
 ```json
 {
   "mcpServers": {
     "shotoku": {
-      "command": "node",
-      "args": ["/absolute/path/to/shotoku/mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "shotoku-mcp"],
       "env": {
-        "SHOTOKU_POLICY": "/absolute/path/to/shotoku/policy.yaml",
-        "SHOTOKU_LEDGER": "/absolute/path/to/shotoku/data/decisions.jsonl"
+        "SHOTOKU_HOME": "/absolute/path/to/shotoku-home"
       }
     }
   }
 }
 ```
 
-Replace the paths with the actual location of your Shotoku repo.
+**Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows. Restart the app afterwards.
 
-**Claude Desktop:** add this to `~/Library/Application Support/Claude/claude_desktop_config.json`, then restart the app.
-
-Refer to your agent host's documentation for where to place MCP server configuration.
-
-### 3. Create the ledger directory
-
-```bash
-mkdir -p data
-```
+That config gives you *advisory* mode: the agent calls `authorize_action` when it decides to. To make the gate unavoidable, add `SHOTOKU_MCP_UPSTREAMS` — see [Gating other MCP servers](#gating-other-mcp-servers).
 
 ---
 
@@ -137,8 +136,8 @@ To name a server yourself — one entry per agent, each with its own budget and 
 {
   "mcpServers": {
     "shotoku-billing": {
-      "command": "node",
-      "args": ["/absolute/path/to/shotoku/mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "shotoku-mcp"],
       "env": { "SHOTOKU_MCP_ACTOR": "billing-agent" }
     }
   }
@@ -235,8 +234,8 @@ Point Shotoku at it, and **remove those servers from your host config** — othe
 {
   "mcpServers": {
     "shotoku": {
-      "command": "node",
-      "args": ["/absolute/path/to/shotoku/mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "shotoku-mcp"],
       "env": {
         "SHOTOKU_MCP_UPSTREAMS": "/absolute/path/to/upstreams.json",
         "SHOTOKU_LEDGER": "/absolute/path/to/data/decisions.jsonl"

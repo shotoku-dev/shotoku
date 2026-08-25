@@ -1,8 +1,8 @@
 {
   "name": "@shotoku/core",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
-  "description": "Local-first spend controls for AI agents — policy engine, budgets, signed receipts, and tamper-evident ledger.",
+  "description": "Local-first spend controls for AI agents \u2014 policy engine, budgets, signed receipts, and tamper-evident ledger.",
   "license": "MIT",
   "homepage": "https://github.com/shotoku-dev/shotoku#readme",
   "repository": {

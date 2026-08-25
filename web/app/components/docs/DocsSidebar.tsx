@@ -11,18 +11,20 @@ const NAV = [
     items: [{ label: "Quickstart", href: "/docs/quickstart" }],
   },
   {
+    // MCP and the CLI are the two surfaces people actually use, so both belong
+    // in Reference rather than filed away as optional integrations.
     section: "Reference",
     items: [
-      { label: "API",      href: "/docs/api"      },
-      { label: "CLI",      href: "/docs/cli"      },
-      { label: "Policies", href: "/docs/policies" },
+      { label: "CLI",        href: "/docs/cli"      },
+      { label: "MCP server", href: "/docs/mcp"      },
+      { label: "Policies",   href: "/docs/policies" },
+      { label: "API",        href: "/docs/api"      },
     ],
   },
   {
     section: "Integrations",
     items: [
-      { label: "MCP server", href: "/docs/mcp"  },
-      { label: "x402",       href: "/docs/x402" },
+      { label: "x402", href: "/docs/x402" },
     ],
   },
   {
