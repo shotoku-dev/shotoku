@@ -36,24 +36,36 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      # The tag is the release. If it disagrees with the manifests, stop --
-      # a published version that no commit describes is not auditable.
-      - name: Tag must match package versions
+      # The tag names the release, and must match core. Packages already at
+      # their published version are skipped rather than failing the run: the
+      # three packages version independently, so a release often moves only one.
+      - name: Decide what to publish
+        id: plan
         run: |
           tag="${GITHUB_REF_NAME#v}"
           core="$(node -p "require('./core/package.json').version")"
-          cli="$(node -p "require('./cli/package.json').version")"
-          echo "tag=$tag  core=$core  cli=$cli"
           if [ "$tag" != "$core" ]; then
             echo "::error::Tag v$tag does not match core/package.json ($core)."
             exit 1
           fi
-          if npm view "@shotoku/core@$core" version >/dev/null 2>&1; then
-            echo "::error::@shotoku/core@$core is already published."
-            exit 1
-          fi
-          if npm view "shotoku-cli@$cli" version >/dev/null 2>&1; then
-            echo "::error::shotoku-cli@$cli is already published."
+
+          publish_any=false
+          for entry in "core:@shotoku/core" "cli:shotoku-cli" "mcp:shotoku-mcp"; do
+            dir="${entry%%:*}"
+            name="${entry#*:}"
+            version="$(node -p "require('./$dir/package.json').version")"
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version already published, skipping"
+              echo "publish_$dir=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "$name@$version will be published"
+              echo "publish_$dir=true" >> "$GITHUB_OUTPUT"
+              publish_any=true
+            fi
+          done
+
+          if [ "$publish_any" = false ]; then
+            echo "::error::Every package is already published at its current version."
             exit 1
           fi
 
@@ -76,13 +88,22 @@ jobs:
       # core first, for the same reason -- the cli's rewritten dependency has to
       # resolve to a version that already exists on the registry.
       - name: Publish @shotoku/core
+        if: steps.plan.outputs.publish_core == 'true'
         working-directory: core
         run: pnpm publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish shotoku-cli
+        if: steps.plan.outputs.publish_cli == 'true'
         working-directory: cli
         run: pnpm publish --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish shotoku-mcp
+        if: steps.plan.outputs.publish_mcp == 'true'
+        working-directory: mcp
+        run: pnpm publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
