@@ -119,16 +119,20 @@ export default function X402Page() {
         rows={[
           ["The agent making the request",     "actor"],
           ["It is a payment",                  'action: "purchase"'],
-          ["The recipient / endpoint paid",    "resource"],
+          ["The host the agent requested",     "resource"],
           ["The amount required (0.05 USDC)",  "amount"],
+          ["The payTo address",                "recipient"],
           ["The protocol",                     'rail: "x402"'],
         ]}
       />
       <p style={S.p}>
-        One detail matters: x402 amounts are usually sent in atomic units. For USDC,
-        <InlineCode> 50000</InlineCode> atomic units means <InlineCode>0.05</InlineCode> USDC because USDC
-        uses 6 decimals. Shotoku normalizes that into a regular decimal before policy evaluation,
-        then records the original payment details in <InlineCode>context</InlineCode> for audit.
+        Everything in a 402 body is written by the server asking to be paid, so none of it
+        picks the policy or values the amount. The <InlineCode>resource</InlineCode> is the host
+        the agent actually requested, never the 402&rsquo;s own claim. The asset is identified by
+        network and contract address against a registry (USDC on Base by default), and its
+        decimals come from there: an unknown token is refused rather than assumed to be USDC.
+        The <InlineCode>payTo</InlineCode> address becomes the <InlineCode>recipient</InlineCode>,
+        which rules can pin with <InlineCode>recipients</InlineCode>.
       </p>
 
       <hr style={S.divider} />
@@ -141,28 +145,26 @@ export default function X402Page() {
       <CodeBlock
         lang="typescript"
         filename="x402-intercept.ts"
-        code={`import { authorize } from "@shotoku/core";
+        code={`import { authorizeX402Payment, parseX402Response } from "@shotoku/core";
 
 // Called after the 402 response arrives, before signing
 async function handlePaymentRequired(
-  paymentRequirements: PaymentRequirements,
+  url: string,              // the URL the agent requested
+  body: X402Response,       // the 402 body
   agentId: string,
 ) {
-  const decision = await authorize(
-    {
-      actor:    agentId,
-      action:   "purchase",
-      resource: paymentRequirements.recipient,
-      rail:     "x402",
-      amount:   paymentRequirements.maxAmountRequired / 1_000_000, // USDC 6 decimals
-      context:  { network: paymentRequirements.network, raw: paymentRequirements },
-    },
-    { policyPath: "./policy.yaml", ledgerPath: "./data/decisions.jsonl" },
-  );
+  // Throws if no option is in a known asset, or if the option claims
+  // a resource on another host than \`url\`.
+  const requirements = parseX402Response(body, { requestUrl: url });
+
+  const decision = await authorizeX402Payment(agentId, requirements, {
+    policyPath: "./policy.yaml",
+    ledgerPath: "./data/decisions.jsonl",
+  });
 
   if (decision.approved) {
-    // proceed to step 3: sign and send the X-PAYMENT request
-    return signPayment(paymentRequirements);
+    // proceed to step 3: sign the exact option that was authorized
+    return signPayment(requirements.option);
   }
 
   // stop — decision is recorded, waiting for a human if pending

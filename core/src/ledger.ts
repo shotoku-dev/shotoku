@@ -550,6 +550,9 @@ export async function getLedgerSnapshot(
   const windowStart = new Date(now.getTime() - DAY_MS);
 
   const dailyTotals: Record<string, number> = {};
+  // No prototype: actor names are caller-chosen, and "__proto__" or
+  // "constructor" must be just another agent.
+  const actorTotals: Record<string, number> = Object.create(null);
 
   for (const record of records) {
     if (isApproval(record)) continue;
@@ -559,12 +562,18 @@ export async function getLedgerSnapshot(
     const amount = record.request.amount;
     if (amount === undefined) continue;
 
+    const micros = toMicros(amount);
     const key = `${record.request.actor}|${record.request.resource}`;
-    dailyTotals[key] = (dailyTotals[key] ?? 0) + toMicros(amount);
+    dailyTotals[key] = (dailyTotals[key] ?? 0) + micros;
+    // Kept apart rather than summed from dailyTotals: actor and resource are free
+    // text, so splitting "a|b|c" back into its parts is ambiguous.
+    actorTotals[record.request.actor] =
+      (actorTotals[record.request.actor] ?? 0) + micros;
   }
 
   return {
     dailyTotals,
+    actorTotals,
     windowStart: windowStart.toISOString(),
     openGrants: deriveOpenGrants(records),
   };

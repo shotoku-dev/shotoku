@@ -25,6 +25,14 @@ export interface AuthorizeRequest {
   readonly amount?: number;
 
   /**
+   * Who receives the money — an x402 `payTo` address, for example. Rules with
+   * `recipients` match only when this is one of them, and a human approval is
+   * bound to it, so approving a payment to one address does not approve the
+   * same payment to another.
+   */
+  readonly recipient?: string;
+
+  /**
    * Digest of the request details that are not already in `resource` but that a
    * human approval should be bound to — MCP tool arguments, for example.
    *
@@ -87,6 +95,8 @@ export interface ReceiptPayload {
   readonly action: AgentAction;
   readonly resource: string;
   readonly amount?: number;
+  /** Present when the decision named a recipient; a payment proxy should check it. */
+  readonly recipient?: string;
   /** Expiry, in seconds since the Unix epoch. */
   readonly exp: number;
 }
@@ -184,6 +194,13 @@ export interface PolicyRule {
   /** Limits which execution rails this rule applies to. Omit to match all rails. */
   readonly rails?: readonly ExecutionRail[];
 
+  /**
+   * Limits the rule to payments to these recipients (exact addresses; EVM `0x`
+   * addresses compare case-insensitively). A request with no recipient does not
+   * match. Omit to match any recipient.
+   */
+  readonly recipients?: readonly string[];
+
   /** Decision to issue when this rule matches. */
   readonly verdict: AuthorizationStatus;
 
@@ -194,8 +211,39 @@ export interface PolicyRule {
   readonly maxDailyAmount?: number;
 }
 
+/**
+ * A spend ceiling across every resource, checked after the rules.
+ *
+ * Rule limits are keyed on actor + resource, so on their own they cap spend per
+ * vendor, never in total: a `resource: "*"` rule with `maxDailyAmount: 200`
+ * hands out 200 per distinct resource. A budget is what bounds an agent's total.
+ */
+export interface PolicyBudget {
+  /** Actors this budget applies to (`*` wildcard, e.g. "*" or "research-*"). */
+  readonly actor: string;
+
+  /** Rolling 24-hour ceiling on approved spend, across all resources. */
+  readonly maxDailyAmount: number;
+
+  /**
+   * `per_actor` (default): each matching actor has its own ceiling.
+   * `shared`: all matching actors draw from one pool. A shared budget holds even
+   * when an agent can choose its own actor name, which a per-actor one cannot.
+   */
+  readonly scope?: BudgetScope;
+}
+
+export type BudgetScope = "per_actor" | "shared";
+
 export interface Policy {
   readonly rules: readonly PolicyRule[];
+
+  /**
+   * Spend ceilings across all resources. Every budget whose `actor` matches
+   * applies, and an approved request must fit under all of them. A human
+   * approval does not lift them either.
+   */
+  readonly budgets?: readonly PolicyBudget[];
 
   /** Verdict when no rule matches the request. Defaults to "pending_approval". */
   readonly defaultVerdict?: AuthorizationStatus;
@@ -214,6 +262,14 @@ export interface Policy {
 export interface LedgerSnapshot {
   /** Approved spend per actor|resource, in integer micro-units (see money.ts). */
   readonly dailyTotals: Readonly<Record<string, number>>;
+
+  /**
+   * Approved spend per actor across all resources, in micro-units. Needed by
+   * policy budgets; when absent, a request a budget applies to is denied rather
+   * than checked against nothing.
+   */
+  readonly actorTotals?: Readonly<Record<string, number>>;
+
   readonly windowStart: string;
 
   /**

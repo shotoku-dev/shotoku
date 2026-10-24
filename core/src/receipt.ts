@@ -26,6 +26,7 @@ export interface CreateReceiptOptions {
   readonly action: AgentAction;
   readonly resource: string;
   readonly amount?: number;
+  readonly recipient?: string;
   readonly secret: string;
   /** Receipt lifetime in seconds. Defaults to 300. */
   readonly ttlSeconds?: number;
@@ -66,6 +67,7 @@ export function createReceipt(options: CreateReceiptOptions): string {
     action: options.action,
     resource: options.resource,
     ...(options.amount !== undefined ? { amount: options.amount } : {}),
+    ...(options.recipient !== undefined ? { recipient: options.recipient } : {}),
     exp: Math.floor(issuedAt.getTime() / 1000) + ttlSeconds,
   };
 
@@ -87,6 +89,7 @@ function parsePayload(value: unknown): ReceiptPayload | undefined {
     !isAgentAction(value["action"]) ||
     typeof value["resource"] !== "string" ||
     (value["amount"] !== undefined && typeof value["amount"] !== "number") ||
+    (value["recipient"] !== undefined && typeof value["recipient"] !== "string") ||
     typeof value["exp"] !== "number" ||
     !Number.isFinite(value["exp"])
   ) {
@@ -100,6 +103,7 @@ function parsePayload(value: unknown): ReceiptPayload | undefined {
     action: value["action"],
     resource: value["resource"],
     ...(typeof value["amount"] === "number" ? { amount: value["amount"] } : {}),
+    ...(typeof value["recipient"] === "string" ? { recipient: value["recipient"] } : {}),
     exp: value["exp"],
   };
 }

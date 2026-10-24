@@ -93,16 +93,19 @@ evaluatePolicy(
 Evaluation order:
 
 1. Validate `amount` (non-negative finite number).
-2. Find the first rule where `resource`, `actor`, `actions`, and `rails` all match. `resource: "*"` matches any resource, and `actor`/`actions`/`rails` are optional filters — omitting one means "match all". `resource` and `actor` support `*` as a wildcard for any run of characters.
+2. Find the first rule where `resource`, `actor`, `actions`, `rails`, and `recipients` all match. `resource: "*"` matches any resource, and `actor`/`actions`/`rails`/`recipients` are optional filters — omitting one means "match all". `resource` and `actor` support `*` as a wildcard for any run of characters; `recipients` are exact (EVM addresses case-insensitive, see `recipient.ts`).
 3. If no rule matches → use `policy.defaultVerdict` (defaults to `pending_approval`).
 4. If the matched rule's `verdict` is not `approved` → return that verdict immediately.
 5. Check `maxAmount` (per-transaction limit). Deny if exceeded.
-6. Check `maxDailyAmount` against the ledger snapshot's 24-hour running total. Deny if `spent + incoming > limit`.
-7. Return `approved` with all accumulated reasons.
+6. Check `maxDailyAmount` against the ledger snapshot's 24-hour running total for this actor + resource. Deny if `spent + incoming > limit`.
+7. `applyBudgets`: if the result so far is `approved` and the request has an amount, check every `policy.budgets` entry whose `actor` pattern matches against `snapshot.actorTotals` (per actor, or summed over all matching actors for `scope: shared`). Deny on the first one exceeded. This also covers approvals from `defaultVerdict`.
+8. Return `approved` with all accumulated reasons.
 
 Rule matching is **first-match-wins**. Rule order in the YAML file matters.
 
 `applyGrant` runs afterwards, as a separate pure function rather than a branch inside the evaluator. It upgrades `pending_approval` to `approved` when an unredeemed human approval matches the request signature, and **never touches any other verdict** — a grant must not lift a denial, least of all one caused by an exhausted budget. Keeping it separate makes that structural instead of a convention about branch order, and leaves `evaluatePolicy`, a published export, unchanged. See `core/src/grant.ts` for the signature and expiry rules.
+
+A redeemed grant produces an `approved` the evaluator never saw, so `authorize()` runs `applyBudgets` again on it. If a budget denies it, the grant is not recorded on the decision and stays open until it expires.
 
 ### `ledger.ts`
 
@@ -136,7 +139,7 @@ The lock is re-entrant within an async call chain (`AsyncLocalStorage`), so `aut
 
 `hashLedgerRecord(previousHash, recordBody)` computes `sha256(canonicalJson({ previousHash, record: body }))`. The genesis hash is `sha256:000...000` (64 zeros). Old records without an `integrity` block are treated as legacy — they validate as a structural pass but are flagged in the integrity report.
 
-**Snapshot:** `getLedgerSnapshot` reads the ledger once and produces both the 24-hour spend totals, aggregated by key `"${actor}|${resource}"`, and the list of open grants. A grant is open while an approved decision has an approval record and no later decision references it — derived by set difference, like `getPendingApprovals`, so recording a grant on the redeeming decision is also what spends it.
+**Snapshot:** `getLedgerSnapshot` reads the ledger once and produces the 24-hour spend totals — by key `"${actor}|${resource}"` for rule limits and by actor alone (`actorTotals`, a prototype-less object) for budgets — and the list of open grants. A grant is open while an approved decision has an approval record and no later decision references it — derived by set difference, like `getPendingApprovals`, so recording a grant on the redeeming decision is also what spends it.
 
 Key functions:
 
@@ -200,11 +203,17 @@ Verification re-computes the policy hash and ledger integrity report and compare
 Authorization gate for x402 HTTP 402 payments. Converts the x402 wire format into an `AuthorizeRequest` and calls `authorize()`. Does not sign or settle payments — only decides and records.
 
 ```ts
-parseX402Response(response: X402Response, decimals?: number): PaymentRequirements
+parseX402Response(response: X402Response, options: { requestUrl, assets? }): PaymentRequirements
 authorizeX402Payment(actor, requirements, options): Promise<AuthorizeResponse>
 ```
 
-`parseX402Response` reads the first entry from the `accepts` array and converts the atomic-unit amount string to a decimal float (defaults to 6 decimals, the USDC convention). `authorizeX402Payment` builds a request with `action: "purchase"`, `rail: "x402"`, and records `payTo`, `asset`, and `network` in the decision context for audit.
+The 402 body is written by the party asking to be paid, so nothing in it chooses the policy or values the amount:
+
+- The policy `resource` is the host of `requestUrl`, the URL the agent actually requested. An option whose own `resource` claims a different host is refused; the claim is kept as `claimedResource` for audit.
+- The asset is identified by network + contract address against `KNOWN_X402_ASSETS` (USDC on Base and Base Sepolia, v1 names and CAIP-2 IDs) plus any caller-supplied `assets`. Decimals come from that registry. The first option in a registered asset is chosen and returned as `requirements.option`, the one to sign; none registered → refused. The atomic amount is converted to micro-units with BigInt, rounding sub-micro dust up.
+- `authorizeX402Payment` re-checks the asset (requirements can be hand-built), then builds a request with `action: "purchase"`, `rail: "x402"`, `recipient: payTo`, and a `fingerprint` over network + asset, so a grant cannot be redeemed for another address, token, or chain.
+
+Failures throw `ShotokuError("request_invalid")` before anything is recorded.
 
 ### `explain.ts`
 
@@ -331,8 +340,11 @@ Field reference:
 | `actor` | string | no | Limit to actors matching this pattern (`*` wildcard, e.g. `team-*`). Omit to match all |
 | `actions` | string[] | no | Limit to specific actions. Omit to match all |
 | `rails` | string[] | no | Limit to specific rails. Omit to match all |
+| `recipients` | string[] | no | Limit to requests whose `recipient` is listed. Omit to match all |
 | `maxAmount` | number | no | Per-transaction ceiling (USD or major units) |
 | `maxDailyAmount` | number | no | Rolling 24-hour ceiling per `actor+resource` pair |
+
+Top-level `budgets` entries take `actor` (pattern, required), `maxDailyAmount` (required), and `scope` (`per_actor` default, or `shared`).
 
 Valid `actions`: `purchase`, `api_call`, `execute_code`, `send_email`, `mcp_tool`, `custom`
 

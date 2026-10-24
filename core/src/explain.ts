@@ -8,8 +8,10 @@ export function buildExplanation(
   if (status === "approved") {
     const match = reasons.find((r) => r.type === "policy_match");
     const limit = reasons.find((r) => r.type === "limit_check");
-    const budget = reasons.find((r) => r.type === "budget_check");
-    const parts = [match?.text, limit?.text, budget?.text].filter(Boolean);
+    // Every budget line, not the first: a rule's per-vendor remainder and the
+    // agent's total remainder are different numbers, and both matter.
+    const budgets = reasons.filter((r) => r.type === "budget_check").map((r) => r.text);
+    const parts = [match?.text, limit?.text, ...budgets].filter(Boolean);
     return { summary: parts.length > 0 ? parts.join(". ") : "Approved." };
   }
 

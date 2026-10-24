@@ -83,6 +83,7 @@ interface AuthorizeRequest {
   readonly resource: string;
   readonly rail?: ExecutionRail;
   readonly amount?: number;
+  readonly recipient?: string;
   readonly context?: Record<string, unknown>;
 }
 ```
@@ -94,6 +95,7 @@ interface AuthorizeRequest {
 | `resource` | What the agent is acting on — a domain, API endpoint, or service name |
 | `rail` | Optional: the execution channel being used (`"x402"`, `"mcp"`, `"api"`, etc.) |
 | `amount` | Optional: how much this action costs in USD, if it involves spending |
+| `recipient` | Optional: who receives the money (an x402 `payTo` address, for example). Matched by `recipients` rules, and a human approval is bound to it |
 | `context` | Optional: any extra details you want recorded alongside the decision |
 
 `context` must be JSON-serializable. In practical terms: strings, numbers, booleans, arrays, plain objects, or `null`. Do not put functions, symbols, circular objects, or private keys in context.
@@ -222,9 +224,18 @@ The structure of your `policy.yaml` file. It contains a list of rules evaluated 
 ```ts
 interface Policy {
   readonly rules: readonly PolicyRule[];
+  readonly budgets?: readonly PolicyBudget[];
   readonly defaultVerdict?: AuthorizationStatus;
 }
+
+interface PolicyBudget {
+  readonly actor: string;                    // pattern, `*` wildcard
+  readonly maxDailyAmount: number;           // rolling 24h, across all resources
+  readonly scope?: "per_actor" | "shared";   // default "per_actor"
+}
 ```
+
+`budgets` cap an agent's total spend across every resource; rule limits are per resource. Every matching budget applies, after the rules, and a human approval does not lift one. See [Agent budgets](policies.md#agent-budgets).
 
 The first rule that matches a request wins. If nothing matches, `defaultVerdict` is used — and if you omit `defaultVerdict`, it defaults to `"pending_approval"`.
 
@@ -259,6 +270,7 @@ interface PolicyRule {
   readonly resource: string;
   readonly actions?: readonly AgentAction[];
   readonly rails?: readonly ExecutionRail[];
+  readonly recipients?: readonly string[];
   readonly verdict: AuthorizationStatus;
   readonly maxAmount?: number;
   readonly maxDailyAmount?: number;
@@ -270,9 +282,10 @@ interface PolicyRule {
 | `resource` | The domain or service this rule applies to. Use `"*"` to match anything. |
 | `actions` | Optional: limits this rule to specific action types. Omit to match all actions. |
 | `rails` | Optional: limits this rule to specific execution rails. Omit to match all rails. |
+| `recipients` | Optional: limits this rule to requests whose `recipient` is one of these. EVM `0x` addresses compare case-insensitively. A request with no recipient does not match. |
 | `verdict` | What to decide when this rule matches — `approved`, `denied`, or `pending_approval` |
 | `maxAmount` | Optional: maximum allowed spend per single transaction. Requests above this are denied even if the rule would otherwise approve them. |
-| `maxDailyAmount` | Optional: maximum allowed total spend for this resource in a rolling 24-hour window. Exceeding it denies the request. |
+| `maxDailyAmount` | Optional: maximum allowed total spend for this resource in a rolling 24-hour window. Exceeding it denies the request. It is per resource — use `budgets` for a total. |
 
 Rules are strict on purpose. Unknown policy fields are rejected instead of ignored, because a typo in an authorization policy should not silently weaken the policy.
 
@@ -333,11 +346,12 @@ A pre-computed view of recent approved spend used by the policy engine.
 ```ts
 interface LedgerSnapshot {
   readonly dailyTotals: Readonly<Record<string, number>>;
+  readonly actorTotals?: Readonly<Record<string, number>>;
   readonly windowStart: string;
 }
 ```
 
-`dailyTotals` is keyed as `"actor|resource"`. `windowStart` records the start of the rolling 24-hour window used to calculate those totals.
+`dailyTotals` is keyed as `"actor|resource"`; `actorTotals` is keyed by actor alone and feeds `budgets`. Both are in integer micro-units. A hand-built snapshot without `actorTotals` makes any request a budget applies to come back denied — Shotoku does not check a budget against nothing. `windowStart` records the start of the rolling 24-hour window used to calculate those totals.
 
 ---
 
@@ -376,3 +390,20 @@ Shotoku uses HMAC-SHA256 for local snapshots. It does not create, store, or mana
 ## x402 helpers
 
 For authorizing agent payments over the x402 protocol, `@shotoku/core` also exports `authorizeX402Payment()` and `parseX402Response()`. See the **[x402 integration guide](x402.md)** for the full flow and where these fit.
+
+```ts
+parseX402Response(response: X402Response, options: {
+  requestUrl: string;            // the URL the agent requested — its host is the policy resource
+  assets?: readonly X402Asset[]; // tokens to accept beyond KNOWN_X402_ASSETS
+}): PaymentRequirements
+
+authorizeX402Payment(actor: string, requirements: PaymentRequirements, options: {
+  policyPath: string;
+  ledgerPath: string;
+  assets?: readonly X402Asset[];
+  receiptSecret?: string;
+  receiptTtlSeconds?: number;
+}): Promise<AuthorizeResponse>
+```
+
+Both refuse an asset that is not registered by network + contract address, and `parseX402Response` refuses an option claiming a resource on another host than `requestUrl`. Sign `requirements.option`: it is the exact option the decision covers.

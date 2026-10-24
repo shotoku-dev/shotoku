@@ -9,6 +9,7 @@ import type {
 } from "./types.js";
 import { toMicros, fromMicros } from "./money.js";
 import { findRedeemableGrant, grantTtlSeconds } from "./grant.js";
+import { normalizeRecipient } from "./recipient.js";
 
 function ledgerKey(actor: string, resource: string): string {
   return `${actor}|${resource}`;
@@ -39,11 +40,26 @@ function matchesRule(request: AuthorizeRequest, rule: PolicyRule): boolean {
   if (rule.rails && (request.rail === undefined || !rule.rails.includes(request.rail))) {
     return false;
   }
+  if (rule.recipients) {
+    if (request.recipient === undefined) return false;
+    const recipient = normalizeRecipient(request.recipient);
+    if (!rule.recipients.some((allowed) => normalizeRecipient(allowed) === recipient)) {
+      return false;
+    }
+  }
 
   return true;
 }
 
 export function evaluatePolicy(
+  request: AuthorizeRequest,
+  policy: Policy,
+  ledger: LedgerSnapshot,
+): EvaluationResult {
+  return applyBudgets(evaluateRules(request, policy, ledger), request, policy, ledger);
+}
+
+function evaluateRules(
   request: AuthorizeRequest,
   policy: Policy,
   ledger: LedgerSnapshot,
@@ -122,6 +138,81 @@ export function evaluatePolicy(
   }
 
   return { status: matchedRule.verdict, reasons };
+}
+
+/**
+ * Holds an approved request to every policy budget that applies to its actor.
+ *
+ * Runs on whatever the rules approved — including a `defaultVerdict: approved`
+ * with no matching rule, which is exactly where a total ceiling matters most —
+ * and again in `authorize()` after a grant upgrades a pending decision, because a
+ * human clicking approve must not spend past a ceiling either. It only ever
+ * turns `approved` into `denied`, never the reverse.
+ */
+export function applyBudgets(
+  result: EvaluationResult,
+  request: AuthorizeRequest,
+  policy: Policy,
+  ledger: LedgerSnapshot,
+): EvaluationResult {
+  if (result.status !== "approved" || request.amount === undefined) return result;
+
+  const budgets = (policy.budgets ?? []).filter((budget) =>
+    patternMatches(budget.actor, request.actor),
+  );
+  if (budgets.length === 0) return result;
+
+  const actorTotals = ledger.actorTotals;
+  if (actorTotals === undefined) {
+    return {
+      status: "denied",
+      reasons: [
+        ...result.reasons,
+        {
+          type: "budget_check",
+          text: "Agent budget could not be checked: the ledger snapshot has no per-agent totals",
+        },
+      ],
+    };
+  }
+
+  const incomingMicros = toMicros(request.amount);
+  const reasons: ReasonItem[] = [...result.reasons];
+
+  for (const budget of budgets) {
+    const shared = budget.scope === "shared";
+    const spentMicros = shared
+      ? Object.entries(actorTotals)
+          .filter(([actor]) => patternMatches(budget.actor, actor))
+          .reduce((sum, [, micros]) => sum + micros, 0)
+      : Object.hasOwn(actorTotals, request.actor)
+        ? (actorTotals[request.actor] ?? 0)
+        : 0;
+    const totalMicros = spentMicros + incomingMicros;
+    const limitMicros = toMicros(budget.maxDailyAmount);
+    const label = shared
+      ? `Shared daily budget for actors matching "${budget.actor}"`
+      : `Daily budget for ${request.actor}`;
+
+    if (totalMicros > limitMicros) {
+      return {
+        status: "denied",
+        reasons: [
+          ...reasons,
+          {
+            type: "budget_check",
+            text: `${label}: total $${fromMicros(totalMicros)} would exceed $${budget.maxDailyAmount} across all resources`,
+          },
+        ],
+      };
+    }
+    reasons.push({
+      type: "budget_check",
+      text: `${label}: $${fromMicros(limitMicros - totalMicros)} remaining across all resources`,
+    });
+  }
+
+  return { status: "approved", reasons };
 }
 
 /**

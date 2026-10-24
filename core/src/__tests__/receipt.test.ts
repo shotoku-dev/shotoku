@@ -54,6 +54,14 @@ describe("createReceipt / verifyReceipt", () => {
     expect(result.payload?.amount).toBeUndefined();
   });
 
+  it("carries the recipient so a payment proxy can check where money goes", () => {
+    const token = makeReceipt({ recipient: "0x1111111111111111111111111111111111111111" });
+    const result = verifyReceipt(token, { secret: SECRET, now: ISSUED_AT });
+
+    expect(result.valid).toBe(true);
+    expect(result.payload?.recipient).toBe("0x1111111111111111111111111111111111111111");
+  });
+
   it("rejects a receipt signed with a different secret", () => {
     const token = makeReceipt();
     const result = verifyReceipt(token, { secret: "other-secret", now: ISSUED_AT });

@@ -2,8 +2,11 @@
 # Allows small automated payments to a known API; holds everything else.
 
 rules:
-  # Allow micropayments to the weather API: up to 0.10 USDC/payment, 1 USDC/day.
+  # Allow micropayments to the weather API: up to 0.10 USDC/payment, 1 USDC/day,
+  # and only to its own address. The same API asking to be paid elsewhere goes
+  # to a human.
   - resource: api.weather.xyz
+    recipients: ["0x000000000000000000000000000000000000dEaD"]
     actions: [purchase]
     verdict: approved
     maxAmount: 0.10
@@ -11,3 +14,8 @@ rules:
 
 # Any other x402 payment requires a human.
 defaultVerdict: pending_approval
+
+# Whatever the rules allow, no agent spends more than 5 USDC a day in total.
+budgets:
+  - actor: "*"
+    maxDailyAmount: 5.00

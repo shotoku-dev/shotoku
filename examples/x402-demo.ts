@@ -24,7 +24,8 @@ const OPTIONS = {
 // ── The seam ──────────────────────────────────────────────────────────────
 // Anything that can turn payment requirements into a signed payment. The mock
 // returns a fake payload. In production you back this with x402-fetch + a viem
-// account — same interface, real signature.
+// account — same interface, real signature. Sign `requirements.option`: it is
+// the one payment option the decision covers.
 interface SignedPayment {
   readonly header: string;
 }
@@ -39,17 +40,19 @@ const mockSigner: PaymentSigner = {
 };
 // ────────────────────────────────────────────────────────────────────────────
 
+const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+
 /** A fake server endpoint that always answers with a 402. */
-function fakeServer402(resource: string, atomicAmount: string): X402Response {
+function fakeServer402(url: string, atomicAmount: string): X402Response {
   return {
     x402Version: 1,
     accepts: [
       {
         network: "base",
         maxAmountRequired: atomicAmount,
-        resource,
+        resource: url,
         payTo: "0x000000000000000000000000000000000000dEaD",
-        asset: "0xUSDC",
+        asset: BASE_USDC,
         extra: { name: "USDC" },
       },
     ],
@@ -64,14 +67,18 @@ function iconFor(status: string): string {
 
 async function attemptPayment(
   actor: string,
-  resource: string,
+  url: string,
   atomicAmount: string,
   signer: PaymentSigner,
 ): Promise<void> {
   // Steps 1–2: request the resource, receive a 402 with payment requirements.
-  const requirements = parseX402Response(fakeServer402(resource, atomicAmount));
+  // The policy matches the host of `url` — the agent's side of the exchange —
+  // never whatever resource the 402 body claims.
+  const requirements = parseX402Response(fakeServer402(url, atomicAmount), {
+    requestUrl: url,
+  });
   console.log(
-    `\n→ 402 from ${resource}: pay ${requirements.amount} ${requirements.asset} to ${requirements.payTo}`,
+    `\n→ 402 from ${requirements.resource}: pay ${requirements.amount} ${requirements.asset} to ${requirements.payTo}`,
   );
 
   // Step 2½: authorize BEFORE signing anything.
@@ -95,13 +102,13 @@ async function run(): Promise<void> {
   await mkdir("data", { recursive: true });
 
   // 1. Allowlisted vendor, small amount — approved, payment proceeds.
-  await attemptPayment("agent-001", "api.weather.xyz", "50000", mockSigner); // 0.05 USDC
+  await attemptPayment("agent-001", "https://api.weather.xyz/v1/forecast", "50000", mockSigner); // 0.05 USDC
 
   // 2. Allowlisted vendor, over the limit — denied, nothing signed.
-  await attemptPayment("agent-001", "api.weather.xyz", "5000000", mockSigner); // 5 USDC
+  await attemptPayment("agent-001", "https://api.weather.xyz/v1/forecast", "5000000", mockSigner); // 5 USDC
 
   // 3. Unknown vendor — pending approval, nothing signed.
-  await attemptPayment("agent-001", "api.unknown-vendor.io", "50000", mockSigner);
+  await attemptPayment("agent-001", "https://api.unknown-vendor.io/data", "50000", mockSigner);
 }
 
 run().catch((err: unknown) => {

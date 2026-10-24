@@ -2,8 +2,10 @@ import type {
   AgentAction,
   AuthorizationStatus,
   AuthorizeRequest,
+  BudgetScope,
   ExecutionRail,
   Policy,
+  PolicyBudget,
   PolicyRule,
   ReasonItem,
 } from "./types.js";
@@ -32,6 +34,11 @@ const VALID_STATUSES = [
   "pending_approval",
 ] as const satisfies readonly AuthorizationStatus[];
 
+const VALID_BUDGET_SCOPES = [
+  "per_actor",
+  "shared",
+] as const satisfies readonly BudgetScope[];
+
 /**
  * The accepted keys are derived from the types themselves, so adding a field to
  * `Policy` or `PolicyRule` without teaching the validator about it is a compile
@@ -40,6 +47,7 @@ const VALID_STATUSES = [
  */
 const POLICY_FIELDS = {
   rules: true,
+  budgets: true,
   defaultVerdict: true,
   grantTtlSeconds: true,
 } as const satisfies Record<keyof Policy, true>;
@@ -49,13 +57,21 @@ const RULE_FIELDS = {
   actor: true,
   actions: true,
   rails: true,
+  recipients: true,
   verdict: true,
   maxAmount: true,
   maxDailyAmount: true,
 } as const satisfies Record<keyof PolicyRule, true>;
 
+const BUDGET_FIELDS = {
+  actor: true,
+  maxDailyAmount: true,
+  scope: true,
+} as const satisfies Record<keyof PolicyBudget, true>;
+
 const POLICY_KEYS: ReadonlySet<string> = new Set(Object.keys(POLICY_FIELDS));
 const RULE_KEYS: ReadonlySet<string> = new Set(Object.keys(RULE_FIELDS));
+const BUDGET_KEYS: ReadonlySet<string> = new Set(Object.keys(BUDGET_FIELDS));
 
 const MAX_ID_LENGTH = 256;
 const MAX_RESOURCE_LENGTH = 512;
@@ -207,6 +223,17 @@ export function validateAuthorizeRequest(
     if (amountError) reasons.push({ type: "blocked", text: amountError });
   }
 
+  if (request.recipient !== undefined) {
+    if (typeof request.recipient !== "string" || !request.recipient.trim()) {
+      reasons.push({ type: "blocked", text: "recipient must be a non-empty string" });
+    } else if (request.recipient.length > MAX_ID_LENGTH) {
+      reasons.push({
+        type: "blocked",
+        text: `recipient must be ${MAX_ID_LENGTH} characters or shorter`,
+      });
+    }
+  }
+
   if (request.context !== undefined) {
     const contextError = validateContext(request.context);
     if (contextError) reasons.push({ type: "blocked", text: contextError });
@@ -301,6 +328,29 @@ function validateRule(value: unknown, index: number): PolicyRule {
     });
   }
 
+  if (value["recipients"] !== undefined) {
+    const recipients = value["recipients"];
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      throw new ShotokuError(
+        "policy_invalid",
+        `rules[${index}].recipients must be a non-empty list`,
+      );
+    }
+    for (const recipient of recipients) {
+      if (
+        typeof recipient !== "string" ||
+        !recipient.trim() ||
+        recipient.length > MAX_ID_LENGTH
+      ) {
+        throw new ShotokuError(
+          "policy_invalid",
+          `rules[${index}].recipients contains invalid value`,
+        );
+      }
+    }
+    Object.assign(rule, { recipients: [...recipients] });
+  }
+
   if (value["maxAmount"] !== undefined) {
     const error = validateNonNegativeNumber(
       value["maxAmount"],
@@ -322,6 +372,49 @@ function validateRule(value: unknown, index: number): PolicyRule {
   return rule;
 }
 
+function validateBudget(value: unknown, index: number): PolicyBudget {
+  const label = `budgets[${index}]`;
+  if (!isRecord(value)) {
+    throw new ShotokuError("policy_invalid", `${label} must be an object`);
+  }
+
+  const unknownKeyError = hasOnlyKnownKeys(value, BUDGET_KEYS, label);
+  if (unknownKeyError) throw new ShotokuError("policy_invalid", unknownKeyError);
+
+  const actor = value["actor"];
+  if (typeof actor !== "string" || !actor.trim() || actor.length > MAX_ID_LENGTH) {
+    throw new ShotokuError(
+      "policy_invalid",
+      `${label}.actor must be a non-empty string of at most ${MAX_ID_LENGTH} characters`,
+    );
+  }
+
+  // Required, unlike a rule's: a budget with no ceiling is a typo, not a policy.
+  const limitError = validateNonNegativeNumber(
+    value["maxDailyAmount"],
+    `${label}.maxDailyAmount`,
+  );
+  if (limitError) throw new ShotokuError("policy_invalid", limitError);
+
+  const budget: PolicyBudget = {
+    actor,
+    maxDailyAmount: value["maxDailyAmount"] as number,
+  };
+
+  if (value["scope"] !== undefined) {
+    const scope = value["scope"];
+    if (!VALID_BUDGET_SCOPES.includes(scope as BudgetScope)) {
+      throw new ShotokuError(
+        "policy_invalid",
+        `${label}.scope must be ${VALID_BUDGET_SCOPES.join(" or ")}`,
+      );
+    }
+    Object.assign(budget, { scope });
+  }
+
+  return budget;
+}
+
 export function validatePolicy(value: unknown): Policy {
   if (!isRecord(value)) {
     throw new ShotokuError("policy_invalid", "Policy file must contain an object");
@@ -337,6 +430,15 @@ export function validatePolicy(value: unknown): Policy {
   const policy: Policy = {
     rules: value["rules"].map((rule, index) => validateRule(rule, index)),
   };
+
+  if (value["budgets"] !== undefined) {
+    if (!Array.isArray(value["budgets"])) {
+      throw new ShotokuError("policy_invalid", "budgets must be a list");
+    }
+    Object.assign(policy, {
+      budgets: value["budgets"].map((budget, index) => validateBudget(budget, index)),
+    });
+  }
 
 
   if (value["grantTtlSeconds"] !== undefined) {

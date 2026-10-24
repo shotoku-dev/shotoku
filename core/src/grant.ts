@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { toMicros } from "./money.js";
 import { canonicalJson } from "./integrity.js";
 import type { AuthorizeRequest, OpenGrant, Policy } from "./types.js";
+import { normalizeRecipient } from "./recipient.js";
 
 /**
  * One-shot grants.
@@ -39,6 +40,9 @@ export function grantTtlSeconds(policy: Policy): number {
  * `amount` is compared exactly, in integer micro-units. "Anything up to the
  * approved amount" would be a budget bypass, and would teach an agent to shave
  * the number until something clears.
+ *
+ * `recipient` is included only when present, so signatures of requests that
+ * never carried one are unchanged by its introduction.
  */
 export function grantSignature(request: AuthorizeRequest): string {
   const parts = {
@@ -48,6 +52,9 @@ export function grantSignature(request: AuthorizeRequest): string {
     resource: request.resource,
     amount: request.amount === undefined ? null : toMicros(request.amount),
     fingerprint: request.fingerprint ?? null,
+    ...(request.recipient !== undefined
+      ? { recipient: normalizeRecipient(request.recipient) }
+      : {}),
   };
 
   return createHash("sha256").update(canonicalJson(parts)).digest("hex");

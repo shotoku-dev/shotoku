@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import type { AuthorizeRequest, AuthorizeResponse, Policy } from "./types.js";
-import { applyGrant, evaluatePolicy } from "./policy.js";
+import { applyBudgets, applyGrant, evaluatePolicy } from "./policy.js";
 import { appendDecision, getLedgerSnapshot, withLedgerLock } from "./ledger.js";
 import { buildExplanation } from "./explain.js";
 import { createReceipt } from "./receipt.js";
@@ -53,6 +53,11 @@ function safeRequestForLedger(
     ...(isExecutionRail(request.rail) ? { rail: request.rail } : {}),
     ...(typeof request.amount === "number" && Number.isFinite(request.amount)
       ? { amount: request.amount }
+      : {}),
+    // Matched by `recipients` rules and bound into the grant signature, so it
+    // must survive for the same reason as the fingerprint below.
+    ...(typeof request.recipient === "string" && request.recipient
+      ? { recipient: request.recipient }
       : {}),
     // Must survive into the ledger: the grant signature is recomputed from the
     // stored request, so dropping it here would silently mean no approval ever
@@ -168,13 +173,22 @@ export async function authorize(
     // Composed after the evaluator, never inside it: a grant lifts
     // pending_approval and must never lift a denial, least of all one caused by
     // an exhausted budget.
-    const { result, grant } = applyGrant(
+    const granted = applyGrant(
       evaluated,
       requestForLedger,
       loadedPolicy,
       snapshot,
       new Date(timestamp),
     );
+
+    // evaluatePolicy already held anything it approved to the budgets; a
+    // redeemed grant is approved only now, so it is checked here. If a budget
+    // refuses it, the grant is not recorded and so stays open for its TTL.
+    const result =
+      granted.grant !== undefined
+        ? applyBudgets(granted.result, requestForLedger, loadedPolicy, snapshot)
+        : granted.result;
+    const grant = result.status === "approved" ? granted.grant : undefined;
 
     const receipt =
       result.status === "approved" && options.receiptSecret !== undefined
@@ -185,6 +199,9 @@ export async function authorize(
             resource: requestForLedger.resource,
             ...(requestForLedger.amount !== undefined
               ? { amount: requestForLedger.amount }
+              : {}),
+            ...(requestForLedger.recipient !== undefined
+              ? { recipient: requestForLedger.recipient }
               : {}),
             secret: options.receiptSecret,
             ...(options.receiptTtlSeconds !== undefined
