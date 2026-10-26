@@ -35,6 +35,26 @@ describe("parseUpstreamConfigs", () => {
     expect(result.configs[0]!.env).toEqual({ KEY: "secret" });
   });
 
+  it("reads which pricer prices a server's tools", () => {
+    const result = parseUpstreamConfigs(
+      JSON.stringify({
+        mcpServers: { paypal: { command: "npx", args: ["-y", "@paypal/mcp"], pricing: "paypal" } },
+      }),
+    );
+
+    expect(result.problems).toEqual([]);
+    expect(result.configs[0]!.pricing).toBe("paypal");
+  });
+
+  it("names an unknown pricer and wraps the server unpriced", () => {
+    const result = parseUpstreamConfigs(
+      JSON.stringify({ mcpServers: { stripe: { command: "x", pricing: "stripe" } } }),
+    );
+
+    expect(result.configs[0]!.pricing).toBeUndefined();
+    expect(result.problems[0]).toMatch(/pricing "stripe"/);
+  });
+
   it("names the syntax error instead of throwing", () => {
     const result = parseUpstreamConfigs('{ "mcpServers": { "a": {} }, }');
 

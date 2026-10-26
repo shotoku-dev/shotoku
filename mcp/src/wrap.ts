@@ -5,6 +5,7 @@ import {
   type Explanation,
   type ReasonItem,
 } from "@shotoku/core";
+import type { PriceQuote } from "./pricing.js";
 
 /** Separator between an upstream server name and its tool name. */
 const SEPARATOR = "__";
@@ -60,12 +61,16 @@ export interface WrapAuthorizeOptions {
  * Modelled as `action: "mcp_tool"` on the `mcp` rail, with the wrapped tool name
  * as the resource. Only the argument *keys* are recorded in the audit context —
  * never the values — because tool arguments routinely carry secrets.
+ *
+ * `quote` is what a pricer said the call costs (see `pricing.ts`). Without one
+ * the request has no amount, and a rule with a limit holds it for a human.
  */
 export async function authorizeToolCall(
   server: string,
   tool: string,
   args: Record<string, unknown>,
   options: WrapAuthorizeOptions,
+  quote?: PriceQuote,
 ): Promise<WrapDecision> {
   const response = await authorize(
     {
@@ -73,6 +78,7 @@ export async function authorizeToolCall(
       action: "mcp_tool",
       resource: wrappedToolName(server, tool),
       rail: "mcp",
+      ...(quote ? { amount: quote.amount } : {}),
       // Binds a human approval to these exact arguments. Without it, approving
       // a write to one path would issue a grant the agent could redeem against
       // any other -- the resource is only `<server>__<tool>`. The digest is
@@ -82,6 +88,7 @@ export async function authorizeToolCall(
         server,
         tool,
         argumentKeys: Object.keys(args),
+        ...(quote ? { amountSource: quote.source } : {}),
       },
     },
     { policyPath: options.policyPath, ledgerPath: options.ledgerPath },

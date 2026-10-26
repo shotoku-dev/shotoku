@@ -276,6 +276,48 @@ Wrapped calls are recorded as `action: mcp_tool` on the `mcp` rail, so `actions`
 
 `defaultVerdict: pending_approval` is worth keeping here. A new tool appearing in an upstream server — after an update, say — is then held for review rather than silently allowed.
 
+### Putting a price on wrapped tools
+
+A wrapped call has no amount, so `maxAmount` and `maxDailyAmount` cannot be checked against it, and a rule with either holds every call for approval. To spend-limit a server's tools, name a pricer on its upstream entry:
+
+```json
+{
+  "mcpServers": {
+    "paypal": {
+      "command": "npx",
+      "args": ["-y", "@paypal/mcp", "--tools=all"],
+      "env": { "PAYPAL_ACCESS_TOKEN": "...", "PAYPAL_ENVIRONMENT": "SANDBOX" },
+      "pricing": "paypal"
+    }
+  }
+}
+```
+
+The amount is **the money the call sends out of the account**. `paypal` is the only pricer so far, for PayPal's MCP server:
+
+| Tool | Priced at |
+|---|---|
+| `create_refund` with `amount` | that amount |
+| `create_refund` without `amount` | the full capture, looked up from PayPal, because that is what PayPal refunds |
+| `accept_dispute_claim` | the disputed amount, looked up from PayPal |
+| every other `@paypal/mcp` tool (reads, orders, invoices, catalog, subscriptions) | $0: none of them sends money out |
+| anything else | not priced |
+
+Lookups are read-only GETs with the token from the server's own `env`. A call that cannot be priced (failed lookup, a currency other than USD, a malformed amount, a tool the pricer does not know) gets no amount, never a zero one, so a limited rule holds it for a human. Where an amount came from is recorded with the decision (`amountSource`).
+
+```yaml
+rules:
+  - resource: paypal__create_refund
+    verdict: approved
+    maxAmount: 100
+    maxDailyAmount: 300
+  - resource: paypal__list_*
+    verdict: approved
+defaultVerdict: pending_approval
+```
+
+A $89 refund passes. A refund with no amount on a $480 capture is denied: the lookup prices it at $480.
+
 ### What the agent sees when it is blocked
 
 ```

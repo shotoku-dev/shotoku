@@ -89,6 +89,69 @@ describe("authorizeToolCall", () => {
   });
 });
 
+describe("authorizeToolCall with a price", () => {
+  const REFUND_POLICY = `rules:\n  - resource: paypal__create_refund\n    verdict: approved\n    maxAmount: 100\n    maxDailyAmount: 300\n`;
+
+  it("passes a priced call within the limits", async () => {
+    await writeFile(policyPath, REFUND_POLICY);
+
+    const decision = await authorizeToolCall("paypal", "create_refund", {}, options(), {
+      amount: 89,
+      source: "create_refund amount argument",
+    });
+
+    expect(decision.outcome).toBe("pass");
+    expect(decision.status).toBe("approved");
+  });
+
+  it("denies a priced call over the per-transaction limit", async () => {
+    await writeFile(policyPath, REFUND_POLICY);
+
+    const decision = await authorizeToolCall("paypal", "create_refund", {}, options(), {
+      amount: 480,
+      source: "capture 21U52621A9811731L",
+    });
+
+    expect(decision.outcome).toBe("block");
+    expect(decision.status).toBe("denied");
+    expect(decision.explanation.summary).toContain("$480");
+  });
+
+  it("counts priced calls against the daily limit", async () => {
+    await writeFile(policyPath, REFUND_POLICY);
+    const quote = { amount: 90, source: "create_refund amount argument" };
+
+    for (let i = 0; i < 3; i++) {
+      const ok = await authorizeToolCall("paypal", "create_refund", { n: i }, options(), quote);
+      expect(ok.status).toBe("approved");
+    }
+    const fourth = await authorizeToolCall("paypal", "create_refund", { n: 3 }, options(), quote);
+
+    expect(fourth.status).toBe("denied");
+  });
+
+  it("holds an unpriced call against a limited rule", async () => {
+    await writeFile(policyPath, REFUND_POLICY);
+
+    const decision = await authorizeToolCall("paypal", "create_refund", {}, options());
+
+    expect(decision.status).toBe("pending_approval");
+  });
+
+  it("records where the amount came from", async () => {
+    await writeFile(policyPath, REFUND_POLICY);
+
+    await authorizeToolCall("paypal", "create_refund", {}, options(), {
+      amount: 89,
+      source: "capture 21U52621A9811731L",
+    });
+
+    const { readFile } = await import("node:fs/promises");
+    const ledger = await readFile(ledgerPath, "utf8");
+    expect(ledger).toContain("capture 21U52621A9811731L");
+  });
+});
+
 describe("blockedToolMessage", () => {
   it("tells the agent it cannot self-approve a pending decision", async () => {
     await writeFile(policyPath, `rules: []\ndefaultVerdict: pending_approval\n`);

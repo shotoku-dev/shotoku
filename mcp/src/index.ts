@@ -16,6 +16,7 @@ import {
   connectUpstreams,
   loadUpstreamConfigs,
 } from "./upstream.js";
+import { pricerFor } from "./pricing.js";
 import {
   authorizeToolCall,
   blockedToolMessage,
@@ -26,8 +27,15 @@ import {
 const allowApprovals = process.env["SHOTOKU_MCP_ALLOW_APPROVALS"] === "1";
 
 const config = await loadConfig();
-const upstreams = await connectUpstreams(await loadUpstreamConfigs());
+const upstreamConfigs = await loadUpstreamConfigs();
+const upstreams = await connectUpstreams(upstreamConfigs);
 const upstreamByName = new Map(upstreams.map((u) => [u.name, u]));
+const pricerByName = new Map(
+  upstreamConfigs.flatMap((c) => {
+    const pricer = pricerFor(c);
+    return pricer ? [[c.name, pricer] as const] : [];
+  }),
+);
 
 // Every upstream tool is re-exposed under "<server>__<tool>" and gated.
 const wrappedTools: Tool[] = upstreams.flatMap((upstream) =>
@@ -80,11 +88,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   const upstream = wrapped ? upstreamByName.get(wrapped.server) : undefined;
 
   if (wrapped && upstream) {
-    const decision = await authorizeToolCall(wrapped.server, wrapped.tool, args, {
-      policyPath: config.policyPath,
-      ledgerPath: config.ledgerPath,
-      actor,
-    });
+    const quote = await pricerByName.get(wrapped.server)?.price(wrapped.tool, args);
+    const decision = await authorizeToolCall(
+      wrapped.server,
+      wrapped.tool,
+      args,
+      { policyPath: config.policyPath, ledgerPath: config.ledgerPath, actor },
+      quote,
+    );
 
     if (decision.outcome === "block") {
       return {

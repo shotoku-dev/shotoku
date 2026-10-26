@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 import { errorCode, errorMessage } from "@shotoku/core";
+import { PRICING_KINDS, isPricingKind, type PricingKind } from "./pricing.js";
 
 /** One upstream MCP server Shotoku will sit in front of. */
 export interface UpstreamServerConfig {
@@ -10,6 +11,8 @@ export interface UpstreamServerConfig {
   readonly command: string;
   readonly args?: readonly string[];
   readonly env?: Record<string, string>;
+  /** Which pricer gives this server's tool calls an amount. See `pricing.ts`. */
+  readonly pricing?: PricingKind;
 }
 
 export interface UpstreamConnection {
@@ -74,12 +77,22 @@ export function parseUpstreamConfigs(raw: string): UpstreamParseResult {
           ),
         )
       : undefined;
+    // An unknown pricer is named, not fatal: the server is still wrapped, its
+    // calls are just unpriced, so limited rules hold them for approval.
+    const rawPricing = value["pricing"];
+    const pricing = isPricingKind(rawPricing) ? rawPricing : undefined;
+    if (rawPricing !== undefined && pricing === undefined) {
+      problems.push(
+        `server "${name}": unknown pricing ${JSON.stringify(rawPricing)} (known: ${PRICING_KINDS.join(", ")}); its calls are unpriced`,
+      );
+    }
 
     configs.push({
       name,
       command,
       ...(args ? { args } : {}),
       ...(env ? { env } : {}),
+      ...(pricing ? { pricing } : {}),
     });
   }
 
