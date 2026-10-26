@@ -93,6 +93,34 @@ function evaluateRules(
     return { status: matchedRule.verdict, reasons };
   }
 
+  // A missing amount is not a zero amount. The limits below cannot be checked
+  // without one, and the call that omits it can be the most expensive there is
+  // (PayPal's create_refund without an amount refunds the whole capture). So a
+  // human decides, and a grant from that approval is what lets the retry pass.
+  if (request.amount === undefined) {
+    const limits = [
+      matchedRule.maxAmount !== undefined
+        ? `$${matchedRule.maxAmount} per-transaction limit`
+        : undefined,
+      matchedRule.maxDailyAmount !== undefined
+        ? `$${matchedRule.maxDailyAmount} daily limit`
+        : undefined,
+    ].filter((limit): limit is string => limit !== undefined);
+
+    if (limits.length > 0) {
+      return {
+        status: "pending_approval",
+        reasons: [
+          ...reasons,
+          {
+            type: "escalated",
+            text: `Amount unknown; the ${limits.join(" and ")} cannot be checked`,
+          },
+        ],
+      };
+    }
+  }
+
   if (request.amount !== undefined && matchedRule.maxAmount !== undefined) {
     if (toMicros(request.amount) > toMicros(matchedRule.maxAmount)) {
       return {

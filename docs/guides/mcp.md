@@ -154,6 +154,8 @@ rules:
     maxDailyAmount: 50
 ```
 
+A limit needs an amount to check. `authorize_action` calls that pass `amount` are counted against the $50; wrapped tool calls carry no amount, so this rule holds each of them for approval instead of letting them through uncounted.
+
 **What this does and does not guarantee.** It makes agents *distinguishable*, not *unforgeable*. An agent with shell access can edit a config file, or skip Shotoku altogether. The guarantee is narrower and still worth having: every call that goes through Shotoku is attributed to a named agent, and **an agent cannot rename itself through the protocol**. That is what makes the ledger worth reading.
 
 ---

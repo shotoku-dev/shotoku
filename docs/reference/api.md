@@ -94,7 +94,7 @@ interface AuthorizeRequest {
 | `action` | The category of action being requested — see `AgentAction` below |
 | `resource` | What the agent is acting on — a domain, API endpoint, or service name |
 | `rail` | Optional: the execution channel being used (`"x402"`, `"mcp"`, `"api"`, etc.) |
-| `amount` | Optional: how much this action costs in USD, if it involves spending |
+| `amount` | Optional: how much this action costs in USD, if it involves spending. Leave it out only when the action costs nothing: a matched rule with `maxAmount` or `maxDailyAmount` returns `pending_approval` for a request with no amount |
 | `recipient` | Optional: who receives the money (an x402 `payTo` address, for example). Matched by `recipients` rules, and a human approval is bound to it |
 | `context` | Optional: any extra details you want recorded alongside the decision |
 

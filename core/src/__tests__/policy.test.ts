@@ -183,6 +183,113 @@ describe("evaluatePolicy", () => {
   });
 });
 
+/**
+ * A missing amount is not a zero amount. Wrapped MCP tools carry no amount, and
+ * PayPal's `create_refund` without one refunds the whole capture — the most
+ * expensive call, which used to sail through a $100 limit because the limit
+ * checks were skipped and the daily total counted it as $0.
+ */
+describe("evaluatePolicy — unknown amount fails closed", () => {
+  const { amount: _omitted, ...noAmount } = baseRequest;
+  const unpriced: AuthorizeRequest = noAmount;
+
+  it("holds a request with no amount against a maxAmount rule", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "approved", maxAmount: 100 }],
+    };
+
+    const result = evaluatePolicy(unpriced, policy, emptyLedger);
+
+    expect(result.status).toBe("pending_approval");
+    const escalated = result.reasons.find((r) => r.type === "escalated");
+    expect(escalated?.text).toContain("Amount unknown");
+    expect(escalated?.text).toContain("$100 per-transaction limit");
+  });
+
+  it("holds a request with no amount against a maxDailyAmount rule", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "approved", maxDailyAmount: 300 }],
+    };
+
+    const result = evaluatePolicy(unpriced, policy, emptyLedger);
+
+    expect(result.status).toBe("pending_approval");
+    const escalated = result.reasons.find((r) => r.type === "escalated");
+    expect(escalated?.text).toContain("$300 daily limit");
+  });
+
+  it("names both limits when the rule has both", () => {
+    const policy: Policy = {
+      rules: [
+        { resource: "openai.com", verdict: "approved", maxAmount: 100, maxDailyAmount: 300 },
+      ],
+    };
+
+    const result = evaluatePolicy(unpriced, policy, emptyLedger);
+
+    expect(result.status).toBe("pending_approval");
+    const escalated = result.reasons.find((r) => r.type === "escalated");
+    expect(escalated?.text).toContain("$100 per-transaction limit");
+    expect(escalated?.text).toContain("$300 daily limit");
+  });
+
+  it("does not report a budget it never checked", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "approved", maxDailyAmount: 300 }],
+    };
+
+    const result = evaluatePolicy(unpriced, policy, emptyLedger);
+
+    expect(result.reasons.some((r) => r.type === "budget_check")).toBe(false);
+  });
+
+  it("still approves a request with no amount when the rule has no limits", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "approved" }],
+    };
+
+    expect(evaluatePolicy(unpriced, policy, emptyLedger).status).toBe("approved");
+  });
+
+  it("treats an explicit zero as a known amount", () => {
+    const policy: Policy = {
+      rules: [
+        { resource: "openai.com", verdict: "approved", maxAmount: 100, maxDailyAmount: 300 },
+      ],
+    };
+
+    const result = evaluatePolicy({ ...baseRequest, amount: 0 }, policy, emptyLedger);
+
+    expect(result.status).toBe("approved");
+  });
+
+  it("leaves a denied rule denied", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "denied", maxAmount: 100 }],
+    };
+
+    expect(evaluatePolicy(unpriced, policy, emptyLedger).status).toBe("denied");
+  });
+
+  it("applies to rules written in YAML", () => {
+    const policy = policyFromYaml(`
+rules:
+  - resource: paypal__create_refund
+    verdict: approved
+    maxAmount: 100
+    maxDailyAmount: 300
+`);
+
+    const result = evaluatePolicy(
+      { actor: "support-agent", action: "mcp_tool", resource: "paypal__create_refund", rail: "mcp" },
+      policy,
+      emptyLedger,
+    );
+
+    expect(result.status).toBe("pending_approval");
+  });
+});
+
 describe("evaluatePolicy — glob resource matching", () => {
   it("a trailing wildcard matches sub-paths of a resource", () => {
     const policy: Policy = {

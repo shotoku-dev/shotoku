@@ -162,9 +162,12 @@ budgets:
     );
   });
 
+  // The rule here has no limits on purpose: a rule with one now holds an
+  // unpriced request for approval before budgets are ever consulted (see
+  // "unknown amount fails closed" in policy.test.ts).
   it("ignores requests without an amount", () => {
     const policy = policyFromYaml(
-      `${WILDCARD_RULE}budgets:\n  - actor: "*"\n    maxDailyAmount: 1\n`,
+      `rules:\n  - resource: "*"\n    verdict: approved\nbudgets:\n  - actor: "*"\n    maxDailyAmount: 1\n`,
     );
     const { amount: _amount, ...noAmount } = request();
 

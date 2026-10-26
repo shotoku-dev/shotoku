@@ -95,6 +95,24 @@ describe("approve, then retry", () => {
   });
 });
 
+describe("approve, then retry, when the amount is unknown", () => {
+  const LIMITED_POLICY =
+    "rules:\n  - resource: openai.com\n    verdict: approved\n    maxAmount: 100\n";
+
+  it("holds the request, then lets the approved retry through", async () => {
+    await writePolicy(LIMITED_POLICY);
+    const { amount: _omitted, ...unpriced } = request();
+
+    const first = await run(unpriced);
+    expect(first.status).toBe("pending_approval");
+
+    await approve(first.decisionId, { ledgerPath });
+
+    const retry = await run(unpriced);
+    expect(retry.status).toBe("approved");
+  });
+});
+
 describe("what a grant does not cover", () => {
   it("does not travel to a different amount", async () => {
     await writePolicy(PENDING_POLICY);

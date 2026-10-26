@@ -28,6 +28,20 @@ describe("buildExplanation — approved", () => {
   });
 });
 
+describe("buildExplanation — pending, after a rule match", () => {
+  it("summary surfaces why a human is needed, not the policy match", () => {
+    const unknownAmount: ReasonItem = {
+      type: "escalated",
+      text: "Amount unknown; the $100 per-transaction limit cannot be checked",
+    };
+
+    const result = buildExplanation("pending_approval", [policyMatch, unknownAmount], "dec_001");
+
+    expect(result.summary).toBe(unknownAmount.text);
+    expect(result.hint).toBe("shotoku approve dec_001");
+  });
+});
+
 describe("buildExplanation — denied", () => {
   it("summary surfaces the failing check, not the policy match", () => {
     const result = buildExplanation("denied", [policyMatch, limitDenied], "dec_001");

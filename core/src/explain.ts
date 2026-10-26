@@ -23,10 +23,11 @@ export function buildExplanation(
     return { summary: cause ? cause.text : "Denied." };
   }
 
-  // pending_approval
-  const first = reasons[0];
+  // pending_approval. A matched rule can still escalate (an unknown amount
+  // against a limit), and then the escalation is the reason, not the match.
+  const cause = reasons.find((r) => r.type === "escalated") ?? reasons[0];
   return {
-    summary: first ? first.text : "Requires human approval.",
+    summary: cause ? cause.text : "Requires human approval.",
     hint: `shotoku approve ${decisionId}`,
   };
 }

@@ -74,7 +74,7 @@ Because the first match wins, **put your most specific rules first and your catc
 
 A few things worth knowing:
 
-- `maxAmount` and `maxDailyAmount` only apply when the request carries an `amount`. Actions without a cost ignore them.
+- **A request with no `amount` is held for approval when the matched rule has `maxAmount` or `maxDailyAmount`.** A missing amount is not zero: the limit cannot be checked, so a human decides (`Amount unknown; the $100 per-transaction limit cannot be checked`). Wrapped MCP tools never carry an amount, so a limit on a rule that matches them holds every call. Give tools that cost nothing a rule without limits.
 - The daily total is computed from the ledger — only **approved** decisions for the same actor and resource count toward it. Denied and pending requests do not consume budget.
 - `maxDailyAmount` is **per resource**. A `resource: "*"` rule with `maxDailyAmount: 200` allows 200 for each distinct resource, not 200 in total. To cap an agent's total, use [`budgets`](#agent-budgets).
 - The limits act as a safety net on top of an `approved` verdict. A rule can say "approved" and still produce a denial if a cap is exceeded — and the decision will tell the user which cap.
