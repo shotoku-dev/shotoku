@@ -71,6 +71,7 @@ Because the first match wins, **put your most specific rules first and your catc
 | `verdict` | yes | What to decide when the rule matches: `approved`, `denied`, or `pending_approval`. |
 | `maxAmount` | no | Per-transaction cap. A matching request above this amount is **denied**, even if `verdict` is `approved`. |
 | `maxDailyAmount` | no | Rolling 24-hour spend cap for this resource. If today's approved spend plus this request would exceed it, the request is **denied**. |
+| `overLimit` | no | What a request over `maxAmount` or `maxDailyAmount` gets: `denied` (the default) or `pending_approval`, which asks a human instead. Only on a rule with `verdict: approved` and at least one limit. |
 
 A few things worth knowing:
 
@@ -146,15 +147,16 @@ Any email or code execution, to any resource, is held for human approval.
 
 ```yaml
 rules:
-  - resource: api.vendor.com
+  - resource: paypal__create_refund
     verdict: approved
-    maxAmount: 1.00          # auto-approve micro-payments
-
-  - resource: api.vendor.com
-    verdict: pending_approval # anything that fell through (over $1) needs a human
+    maxAmount: 100                # refunds up to $100 go through on their own
+    maxDailyAmount: 1000
+    overLimit: pending_approval   # a bigger one waits for a human
 ```
 
-The first rule auto-approves payments up to $1. A larger payment exceeds `maxAmount`, so the first rule **denies** it — note this is a denial, not a fall-through to the second rule. To escalate large amounts instead of denying them, drop `maxAmount` and gate by amount in your own code, or keep the categories on separate resources.
+A $89 refund is approved. A $480 refund exceeds `maxAmount`, and instead of a denial it becomes `pending_approval`, with the exceeded limit as the reason. Once a human runs `shotoku approve`, the agent's identical retry goes through and counts toward the $1000 daily limit.
+
+Without `overLimit`, a request over a limit is **denied**. Rules do not fall through: a second, lower rule for the same resource never sees it. Agent [`budgets`](#agent-budgets) are not affected by `overLimit`: over a budget is always a denial, even after a human approves.
 
 ### Cap the total, whatever the vendor
 

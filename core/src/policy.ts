@@ -123,16 +123,12 @@ function evaluateRules(
 
   if (request.amount !== undefined && matchedRule.maxAmount !== undefined) {
     if (toMicros(request.amount) > toMicros(matchedRule.maxAmount)) {
-      return {
-        status: "denied",
-        reasons: [
-          ...reasons,
-          {
-            type: "limit_check",
-            text: `Amount $${request.amount} exceeds per-transaction limit of $${matchedRule.maxAmount}`,
-          },
-        ],
-      };
+      return overLimit(
+        matchedRule,
+        reasons,
+        "limit_check",
+        `Amount $${request.amount} exceeds per-transaction limit of $${matchedRule.maxAmount}`,
+      );
     }
     reasons.push({
       type: "limit_check",
@@ -148,16 +144,12 @@ function evaluateRules(
     const totalMicros = spentMicros + incomingMicros;
 
     if (totalMicros > limitMicros) {
-      return {
-        status: "denied",
-        reasons: [
-          ...reasons,
-          {
-            type: "budget_check",
-            text: `Daily total $${fromMicros(totalMicros)} would exceed daily limit of $${matchedRule.maxDailyAmount}`,
-          },
-        ],
-      };
+      return overLimit(
+        matchedRule,
+        reasons,
+        "budget_check",
+        `Daily total $${fromMicros(totalMicros)} would exceed daily limit of $${matchedRule.maxDailyAmount}`,
+      );
     }
     reasons.push({
       type: "budget_check",
@@ -166,6 +158,24 @@ function evaluateRules(
   }
 
   return { status: matchedRule.verdict, reasons };
+}
+
+/**
+ * The verdict for a request over one of its rule's limits: a denial, or with
+ * `overLimit: pending_approval` a question for a human. Escalated, the failed
+ * check is the reason a human is asked, so it is recorded as `escalated` and
+ * the pending explanation leads with it.
+ */
+function overLimit(
+  rule: PolicyRule,
+  reasons: readonly ReasonItem[],
+  check: "limit_check" | "budget_check",
+  text: string,
+): EvaluationResult {
+  if (rule.overLimit === "pending_approval") {
+    return { status: "pending_approval", reasons: [...reasons, { type: "escalated", text }] };
+  }
+  return { status: "denied", reasons: [...reasons, { type: check, text }] };
 }
 
 /**

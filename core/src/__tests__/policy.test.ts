@@ -290,6 +290,101 @@ rules:
   });
 });
 
+/**
+ * Over a limit, the default is a denial. `overLimit: pending_approval` makes it
+ * a question for a human instead: small refunds pass on their own, a big one
+ * waits for someone to look at it.
+ */
+describe("evaluatePolicy — overLimit", () => {
+  const ledgerWith = (micros: number): LedgerSnapshot => ({
+    dailyTotals: { "agent-1|openai.com": micros },
+    windowStart: new Date("2026-06-18T00:00:00.000Z").toISOString(),
+  });
+
+  it("holds a request over maxAmount for approval", () => {
+    const policy: Policy = {
+      rules: [
+        { resource: "openai.com", verdict: "approved", maxAmount: 100, overLimit: "pending_approval" },
+      ],
+    };
+
+    const result = evaluatePolicy({ ...baseRequest, amount: 480 }, policy, emptyLedger);
+
+    expect(result.status).toBe("pending_approval");
+    const escalated = result.reasons.find((r) => r.type === "escalated");
+    expect(escalated?.text).toBe("Amount $480 exceeds per-transaction limit of $100");
+  });
+
+  it("holds a request over maxDailyAmount for approval", () => {
+    const policy: Policy = {
+      rules: [
+        { resource: "openai.com", verdict: "approved", maxDailyAmount: 100, overLimit: "pending_approval" },
+      ],
+    };
+
+    const result = evaluatePolicy(baseRequest, policy, ledgerWith(95_000_000));
+
+    expect(result.status).toBe("pending_approval");
+    const escalated = result.reasons.find((r) => r.type === "escalated");
+    expect(escalated?.text).toContain("would exceed daily limit of $100");
+  });
+
+  it("still approves a request within the limits", () => {
+    const policy: Policy = {
+      rules: [
+        {
+          resource: "openai.com",
+          verdict: "approved",
+          maxAmount: 100,
+          maxDailyAmount: 300,
+          overLimit: "pending_approval",
+        },
+      ],
+    };
+
+    expect(evaluatePolicy(baseRequest, policy, emptyLedger).status).toBe("approved");
+  });
+
+  it("denies over the limit when overLimit says denied, as it does by default", () => {
+    const policy: Policy = {
+      rules: [{ resource: "openai.com", verdict: "approved", maxAmount: 5, overLimit: "denied" }],
+    };
+
+    const result = evaluatePolicy(baseRequest, policy, emptyLedger);
+
+    expect(result.status).toBe("denied");
+    expect(result.reasons.at(-1)?.type).toBe("limit_check");
+  });
+
+  it("does not soften a negative amount", () => {
+    const policy: Policy = {
+      rules: [
+        { resource: "openai.com", verdict: "approved", maxAmount: 100, overLimit: "pending_approval" },
+      ],
+    };
+
+    expect(evaluatePolicy({ ...baseRequest, amount: -1 }, policy, emptyLedger).status).toBe(
+      "denied",
+    );
+  });
+
+  it("does not soften an agent budget", () => {
+    const policy = policyFromYaml(`
+rules:
+  - resource: openai.com
+    verdict: approved
+    maxAmount: 100
+    overLimit: pending_approval
+budgets:
+  - actor: "*"
+    maxDailyAmount: 20
+`);
+    const ledger: LedgerSnapshot = { ...emptyLedger, actorTotals: { "agent-1": 15_000_000 } };
+
+    expect(evaluatePolicy(baseRequest, policy, ledger).status).toBe("denied");
+  });
+});
+
 describe("evaluatePolicy — glob resource matching", () => {
   it("a trailing wildcard matches sub-paths of a resource", () => {
     const policy: Policy = {

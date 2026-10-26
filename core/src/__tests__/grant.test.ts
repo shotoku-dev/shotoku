@@ -113,6 +113,35 @@ describe("approve, then retry, when the amount is unknown", () => {
   });
 });
 
+describe("approve, then retry, over a limit with overLimit: pending_approval", () => {
+  const OVER_LIMIT_POLICY =
+    "rules:\n  - resource: openai.com\n    verdict: approved\n    maxAmount: 100\n    maxDailyAmount: 1000\n    overLimit: pending_approval\n";
+
+  it("lets the approved retry through and counts it against the daily limit", async () => {
+    await writePolicy(OVER_LIMIT_POLICY);
+
+    const first = await run(request({ amount: 480 }));
+    expect(first.status).toBe("pending_approval");
+
+    await approve(first.decisionId, { ledgerPath });
+
+    const retry = await run(request({ amount: 480 }));
+    expect(retry.status).toBe("approved");
+
+    const next = await run(request({ amount: 50 }));
+    expect(next.status).toBe("approved");
+    expect(next.reasons.map((r) => r.text)).toContain("Daily budget remaining: $470");
+  });
+
+  it("holds a different amount for its own approval", async () => {
+    await writePolicy(OVER_LIMIT_POLICY);
+    const first = await run(request({ amount: 480 }));
+    await approve(first.decisionId, { ledgerPath });
+
+    expect((await run(request({ amount: 900 }))).status).toBe("pending_approval");
+  });
+});
+
 describe("what a grant does not cover", () => {
   it("does not travel to a different amount", async () => {
     await writePolicy(PENDING_POLICY);

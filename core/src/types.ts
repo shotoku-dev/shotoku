@@ -209,7 +209,16 @@ export interface PolicyRule {
 
   /** Maximum allowed total spend for this resource in a rolling 24-hour window. */
   readonly maxDailyAmount?: number;
+
+  /**
+   * What a request over `maxAmount` or `maxDailyAmount` gets. `denied` (the
+   * default) refuses it; `pending_approval` asks a human instead. Agent
+   * `budgets` are not affected: over a budget is always a denial.
+   */
+  readonly overLimit?: OverLimitVerdict;
 }
+
+export type OverLimitVerdict = "denied" | "pending_approval";
 
 /**
  * A spend ceiling across every resource, checked after the rules.

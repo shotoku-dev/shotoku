@@ -26,6 +26,37 @@ function yamlBlocks(markdown: string): readonly string[] {
   return [...markdown.matchAll(/```yaml\r?\n([\s\S]*?)```/g)].map((m) => m[1]!);
 }
 
+describe("validatePolicy — overLimit", () => {
+  const ruleWith = (fields: string) =>
+    loadPolicyYaml(`rules:\n  - resource: paypal__create_refund\n${fields}`);
+
+  it("accepts pending_approval and denied on an approved rule with a limit", () => {
+    const pending = ruleWith("    verdict: approved\n    maxAmount: 100\n    overLimit: pending_approval\n");
+    const denied = ruleWith("    verdict: approved\n    maxDailyAmount: 300\n    overLimit: denied\n");
+
+    expect(pending.rules[0]!.overLimit).toBe("pending_approval");
+    expect(denied.rules[0]!.overLimit).toBe("denied");
+  });
+
+  it("rejects approved, which would make the limit meaningless", () => {
+    expect(() =>
+      ruleWith("    verdict: approved\n    maxAmount: 100\n    overLimit: approved\n"),
+    ).toThrow(/overLimit must be pending_approval or denied/);
+  });
+
+  it("rejects overLimit on a rule with no limit", () => {
+    expect(() => ruleWith("    verdict: approved\n    overLimit: pending_approval\n")).toThrow(
+      /overLimit needs maxAmount or maxDailyAmount/,
+    );
+  });
+
+  it("rejects overLimit on a rule that does not approve", () => {
+    expect(() =>
+      ruleWith("    verdict: pending_approval\n    maxAmount: 100\n    overLimit: pending_approval\n"),
+    ).toThrow(/overLimit only applies to rules with verdict: approved/);
+  });
+});
+
 describe("validatePolicy — the documented rule fields all work", () => {
   it("accepts every field listed in the rule-fields table", () => {
     const policy = loadPolicyYaml(`

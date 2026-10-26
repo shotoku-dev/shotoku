@@ -316,7 +316,7 @@ rules:
 defaultVerdict: pending_approval
 ```
 
-A $89 refund passes. A refund with no amount on a $480 capture is denied: the lookup prices it at $480.
+A $89 refund passes. A refund with no amount on a $480 capture is denied: the lookup prices it at $480. Add `overLimit: pending_approval` to the refund rule and it is held for a human instead. After `shotoku approve`, the agent's identical retry goes through.
 
 ### What the agent sees when it is blocked
 

@@ -274,6 +274,7 @@ interface PolicyRule {
   readonly verdict: AuthorizationStatus;
   readonly maxAmount?: number;
   readonly maxDailyAmount?: number;
+  readonly overLimit?: "denied" | "pending_approval";
 }
 ```
 
@@ -286,6 +287,7 @@ interface PolicyRule {
 | `verdict` | What to decide when this rule matches — `approved`, `denied`, or `pending_approval` |
 | `maxAmount` | Optional: maximum allowed spend per single transaction. Requests above this are denied even if the rule would otherwise approve them. |
 | `maxDailyAmount` | Optional: maximum allowed total spend for this resource in a rolling 24-hour window. Exceeding it denies the request. It is per resource — use `budgets` for a total. |
+| `overLimit` | Optional: `"denied"` (default) or `"pending_approval"`. What a request over `maxAmount` or `maxDailyAmount` gets. Requires `verdict: "approved"` and at least one limit. |
 
 Rules are strict on purpose. Unknown policy fields are rejected instead of ignored, because a typo in an authorization policy should not silently weaken the policy.
 

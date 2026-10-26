@@ -61,6 +61,7 @@ const RULE_FIELDS = {
   verdict: true,
   maxAmount: true,
   maxDailyAmount: true,
+  overLimit: true,
 } as const satisfies Record<keyof PolicyRule, true>;
 
 const BUDGET_FIELDS = {
@@ -367,6 +368,31 @@ function validateRule(value: unknown, index: number): PolicyRule {
     );
     if (error) throw new ShotokuError("policy_invalid", error);
     Object.assign(rule, { maxDailyAmount: value["maxDailyAmount"] });
+  }
+
+  if (value["overLimit"] !== undefined) {
+    // Each misuse is rejected rather than ignored, like a misspelled field: an
+    // overLimit that can never apply means the author expected something else.
+    const overLimit = value["overLimit"];
+    if (overLimit !== "pending_approval" && overLimit !== "denied") {
+      throw new ShotokuError(
+        "policy_invalid",
+        `rules[${index}].overLimit must be pending_approval or denied`,
+      );
+    }
+    if (rule.maxAmount === undefined && rule.maxDailyAmount === undefined) {
+      throw new ShotokuError(
+        "policy_invalid",
+        `rules[${index}].overLimit needs maxAmount or maxDailyAmount to apply to`,
+      );
+    }
+    if (rule.verdict !== "approved") {
+      throw new ShotokuError(
+        "policy_invalid",
+        `rules[${index}].overLimit only applies to rules with verdict: approved`,
+      );
+    }
+    Object.assign(rule, { overLimit });
   }
 
   return rule;
