@@ -286,12 +286,18 @@ A wrapped call has no amount, so `maxAmount` and `maxDailyAmount` cannot be chec
     "paypal": {
       "command": "npx",
       "args": ["-y", "@paypal/mcp", "--tools=all"],
-      "env": { "PAYPAL_ACCESS_TOKEN": "...", "PAYPAL_ENVIRONMENT": "SANDBOX" },
+      "env": {
+        "PAYPAL_CLIENT_ID": "...",
+        "PAYPAL_CLIENT_SECRET": "...",
+        "PAYPAL_ENVIRONMENT": "SANDBOX"
+      },
       "pricing": "paypal"
     }
   }
 }
 ```
+
+With `"pricing": "paypal"`, Shotoku also handles the server's credentials. `@paypal/mcp` wants an access token, and PayPal access tokens expire after about nine hours. Give the entry your app's client ID and secret instead, and Shotoku mints a token each time it starts and passes the PayPal server only that token, never the secret. A `PAYPAL_ACCESS_TOKEN` in the entry is used as is. If PayPal refuses the credentials, the server is not started and its tools are not exposed.
 
 The amount is **the money the call sends out of the account**. `paypal` is the only pricer so far, for PayPal's MCP server:
 

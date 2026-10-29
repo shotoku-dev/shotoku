@@ -17,6 +17,7 @@ import {
   loadUpstreamConfigs,
 } from "./upstream.js";
 import { pricerFor } from "./pricing.js";
+import { prepareUpstreams } from "./paypal-credentials.js";
 import {
   authorizeToolCall,
   blockedToolMessage,
@@ -27,7 +28,9 @@ import {
 const allowApprovals = process.env["SHOTOKU_MCP_ALLOW_APPROVALS"] === "1";
 
 const config = await loadConfig();
-const upstreamConfigs = await loadUpstreamConfigs();
+const upstreamConfigs = await prepareUpstreams(await loadUpstreamConfigs(), (message) =>
+  process.stderr.write(`shotoku: ${message}\n`),
+);
 const upstreams = await connectUpstreams(upstreamConfigs);
 const upstreamByName = new Map(upstreams.map((u) => [u.name, u]));
 const pricerByName = new Map(
