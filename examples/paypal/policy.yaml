@@ -1,0 +1,35 @@
+# A PayPal support agent: small refunds on its own, a human for big ones.
+# Used by examples/paypal (see README.md there).
+
+rules:
+  # Reads move no money and are always allowed.
+  - resource: paypal__list_*
+    verdict: approved
+  - resource: paypal__get_*
+    verdict: approved
+  - resource: paypal__show_*
+    verdict: approved
+
+  # Refunds up to $100 go through. A bigger one waits for a human instead of
+  # being refused, so a real customer with a real $480 problem still gets helped.
+  - resource: paypal__create_refund
+    verdict: approved
+    maxAmount: 100
+    maxDailyAmount: 1000
+    overLimit: pending_approval
+
+  # Accepting a dispute refunds the buyer the disputed amount.
+  - resource: paypal__accept_dispute_claim
+    verdict: approved
+    maxAmount: 50
+    overLimit: pending_approval
+
+budgets:
+  # Every dollar the support agent sends out, across refunds and disputes.
+  # Over this is a denial even after a human approves.
+  - actor: support-agent
+    maxDailyAmount: 1000
+
+# Anything else PayPal's server offers (invoices, orders, subscriptions...)
+# is held for review rather than silently allowed.
+defaultVerdict: pending_approval

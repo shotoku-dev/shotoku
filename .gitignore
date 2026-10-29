@@ -11,3 +11,6 @@ docs/[A-Z]*.md
 internal-notes/
 clawvisor/
 docs/internal/
+
+# PayPal demo runs (contain sandbox credentials)
+examples/paypal/.run/
