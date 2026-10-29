@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shotoku</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/vendor/ag-grid-community.min.js" defer></script>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand">
+        <span class="wordmark">shotoku</span>
+        <span class="tagline">spend controls</span>
+      </div>
+      <div class="meta">
+        <span id="integrity" class="integrity">checking ledger…</span>
+        <span id="refreshed" class="muted"></span>
+      </div>
+    </header>
+
+    <main>
+      <p id="notice" class="notice" hidden></p>
+
+      <section class="kpis" aria-label="Last 24 hours">
+        <div class="kpi"><span class="kpi-label">Pending</span><span id="kpi-pending" class="kpi-value pending">–</span></div>
+        <div class="kpi"><span class="kpi-label">Approved</span><span id="kpi-approved" class="kpi-value approved">–</span></div>
+        <div class="kpi"><span class="kpi-label">Denied</span><span id="kpi-denied" class="kpi-value denied">–</span></div>
+        <div class="kpi"><span class="kpi-label">Spent, 24h</span><span id="kpi-spent" class="kpi-value">–</span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Pending approvals</h2>
+          <span class="muted">Approving lets the agent's identical retry through, once.</span>
+        </div>
+        <div id="pending-grid" class="grid grid-pending"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Budgets</h2>
+          <span class="muted">Approved spend in the rolling 24-hour window.</span>
+        </div>
+        <div id="budgets-grid" class="grid grid-budgets"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>History</h2>
+          <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
+        </div>
+        <div id="history-grid" class="grid grid-history"></div>
+        <pre id="detail" class="detail" hidden></pre>
+      </section>
+    </main>
+  </body>
+</html>

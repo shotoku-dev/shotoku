@@ -51,6 +51,22 @@ function matchesRule(request: AuthorizeRequest, rule: PolicyRule): boolean {
   return true;
 }
 
+/** Whether `value` matches a rule or budget pattern (`*` wildcard). */
+export function matchesPattern(pattern: string, value: string): boolean {
+  return patternMatches(pattern, value);
+}
+
+/**
+ * The rule `evaluatePolicy` would apply to this request: the first that
+ * matches, or undefined. For views that show a limit next to what was spent.
+ */
+export function findMatchingRule(
+  request: AuthorizeRequest,
+  policy: Policy,
+): PolicyRule | undefined {
+  return policy.rules.find((rule) => matchesRule(request, rule));
+}
+
 export function evaluatePolicy(
   request: AuthorizeRequest,
   policy: Policy,
@@ -73,7 +89,7 @@ function evaluateRules(
     }
   }
 
-  const matchedRule = policy.rules.find((rule) => matchesRule(request, rule));
+  const matchedRule = findMatchingRule(request, policy);
 
   if (!matchedRule) {
     const defaultVerdict = policy.defaultVerdict ?? "pending_approval";

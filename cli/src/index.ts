@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { randomBytes } from "node:crypto";
 import { Command } from "commander";
 import { render } from "ink";
 import { createElement } from "react";
@@ -17,6 +18,7 @@ import {
   getOpenGrants,
   readDecisions,
   parseSignedSnapshot,
+  errorCode,
   toUserSafeMessage,
   validActions,
   validStatuses,
@@ -41,6 +43,7 @@ import { explainRuntimePaths, resolveRuntimePaths } from "./config.js";
 import { createTelegramClient } from "./telegram/api.js";
 import { telegramConfigFromEnv } from "./telegram/config.js";
 import { runTelegram } from "./telegram/run.js";
+import { startDashboard } from "./ui/server.js";
 
 const VALID_ACTIONS = validActions();
 const VALID_STATUSES = validStatuses();
@@ -387,6 +390,39 @@ program
     } finally {
       process.stdout.write('\x1B[?1049l'); // exit alternate screen
     }
+  });
+
+program
+  .command("ui")
+  .description("Open the local dashboard: pending approvals, budgets, history")
+  .option("--port <number>", "Port on 127.0.0.1", "4402")
+  .option("--policy <path>", "Path to policy file")
+  .option("--ledger <path>", "Path to ledger file")
+  .action(async (opts: { port: string; policy?: string; ledger?: string }) => {
+    const port = Number(opts.port);
+    if (!Number.isInteger(port) || port < 0 || port > 65535) {
+      throw new Error(`--port must be a port number, not "${opts.port}".`);
+    }
+    const { policyPath, ledgerPath } = await resolveRuntimePaths(opts);
+    const token = randomBytes(32).toString("hex");
+    const dashboard = await startDashboard({ ledgerPath, policyPath, port, token }).catch(
+      (error: unknown) => {
+        if (errorCode(error) === "EADDRINUSE") {
+          throw new Error(`Port ${port} is in use. Pick another with --port, or stop the other shotoku ui.`);
+        }
+        throw error;
+      },
+    );
+    console.log(`Shotoku dashboard: ${dashboard.url}#token=${token}`);
+    console.log(`  Ledger  ${ledgerPath}`);
+    console.log(`  Policy  ${policyPath}`);
+    console.log("Open the link above; the token in it is this session's only key. Ctrl+C to stop.");
+    process.on("SIGINT", () => {
+      void dashboard.close().then(() => {
+        console.log("\nStopped.");
+        process.exit(0);
+      });
+    });
   });
 
 program

@@ -360,7 +360,7 @@ shotoku status
 shotoku approve dec_abc123
 ```
 
-or in the TUI (`shotoku tui`), or with a tap on your phone (`shotoku telegram`, see [Approve from your phone](phone-approvals.md)).
+or in the TUI (`shotoku tui`), or the dashboard (`shotoku ui`, see [Dashboard](dashboard.md)), or with a tap on your phone (`shotoku telegram`, see [Approve from your phone](phone-approvals.md)).
 
 `SHOTOKU_MCP_ALLOW_APPROVALS=1` lifts the restriction. It is meant for a human driving the server directly, and it removes the separation the product exists to provide.
 

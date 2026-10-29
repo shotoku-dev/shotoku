@@ -26,6 +26,7 @@
   },
   "files": [
     "dist",
+    "assets",
     "!dist/__tests__"
   ],
   "scripts": {
@@ -38,11 +39,12 @@
   },
   "dependencies": {
     "@shotoku/core": "workspace:*",
+    "ag-grid-community": "36.2.0",
     "commander": "^15.0.0",
     "dedent": "^1.7.2",
-    "yaml": "^2.9.0",
     "ink": "^7.0.6",
-    "react": "^19.2.7"
+    "react": "^19.2.7",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

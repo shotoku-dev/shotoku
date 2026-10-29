@@ -38,6 +38,17 @@ export default [
     },
   },
   {
+    // The dashboard page: plain browser scripts, served by `shotoku ui`.
+    files: ["cli/assets/**/*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: {
+        ...globals.browser,
+        agGrid: "readonly",
+      },
+    },
+  },
+  {
     files: ["**/*.mjs"],
     languageOptions: {
       globals: {

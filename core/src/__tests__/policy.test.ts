@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parse } from "yaml";
-import { evaluatePolicy } from "../policy.js";
+import { evaluatePolicy, findMatchingRule, matchesPattern } from "../policy.js";
 import { validatePolicy } from "../validation.js";
 import type {
   AuthorizeRequest,
@@ -382,6 +382,34 @@ budgets:
     const ledger: LedgerSnapshot = { ...emptyLedger, actorTotals: { "agent-1": 15_000_000 } };
 
     expect(evaluatePolicy(baseRequest, policy, ledger).status).toBe("denied");
+  });
+});
+
+describe("findMatchingRule and matchesPattern", () => {
+  const policy: Policy = {
+    rules: [
+      { resource: "paypal__create_refund", verdict: "approved", maxDailyAmount: 300 },
+      { resource: "paypal__*", verdict: "pending_approval" },
+    ],
+  };
+
+  it("returns the first rule that matches, as evaluatePolicy uses it", () => {
+    const refund = { ...baseRequest, resource: "paypal__create_refund" };
+    const other = { ...baseRequest, resource: "paypal__cancel_subscription" };
+
+    expect(findMatchingRule(refund, policy)?.maxDailyAmount).toBe(300);
+    expect(findMatchingRule(other, policy)?.verdict).toBe("pending_approval");
+  });
+
+  it("returns undefined when no rule matches", () => {
+    expect(findMatchingRule(baseRequest, policy)).toBeUndefined();
+  });
+
+  it("matches patterns the way rules do", () => {
+    expect(matchesPattern("team-*", "team-billing")).toBe(true);
+    expect(matchesPattern("team-*", "billing")).toBe(false);
+    expect(matchesPattern("support-agent", "support-agent")).toBe(true);
+    expect(matchesPattern("a.b", "aXb")).toBe(false);
   });
 });
 
