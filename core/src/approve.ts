@@ -13,6 +13,8 @@ function approvalId(): string {
 
 export interface ApproveOptions {
   readonly ledgerPath: string;
+  /** Recorded on the approval; see `ApprovalEntry.via`. */
+  readonly via?: string;
 }
 
 async function resolve(
@@ -45,6 +47,7 @@ async function resolve(
       decisionId,
       verdict,
       timestamp: new Date().toISOString(),
+      ...(options.via ? { via: options.via } : {}),
     };
 
     await appendApproval(entry, options.ledgerPath);

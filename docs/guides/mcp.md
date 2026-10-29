@@ -326,7 +326,7 @@ Blocked by Shotoku — this action was not authorized.
   decision: dec_cd9b9664cf9f
   reason:   obsidian__delete_vault_file matched rule
   A human must approve this out-of-band (`shotoku approve dec_cd9b9664cf9f`,
-  the Shotoku TUI, or Slack). You cannot approve it yourself — ask the user.
+  the Shotoku TUI, or their phone). You cannot approve it yourself — ask the user.
   Once they approve, retry this exact call: the approval is redeemable once,
   for these arguments only. Changing anything requires a new approval.
 ```
@@ -338,6 +338,8 @@ A denial says so plainly and tells the agent not to retry.
 The decision records the server, the tool, and the **names** of the arguments — never their values. Tool arguments routinely carry API keys, file contents and personal data, and an audit log is not a place to accumulate them.
 
 The values are still bound to the approval, through a digest. That is what stops an approval for one file from being redeemed against another.
+
+One exception: a priced call records where its amount came from (`amountSource`), and for PayPal that names the capture or dispute the amount was looked up from, e.g. `full refund of capture 2PY84818WJ8069634`. Those IDs identify a payment; they are not credentials.
 
 ---
 
@@ -352,7 +354,7 @@ shotoku status
 shotoku approve dec_abc123
 ```
 
-or in the TUI (`shotoku tui`).
+or in the TUI (`shotoku tui`), or with a tap on your phone (`shotoku telegram`, see [Approve from your phone](phone-approvals.md)).
 
 `SHOTOKU_MCP_ALLOW_APPROVALS=1` lifts the restriction. It is meant for a human driving the server directly, and it removes the separation the product exists to provide.
 

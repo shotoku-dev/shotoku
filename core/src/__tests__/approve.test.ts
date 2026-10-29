@@ -7,6 +7,7 @@ import {
   readDecisions,
   readApprovals,
   getPendingApprovals,
+  getLedgerIntegrity,
 } from "../ledger.js";
 import { approve, deny } from "../approve.js";
 import type { AuthorizationStatus, LedgerEntry } from "../types.js";
@@ -122,5 +123,38 @@ describe("getPendingApprovals", () => {
 
     const pending = await getPendingApprovals(ledgerPath);
     expect(pending.map((d) => d.decisionId)).toEqual(["dec_b"]);
+  });
+});
+
+/**
+ * Where a human approved from is part of the audit trail: an approval tapped
+ * on a phone is a different claim from one typed in the terminal the agent
+ * also runs in.
+ */
+describe("approve — channel", () => {
+  it("records the channel an approval came through", async () => {
+    await appendDecision(decisionEntry("dec_phone", "pending_approval"), ledgerPath);
+
+    const approval = await approve("dec_phone", { ledgerPath, via: "telegram:123456" });
+
+    expect(approval.via).toBe("telegram:123456");
+    const [stored] = await readApprovals(ledgerPath);
+    expect(stored?.via).toBe("telegram:123456");
+  });
+
+  it("keeps the hash chain valid with a channel recorded", async () => {
+    await appendDecision(decisionEntry("dec_phone", "pending_approval"), ledgerPath);
+    await deny("dec_phone", { ledgerPath, via: "telegram:123456" });
+
+    const report = await getLedgerIntegrity(ledgerPath);
+    expect(report.recordCount).toBe(2);
+  });
+
+  it("omits the channel when none is given", async () => {
+    await appendDecision(decisionEntry("dec_cli", "pending_approval"), ledgerPath);
+
+    const approval = await approve("dec_cli", { ledgerPath });
+
+    expect("via" in approval).toBe(false);
   });
 });

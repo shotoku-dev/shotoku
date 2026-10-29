@@ -108,6 +108,7 @@ function isApprovalEntry(value: unknown): value is ApprovalEntry {
     typeof value["decisionId"] === "string" &&
     (value["verdict"] === "approved" || value["verdict"] === "denied") &&
     typeof value["timestamp"] === "string" &&
+    (value["via"] === undefined || typeof value["via"] === "string") &&
     (integrity === undefined || isLedgerIntegrity(integrity))
   );
 }

@@ -38,6 +38,9 @@ import {
 import { runInit } from "./init.js";
 import { DEMO_SCENARIO_NAMES, isDemoScenario, runDemo } from "./demo.js";
 import { explainRuntimePaths, resolveRuntimePaths } from "./config.js";
+import { createTelegramClient } from "./telegram/api.js";
+import { telegramConfigFromEnv } from "./telegram/config.js";
+import { runTelegram } from "./telegram/run.js";
 
 const VALID_ACTIONS = validActions();
 const VALID_STATUSES = validStatuses();
@@ -384,6 +387,25 @@ program
     } finally {
       process.stdout.write('\x1B[?1049l'); // exit alternate screen
     }
+  });
+
+program
+  .command("telegram")
+  .description("Send pending approvals to your phone; approve or deny with a tap")
+  .option("--ledger <path>", "Path to ledger file")
+  .action(async (opts: { ledger?: string }) => {
+    const config = telegramConfigFromEnv(process.env);
+    const { ledgerPath } = await resolveRuntimePaths(opts);
+    process.on("SIGINT", () => {
+      console.log("\nStopped.");
+      process.exit(0);
+    });
+    await runTelegram({
+      config,
+      client: createTelegramClient(config.token),
+      ledgerPath,
+      log: (line) => console.log(line),
+    });
   });
 
 program.parseAsync().catch((err: unknown) => {

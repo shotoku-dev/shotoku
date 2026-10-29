@@ -119,7 +119,7 @@ export function blockedToolMessage(decision: WrapDecision): string {
   if (decision.status === "pending_approval") {
     lines.push(
       `  A human must approve this out-of-band (\`shotoku approve ${decision.decisionId}\`,`,
-      `  the Shotoku TUI, or Slack). You cannot approve it yourself — ask the user.`,
+      `  the Shotoku TUI, or their phone). You cannot approve it yourself — ask the user.`,
       `  Once they approve, retry this exact call: the approval is redeemable once,`,
       `  for these arguments only. Changing anything requires a new approval.`,
     );

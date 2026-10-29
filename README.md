@@ -61,6 +61,7 @@ shotoku status                       # pending approvals + last decision
 shotoku history --since 24h          # decision history
 shotoku decision dec_063a20380ba7    # full detail for one decision
 shotoku approve dec_063a20380ba7     # approve a pending decision
+shotoku telegram                     # approve or deny from your phone
 ```
 
 See the [Quickstart guide](docs/guides/quickstart.md) for the full five-minute tour.
@@ -173,6 +174,7 @@ The `defaultVerdict` applies — `pending_approval` unless you set otherwise. It
 - [Writing policies](docs/guides/policies.md) — rules, limits, allowlists
 - [API reference](docs/reference/api.md) — every function and type
 - [MCP integration](docs/guides/mcp.md) — connect an AI agent
+- [Approve from your phone](docs/guides/phone-approvals.md) — Telegram approvals with one tap
 - [x402 integration](docs/guides/x402.md) — authorize agent payments
 
 ## Packages

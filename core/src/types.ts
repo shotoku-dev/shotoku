@@ -178,6 +178,13 @@ export interface ApprovalEntry {
 
   readonly timestamp: string;
 
+  /**
+   * The channel the human answered through, e.g. "telegram:123456" for a tap
+   * on a phone. Absent for the CLI and TUI. A tap on another device is a
+   * different claim from a command typed where the agent also runs.
+   */
+  readonly via?: string;
+
   readonly integrity?: LedgerIntegrity;
 }
 

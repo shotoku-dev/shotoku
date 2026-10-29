@@ -77,7 +77,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
           type: "text",
           text:
             "Refused: an agent cannot approve or deny its own decisions.\n" +
-            "A human must do it out-of-band (`shotoku approve <id>`, the TUI, or Slack).",
+            "A human must do it out-of-band (`shotoku approve <id>`, the TUI, or a phone via `shotoku telegram`).",
         },
       ],
       isError: true,
