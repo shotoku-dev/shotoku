@@ -24,13 +24,16 @@ const NAV = [
   {
     section: "Integrations",
     items: [
-      { label: "x402", href: "/docs/x402" },
+      { label: "x402",   href: "/docs/x402"   },
+      { label: "PayPal", href: "/docs/paypal" },
     ],
   },
   {
     section: "Tools",
     items: [
       { label: "TUI",       href: "/docs/tui"       },
+      { label: "Dashboard", href: "/docs/dashboard" },
+      { label: "Phone",     href: "/docs/phone"     },
       { label: "Snapshots", href: "/docs/snapshots" },
     ],
   },

@@ -16,7 +16,7 @@ const LINK = (href: string, label: string) => (
 const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "How do I stop my AI agent from overspending?",
-    a: "Give it a budget. Policy rules take maxAmount (per transaction) and maxDailyAmount (a rolling 24-hour budget) per vendor. A request over either limit is denied before the payment happens, with a reason naming the exact cap it hit.",
+    a: "Give it a budget. Policy rules take maxAmount (per transaction) and maxDailyAmount (a rolling 24-hour limit) per vendor, and a budget caps everything one agent spends per day. Over a limit, the request is denied before the payment happens, or held for you with overLimit: pending_approval, so small refunds go through and a big one waits for a human.",
   },
   {
     q: "How is this different from just writing an if statement before my API call?",
@@ -24,7 +24,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "What stops an agent from bypassing Shotoku entirely?",
-    a: "Signed receipts. Set SHOTOKU_RECEIPT_SECRET and every approved decision carries a short-lived signed token. The infrastructure that executes the action — your payment proxy, MCP gateway, or CI — verifies the receipt first, so nothing runs without an approval. Shotoku still never touches your credentials or funds.",
+    a: "Put Shotoku in the path. In MCP wrapping mode, Shotoku sits in front of the agent's other MCP servers, PayPal's included, so every tool call is decided before it reaches them and the agent has no other route through the protocol. Elsewhere, signed receipts: every approved decision carries a short-lived token that your payment proxy or CI verifies before executing. Shotoku still never touches your funds.",
   },
   {
     q: "Does Shotoku touch my money or keys?",
@@ -44,7 +44,11 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Can I use Shotoku with any AI framework or agent?",
-    a: "Yes. The core is a plain TypeScript function. If your agent can call a function, it can use Shotoku. There's also an MCP server so tools like Claude can call it directly without any code changes.",
+    a: "Yes. The core is a plain TypeScript function: if your agent can call a function, it can use Shotoku. Any MCP-compatible agent can use the MCP server without code changes, and wrapping puts the MCP servers it already uses, such as PayPal's, behind your policy.",
+  },
+  {
+    q: "Can I approve from my phone?",
+    a: "Yes. shotoku telegram sends each pending decision to your Telegram with Approve and Deny buttons. Only your taps count, and nothing listens on your machine. There is also a local dashboard (shotoku ui) and a terminal UI.",
   },
   {
     q: "What happens after Shotoku denies a request?",
@@ -52,7 +56,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Is this production-ready?",
-    a: "Shotoku is v0.1.0 — early but functional. The core authorization path is stable. Use it for real projects, but expect the API to evolve. File issues and we'll ship fixes fast.",
+    a: "Shotoku is in beta — early but functional. The core authorization path is stable and tested, and it runs end to end against PayPal's sandbox. Use it for real projects, but expect the API to evolve. File issues and we'll ship fixes fast.",
   },
   {
     q: "Who's behind Shotoku?",

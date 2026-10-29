@@ -34,7 +34,7 @@ Shotoku implements this as a local-first gate: your policy lives on your machine
 
 ### AI agent approval workflow
 
-When an agent requests an action that no rule automatically approves, Shotoku records it as `pending_approval` and stops. A human reviews it with `shotoku status`, approves with `shotoku approve <id>`, or denies with `shotoku deny <id>`. The decision is appended to the ledger and the agent can re-run.
+When an agent requests an action that no rule automatically approves, Shotoku records it as `pending_approval` and stops. A human reviews it with `shotoku status`, approves with `shotoku approve <id>`, or denies with `shotoku deny <id>` -- or answers in the TUI (`shotoku tui`), the local dashboard (`shotoku ui`), or with a tap on their phone (`shotoku telegram`). The answer is appended to the ledger with the channel it came through, and the agent can re-run.
 
 ### Hash-chained audit log for AI agents
 
@@ -138,6 +138,21 @@ rules:
 
 `maxDailyAmount` is checked against a rolling 24-hour window per actor+resource pair, computed from the local ledger.
 
+Over a rule's limit, a request is denied, or held for a human when the rule sets `overLimit: pending_approval`. A request with no amount against a rule with a limit is held for a human, never counted as zero. `budgets` cap what one agent spends per day across every resource; over a budget is always a denial, even after a human approves.
+
+```yaml
+rules:
+  - resource: paypal__create_refund
+    verdict: approved
+    maxAmount: 100
+    maxDailyAmount: 1000
+    overLimit: pending_approval
+
+budgets:
+  - actor: support-agent
+    maxDailyAmount: 1000
+```
+
 A rule may also carry an optional `actor` pattern (`*` wildcard, e.g. `actor: team-*`) to scope it
 to specific agents. Omit it and the rule matches every agent.
 
@@ -157,6 +172,8 @@ shotoku decision <id>                 # show full decision detail
 shotoku snapshot create               # sign a snapshot of policy + ledger state
 shotoku snapshot verify --snapshot    # verify a snapshot against the ledger
 shotoku tui                           # interactive approval queue
+shotoku ui                            # local dashboard on 127.0.0.1: approvals, budgets, history
+shotoku telegram                      # approve or deny pending decisions from your phone
 ```
 
 Exit codes: `0` if approved, `1` if denied or pending.
@@ -207,6 +224,12 @@ defaultVerdict: pending_approval
 Wrapped calls are recorded as `action: mcp_tool` on the `mcp` rail. Argument names are
 recorded; argument values never are.
 
+A wrapped call has no amount of its own. An upstream entry with `"pricing": "paypal"` prices
+PayPal's MCP server (`@paypal/mcp`): `create_refund` at its amount, or at the full capture
+when it has none; `accept_dispute_claim` at the disputed amount; every other tool at $0.
+Given `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` in that entry's env, Shotoku mints the
+PayPal access token at startup and passes the upstream only the token.
+
 ## Approvals
 
 A human approving a pending decision creates a one-shot grant. The next call matching that
@@ -215,7 +238,8 @@ and the grant is spent. A second identical call is pending again: approving an a
 approving it permanently, which is what policy rules are for. Grants expire after
 `grantTtlSeconds`, default 900.
 
-Approve out-of-band with `shotoku approve <id>`, the TUI, or Slack -- never from the agent.
+Approve out-of-band with `shotoku approve <id>`, the TUI, the dashboard (`shotoku ui`), or
+your phone (`shotoku telegram`) -- never from the agent.
 
 ## Where files live
 
@@ -252,6 +276,9 @@ recorded under. Override it per server with `SHOTOKU_MCP_ACTOR`.
 - [CLI reference](https://shotoku.dev/docs/cli): Every command, flag, and exit code
 - [MCP server](https://shotoku.dev/docs/mcp): Connect Shotoku to Claude, Cursor, and any MCP client
 - [x402](https://shotoku.dev/docs/x402): Authorize HTTP 402 payment intents before they execute
+- [PayPal](https://shotoku.dev/docs/paypal): Put PayPal's MCP server behind Shotoku, with priced refunds and disputes
+- [Dashboard](https://shotoku.dev/docs/dashboard): Local dashboard for approvals, budgets and history
+- [Phone](https://shotoku.dev/docs/phone): Approve or deny from Telegram
 - [TUI](https://shotoku.dev/docs/tui): Interactive terminal UI for reviewing pending approvals
 - [Snapshots](https://shotoku.dev/docs/snapshots): Sign and verify policy and ledger state
 

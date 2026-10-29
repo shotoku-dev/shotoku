@@ -212,6 +212,57 @@ defaultVerdict: pending_approval`}
 
       <hr style={S.divider} />
 
+      {/* Pricing */}
+      <h2 style={S.h2} id="pricing">Putting a price on wrapped tools</h2>
+      <p style={S.p}>
+        A wrapped call has no amount, so <InlineCode>maxAmount</InlineCode> and{" "}
+        <InlineCode>maxDailyAmount</InlineCode> cannot be checked against it, and a rule with either holds
+        every call for approval. To spend-limit a server&rsquo;s tools, name a pricer on its upstream entry.
+        The amount is the money the call sends out of the account.
+      </p>
+      <CodeBlock
+        lang="json"
+        code={`{
+  "mcpServers": {
+    "paypal": {
+      "command": "npx",
+      "args": ["-y", "@paypal/mcp", "--tools=all"],
+      "env": {
+        "PAYPAL_CLIENT_ID": "...",
+        "PAYPAL_CLIENT_SECRET": "...",
+        "PAYPAL_ENVIRONMENT": "SANDBOX"
+      },
+      "pricing": "paypal"
+    }
+  }
+}`}
+      />
+      <Table
+        headers={["PayPal tool", "Priced at"]}
+        rows={[
+          ["create_refund with amount", "That amount."],
+          ["create_refund without amount", "The full capture, looked up from PayPal, because that is what PayPal refunds."],
+          ["accept_dispute_claim", "The disputed amount, looked up from PayPal."],
+          ["Every other @paypal/mcp tool", "$0: reads, orders, invoices, catalog and subscriptions send no money out."],
+          ["Anything else", "Not priced, so a limited rule holds it for a human."],
+        ]}
+      />
+      <p style={S.p}>
+        Lookups are read-only. A call that cannot be priced (a failed lookup, a currency other than USD, a
+        malformed amount) gets no amount, never a zero one. Where each amount came from is recorded with the
+        decision.
+      </p>
+      <p style={S.p}>
+        With <InlineCode>&quot;pricing&quot;: &quot;paypal&quot;</InlineCode>, Shotoku also handles the
+        server&rsquo;s credentials. PayPal access tokens expire after about nine hours, so give the entry your
+        app&rsquo;s client ID and secret: Shotoku mints a token each time it starts and passes the PayPal server
+        only that token, never the secret. The{" "}
+        <a href="https://github.com/shotoku-dev/shotoku/tree/main/examples/paypal" target="_blank" rel="noopener noreferrer" style={{ color: "#DB0028", textDecoration: "none" }}>PayPal demo</a>{" "}
+        runs the whole flow against the sandbox.
+      </p>
+
+      <hr style={S.divider} />
+
       {/* Advisory setup */}
       <h2 style={S.h2}>Setup: advisory</h2>
       <p style={S.p}>
@@ -319,7 +370,11 @@ shotoku approve dec_abc123`}
       />
       <p style={S.p}>
         Or in the TUI (<InlineCode>shotoku tui</InlineCode>), which is the same queue with
-        keyboard navigation.
+        keyboard navigation; in the{" "}
+        <a href="/docs/dashboard" style={{ color: "#DB0028", textDecoration: "none" }}>dashboard</a>{" "}
+        (<InlineCode>shotoku ui</InlineCode>); or with a tap on your{" "}
+        <a href="/docs/phone" style={{ color: "#DB0028", textDecoration: "none" }}>phone</a>{" "}
+        (<InlineCode>shotoku telegram</InlineCode>), which puts the answer on a device the agent does not run on.
       </p>
 
       <h3 style={S.h3}>What happens after you approve</h3>
@@ -359,7 +414,7 @@ agent   → obsidian__delete_vault_file   ◷ pending again`}
   decision: dec_cd9b9664cf9f
   reason:   obsidian__delete_vault_file matched rule
   A human must approve this out-of-band (\`shotoku approve dec_cd9b9664cf9f\`,
-  the Shotoku TUI, or Slack). You cannot approve it yourself — ask the user.
+  the Shotoku TUI, or their phone). You cannot approve it yourself — ask the user.
   Once they approve, retry this exact call: the approval is redeemable once,
   for these arguments only. Changing anything requires a new approval.`}
       />

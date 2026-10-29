@@ -96,6 +96,7 @@ rules:
           ["defaultVerdict", "AuthorizationStatus", <>What happens when no rule matches. Defaults to <InlineCode>pending_approval</InlineCode> if omitted.</>],
           ["rules",          "PolicyRule[]",     "The ordered list of rules. Evaluated top-to-bottom — the first match wins."],
           ["grantTtlSeconds", "number",           <>Optional. How long a human approval stays redeemable, in seconds. Defaults to 900 (fifteen minutes).</>],
+          ["budgets",        "PolicyBudget[]",   <>Optional. Daily ceilings per agent, across every resource. See <a href="#budgets" style={{ color: "#DB0028", textDecoration: "none" }}>Agent budgets</a>.</>],
         ]}
       />
 
@@ -112,8 +113,10 @@ rules:
           ["actions",        "AgentAction[]",      <>Optional. Limits this rule to specific action types. Omit to match all actions.</>],
           ["rails",          "ExecutionRail[]",    <>Optional. Limits this rule to specific execution rails (<InlineCode>x402</InlineCode>, <InlineCode>mcp</InlineCode>, etc.). Omit to match all rails.</>],
           ["verdict",        "AuthorizationStatus", <>The outcome when this rule matches: <InlineCode>approved</InlineCode>, <InlineCode>denied</InlineCode>, or <InlineCode>pending_approval</InlineCode>.</>],
-          ["maxAmount",      "number",             "Optional. Maximum allowed spend per single transaction in USD. Exceeding this denies the request even if the rule would otherwise approve it."],
-          ["maxDailyAmount", "number",             "Optional. Maximum total spend for this resource in a rolling 24-hour window in USD. Exceeding this denies the request."],
+          ["recipients",     "string[]",           <>Optional. Limits this rule to payments to these exact recipients (an x402 <InlineCode>payTo</InlineCode>, for example). A request with no recipient does not match.</>],
+          ["maxAmount",      "number",             "Optional. Maximum allowed spend per single transaction in USD. Exceeding it denies the request even if the rule would otherwise approve it, unless overLimit says to ask a human."],
+          ["maxDailyAmount", "number",             "Optional. Maximum total spend for this resource in a rolling 24-hour window in USD. Exceeding it denies the request, unless overLimit says to ask a human."],
+          ["overLimit",      "string",             <>Optional. What a request over <InlineCode>maxAmount</InlineCode> or <InlineCode>maxDailyAmount</InlineCode> gets: <InlineCode>denied</InlineCode> (the default) or <InlineCode>pending_approval</InlineCode>. Only on a rule with <InlineCode>verdict: approved</InlineCode> and a limit.</>],
         ]}
       />
 
@@ -163,6 +166,72 @@ rules:
   maxAmount: 5.00        # no single call costs more than $5
   maxDailyAmount: 50.00  # total spend per actor per 24h`}
       />
+
+      <hr style={S.divider} />
+
+      {/* Over the limit */}
+      <h2 style={S.h2}>Over the limit: deny or ask</h2>
+      <p style={S.p}>
+        By default, a request over a rule&apos;s limit is denied. With{" "}
+        <InlineCode>overLimit: pending_approval</InlineCode>, it waits for a human instead, with the
+        exceeded limit as the reason. Small refunds go through on their own; a big one gets a person.
+      </p>
+      <CodeBlock
+        lang="yaml"
+        code={`- resource: paypal__create_refund
+  verdict: approved
+  maxAmount: 100               # refunds up to $100 go through
+  maxDailyAmount: 1000
+  overLimit: pending_approval  # a bigger one waits for a human`}
+      />
+      <p style={S.p}>
+        Once a human approves, the agent&apos;s identical retry goes through, once, and counts toward the
+        daily limit like any approved spend. Rules do not fall through: a second, lower rule for the same
+        resource never sees a request the first one matched.
+      </p>
+
+      <hr style={S.divider} />
+
+      {/* Unknown amount */}
+      <h2 style={S.h2}>When the amount is unknown</h2>
+      <p style={S.p}>
+        A missing amount is not a zero amount. When the matched rule has{" "}
+        <InlineCode>maxAmount</InlineCode> or <InlineCode>maxDailyAmount</InlineCode> and the request has no
+        amount, the limit cannot be checked, so the request waits for a human: <InlineCode>Amount unknown;
+        the $100 per-transaction limit cannot be checked</InlineCode>. A rule without limits still approves
+        requests that carry no amount.
+      </p>
+      <p style={S.p}>
+        Wrapped MCP tools carry no amount of their own. Give their server a pricer so limits apply to them;
+        see the{" "}
+        <a href="/docs/mcp#pricing" style={{ color: "#DB0028", textDecoration: "none" }}>MCP guide</a>.
+      </p>
+
+      <hr style={S.divider} />
+
+      {/* Agent budgets */}
+      <h2 style={S.h2} id="budgets">Agent budgets</h2>
+      <p style={S.p}>
+        Rule limits are per resource: a <InlineCode>resource: &quot;*&quot;</InlineCode> rule with a $200 daily
+        limit allows $200 for each vendor. A budget caps what one agent spends in total, whatever it pays.
+      </p>
+      <CodeBlock
+        lang="yaml"
+        code={`rules:
+  - resource: "*"
+    verdict: approved
+
+budgets:
+  - actor: support-agent
+    maxDailyAmount: 1000      # everything this agent spends, per 24h
+  - actor: "team-*"
+    maxDailyAmount: 300
+    scope: shared             # all team agents together`}
+      />
+      <p style={S.p}>
+        Over a budget is always a denial, even after a human approves: an approval never spends money that
+        is already gone.
+      </p>
 
       <hr style={S.divider} />
 

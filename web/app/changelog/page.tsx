@@ -23,6 +23,26 @@ export default function ChangelogPage() {
         <p style={S.meta}>What&apos;s new in Shotoku.</p>
 
         <div style={S.entry}>
+          <div style={S.version}>Spend controls that reach PayPal and your phone</div>
+          <div style={S.date}>August – October 2026</div>
+          <p style={S.p}>Limits that apply to every tool call, and answers from anywhere.</p>
+          <ul style={S.ul}>
+            <li style={S.li}>PayPal — wrap PayPal&apos;s own MCP server; refunds and disputes are priced, and access tokens are minted from your app credentials</li>
+            <li style={S.li}>Pricing for wrapped MCP tools — limits and budgets apply to what a call actually sends out</li>
+            <li style={S.li}>overLimit: pending_approval — over a limit, ask a human instead of refusing</li>
+            <li style={S.li}>Agent budgets — a daily ceiling per agent across every resource</li>
+            <li style={S.li}>A request with no amount against a limited rule is held for a human, never counted as zero</li>
+            <li style={S.li}>Phone approvals with shotoku telegram, and a local dashboard with shotoku ui</li>
+            <li style={S.li}>Approvals record the channel they came through (terminal, dashboard, telegram)</li>
+            <li style={S.li}>A human approval now lets the agent&apos;s identical retry through, once</li>
+            <li style={S.li}>x402 judges the host the agent requested, not what the 402 response claims</li>
+            <li style={S.li}>Runnable PayPal sandbox demo in examples/paypal</li>
+          </ul>
+        </div>
+
+        <hr style={S.divider} />
+
+        <div style={S.entry}>
           <div style={S.version}>v0.2.0-beta</div>
           <div style={S.date}>July 2026</div>
           <p style={S.p}>Enforcement layer: gateway and MCP wrapping mode.</p>

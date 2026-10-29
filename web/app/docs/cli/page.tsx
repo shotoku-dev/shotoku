@@ -194,6 +194,31 @@ Ledger
 
       <hr style={S.divider} />
 
+      {/* ui */}
+      <h2 style={S.h2}>ui</h2>
+      <CodeBlock lang="bash" code={`shotoku ui [--port 4402] [--policy <path>] [--ledger <path>]`} />
+      <p style={S.p}>
+        Serves a local dashboard on 127.0.0.1: pending approvals with Approve and Deny, budgets against
+        limits, the full history, and the ledger&apos;s integrity. It prints a link with a per-run session
+        token. See the{" "}
+        <a href="/docs/dashboard" style={{ color: "#DB0028", textDecoration: "none" }}>dashboard guide →</a>
+      </p>
+
+      <hr style={S.divider} />
+
+      {/* telegram */}
+      <h2 style={S.h2}>telegram</h2>
+      <CodeBlock lang="bash" code={`shotoku telegram [--ledger <path>]`} />
+      <p style={S.p}>
+        Sends each new pending decision to your Telegram with Approve and Deny buttons, and records your
+        answer with <InlineCode>via: telegram:&lt;id&gt;</InlineCode>. Reads{" "}
+        <InlineCode>SHOTOKU_TELEGRAM_BOT_TOKEN</InlineCode> and <InlineCode>SHOTOKU_TELEGRAM_CHAT_ID</InlineCode>;
+        without the chat ID it runs in setup mode and prints it. See{" "}
+        <a href="/docs/phone" style={{ color: "#DB0028", textDecoration: "none" }}>Approve from your phone →</a>
+      </p>
+
+      <hr style={S.divider} />
+
       {/* snapshot */}
       <h2 style={S.h2}>snapshot</h2>
       <CodeBlock lang="bash" code={`shotoku snapshot create [--out <path>] [--key-id <label>]
