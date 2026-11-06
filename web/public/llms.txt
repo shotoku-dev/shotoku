@@ -284,6 +284,13 @@ recorded under. Override it per server with `SHOTOKU_MCP_ACTOR`.
 
 ## Blog
 
+- [How to set a hard spending limit on an AI agent](https://shotoku.dev/blog/how-to-set-a-spending-limit-on-an-ai-agent): Per-call and daily caps enforced in code, with tested results
+- [How to require human approval before an MCP tool call](https://shotoku.dev/blog/require-human-approval-mcp-tool-calls): Put a proxy in front of MCP servers so the agent can't skip the check
+- [How to stop an AI agent from deleting your production database](https://shotoku.dev/blog/stop-ai-agent-deleting-production-database): Lessons from real incidents, and what a tool policy can and can't prevent
+- [How to let an AI support agent issue refunds safely](https://shotoku.dev/blog/ai-support-agent-refund-limits): Dollar limits and human approval on PayPal's MCP server
+- [How to stop an AI agent from emailing the wrong people](https://shotoku.dev/blog/stop-ai-agent-emailing-wrong-people): Check every recipient domain before a message is sent
+- [How to prove what your AI agent did](https://shotoku.dev/blog/audit-log-for-ai-agents): Tamper tests on a hash-chained audit log, and why signed snapshots matter
+- [What are spend controls for AI agents?](https://shotoku.dev/blog/what-are-spend-controls-for-ai-agents): Definition, the five core controls and how they differ from alerts and gateways
 - [x402 spend controls compared](https://shotoku.dev/blog/x402-spend-controls-compared): Shotoku, AgentPay MCP, x402-cfo and PolicyLayer side by side, including where Shotoku falls short
 
 ## Source

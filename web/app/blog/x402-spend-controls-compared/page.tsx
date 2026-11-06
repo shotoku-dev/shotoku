@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { CodeBlock, InlineCode } from "../../components/docs/CodeBlock";
-import { PostLayout, Table, S, postMetadata } from "../../components/blog/PostLayout";
+import { PostLayout, Table, Ext, S, postMetadata } from "../../components/blog/PostLayout";
 import { getPost } from "../posts";
 
 const post = getPost("x402-spend-controls-compared");
 
 export const metadata = postMetadata(post);
-
-function Ext({ href, children }: { href: string; children: React.ReactNode }) {
-  return <a href={href} target="_blank" rel="noopener noreferrer" style={S.a}>{children}</a>;
-}
 
 export default function X402SpendControlsCompared() {
   return (

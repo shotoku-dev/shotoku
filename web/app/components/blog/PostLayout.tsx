@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "../Navbar";
 import Footer from "../Footer";
-import { formatDate, type BlogPost } from "../../blog/posts";
+import { POSTS, formatDate, type BlogPost } from "../../blog/posts";
 
 const BASE = "https://shotoku.dev";
 
@@ -25,6 +25,10 @@ export const S = {
   td:      { padding: "10px", color: "rgba(0,0,0,0.68)", borderBottom: "1px solid rgba(0,0,0,0.05)", verticalAlign: "top" as const, lineHeight: 1.5, fontFamily: "var(--font-geist), sans-serif", fontSize: 13 } as React.CSSProperties,
   tdKey:   { padding: "10px", borderBottom: "1px solid rgba(0,0,0,0.05)", verticalAlign: "top" as const, lineHeight: 1.5, fontFamily: "Satoshi, var(--font-geist), sans-serif", fontSize: 13, color: "#0A0A0A", fontWeight: 500 } as React.CSSProperties,
 };
+
+export function Ext({ href, children }: { href: string; children: React.ReactNode }) {
+  return <a href={href} target="_blank" rel="noopener noreferrer" style={S.a}>{children}</a>;
+}
 
 export function Table({ headers, rows, minWidth }: { headers: string[]; rows: (string | React.ReactNode)[][]; minWidth?: number }) {
   return (
@@ -94,6 +98,7 @@ function jsonLd(post: BlogPost): string {
 }
 
 export function PostLayout({ post, children }: { post: BlogPost; children: React.ReactNode }) {
+  const related = POSTS.filter((p) => p.slug !== post.slug).slice(0, 3);
   const updated = post.updatedAt !== post.publishedAt ? ` · Updated ${formatDate(post.updatedAt)}` : "";
 
   return (
@@ -108,6 +113,13 @@ export function PostLayout({ post, children }: { post: BlogPost; children: React
           {updated} · By the Shotoku team
         </p>
         {children}
+
+        <h2 style={S.h2}>Related</h2>
+        <ul style={S.ul}>
+          {related.map((p) => (
+            <li key={p.slug} style={S.li}><Link href={`/blog/${p.slug}`} style={S.a}>{p.title}</Link></li>
+          ))}
+        </ul>
       </article>
       <Footer />
     </>
