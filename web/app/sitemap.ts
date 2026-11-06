@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { POSTS } from "./blog/posts";
 
 const BASE = "https://shotoku.dev";
 
@@ -17,16 +18,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/docs/dashboard", priority: 0.7 },
     { path: "/docs/phone", priority: 0.7 },
     { path: "/docs/snapshots", priority: 0.7 },
+    { path: "/blog", priority: 0.8 },
     { path: "/changelog", priority: 0.6 },
     { path: "/privacy", priority: 0.2 },
     { path: "/terms", priority: 0.2 },
     { path: "/license", priority: 0.2 },
   ];
 
-  return routes.map(({ path, priority }) => ({
-    url: `${BASE}${path}`,
-    lastModified: new Date(),
+  const posts = POSTS.map((post) => ({
+    url: `${BASE}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
     changeFrequency: "monthly" as const,
-    priority,
+    priority: 0.8,
   }));
+
+  return [
+    ...routes.map(({ path, priority }) => ({
+      url: `${BASE}${path}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority,
+    })),
+    ...posts,
+  ];
 }

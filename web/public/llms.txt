@@ -6,7 +6,7 @@ Before an agent spends money — an x402 payment, a paid API call, a purchase �
 
 The same engine authorizes any agent action — MCP tools, code execution, email — because the request model is rail-agnostic. Spending is where the pain is sharpest today, so that is where it starts.
 
-Last updated: 2026-07-06
+Last updated: 2026-11-06
 
 ---
 
@@ -281,6 +281,10 @@ recorded under. Override it per server with `SHOTOKU_MCP_ACTOR`.
 - [Phone](https://shotoku.dev/docs/phone): Approve or deny from Telegram
 - [TUI](https://shotoku.dev/docs/tui): Interactive terminal UI for reviewing pending approvals
 - [Snapshots](https://shotoku.dev/docs/snapshots): Sign and verify policy and ledger state
+
+## Blog
+
+- [x402 spend controls compared](https://shotoku.dev/blog/x402-spend-controls-compared): Shotoku, AgentPay MCP, x402-cfo and PolicyLayer side by side, including where Shotoku falls short
 
 ## Source
 

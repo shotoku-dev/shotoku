@@ -8,6 +8,7 @@ const NAV_COLUMNS = [
     links: [
       { text: "Docs",      href: "/docs"      },
       { text: "Changelog", href: "/changelog" },
+      { text: "Blog",      href: "/blog"      },
     ],
   },
   {
