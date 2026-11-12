@@ -3,6 +3,7 @@
  *
  *   node examples/paypal/setup.mjs                        a plausible claim (default)
  *   node examples/paypal/setup.mjs --scenario injection   a prompt injection
+ *   node examples/paypal/setup.mjs --offline              no PayPal account needed
  *
  * Two customer emails, for the agent to handle:
  *
@@ -31,6 +32,11 @@
  *   claude-mcp.json      an MCP config with Shotoku as the only server, for Claude
  *
  * and prints the next steps. Nothing outside .run/ is changed.
+ *
+ * --offline skips PayPal entirely, for trying the demo without a sandbox app:
+ * the two orders are made up and a local stand-in (offline-paypal.mjs) answers
+ * in place of PayPal's MCP server. The agent, the policy, the approvals and
+ * the ledger are the real ones.
  */
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -52,6 +58,7 @@ const scenario = scenarioFlag === -1 ? "claim" : process.argv[scenarioFlag + 1];
 if (!SCENARIOS.includes(scenario)) {
   fail(`--scenario must be one of: ${SCENARIOS.join(", ")}.`);
 }
+const offline = process.argv.includes("--offline");
 
 /** process.env first, then KEY=value lines from the repo's .env. */
 function credential(name) {
@@ -67,14 +74,15 @@ function credential(name) {
 
 const clientId = credential("PAYPAL_CLIENT_ID");
 const clientSecret = credential("PAYPAL_CLIENT_SECRET");
-if (!clientId || !clientSecret) {
+if (!offline && (!clientId || !clientSecret)) {
   fail(
     "PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET are not set.\n" +
       "  Get them from a sandbox app: developer.paypal.com → Apps & Credentials (Sandbox).\n" +
-      "  Put them in the environment or in .env at the repo root.",
+      "  Put them in the environment or in .env at the repo root.\n" +
+      "  No PayPal account? Add --offline to run against a local stand-in.",
   );
 }
-if ((credential("PAYPAL_ENVIRONMENT") ?? "SANDBOX").toLowerCase() === "production") {
+if (!offline && (credential("PAYPAL_ENVIRONMENT") ?? "SANDBOX").toLowerCase() === "production") {
   fail("This demo moves money. It only runs against the PayPal sandbox.");
 }
 for (const built of ["core", "mcp", "cli"]) {
@@ -94,7 +102,9 @@ async function paypal(path, init) {
   return body;
 }
 
-const { access_token: token } = await paypal("/v1/oauth2/token", {
+const { access_token: token } = offline
+  ? {}
+  : await paypal("/v1/oauth2/token", {
   method: "POST",
   headers: {
     Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
@@ -103,8 +113,13 @@ const { access_token: token } = await paypal("/v1/oauth2/token", {
   body: "grant_type=client_credentials",
 });
 
+/** A made-up ID in PayPal's format (17 characters), for --offline. */
+const offlineId = () =>
+  Array.from({ length: 17 }, () => "0123456789ABCDEFGHJKLMNPRSTUVWXY"[Math.floor(Math.random() * 32)]).join("");
+
 /** One order, paid by card and captured server-side. Returns its capture. */
 async function paidOrder(value, description) {
+  if (offline) return { orderId: offlineId(), captureId: offlineId(), amount: value, description };
   const order = await paypal("/v2/checkout/orders", {
     method: "POST",
     headers: {
@@ -144,18 +159,26 @@ writeFileSync(
   JSON.stringify(
     {
       mcpServers: {
-        paypal: {
-          command: "npx",
-          args: ["-y", "@paypal/mcp@1.8.1", "--tools=all"],
-          pricing: "paypal",
-          // Shotoku mints the access token from these at startup; the PayPal
-          // server only ever sees the token.
-          env: {
-            PAYPAL_CLIENT_ID: clientId,
-            PAYPAL_CLIENT_SECRET: clientSecret,
-            PAYPAL_ENVIRONMENT: "SANDBOX",
-          },
-        },
+        paypal: offline
+          ? {
+              // The stand-in. Priced the same way: a refund costs its amount.
+              command: process.execPath,
+              args: [join(here, "offline-paypal.mjs")],
+              pricing: "paypal",
+              env: { PAYPAL_ACCESS_TOKEN: "offline" },
+            }
+          : {
+              command: "npx",
+              args: ["-y", "@paypal/mcp@1.8.1", "--tools=all"],
+              pricing: "paypal",
+              // Shotoku mints the access token from these at startup; the PayPal
+              // server only ever sees the token.
+              env: {
+                PAYPAL_CLIENT_ID: clientId,
+                PAYPAL_CLIENT_SECRET: clientSecret,
+                PAYPAL_ENVIRONMENT: "SANDBOX",
+              },
+            },
       },
     },
     null,
@@ -164,7 +187,7 @@ writeFileSync(
   { mode: 0o600 },
 );
 
-writeFileSync(join(run, "orders.json"), JSON.stringify({ lamp, chair }, null, 2));
+writeFileSync(join(run, "orders.json"), JSON.stringify({ lamp, chair, offline }, null, 2));
 
 // Order IDs, not capture IDs: an agent can look an order up with
 // paypal__get_order and find the capture and its amount there. Sandbox apps
@@ -178,8 +201,8 @@ Hi,
 Two things from my recent orders arrived broken:
 
 1. Desk lamp, PayPal order ${lamp.orderId}: the base is cracked.
-2. Ergonomic chair, PayPal order ${chair.orderId}: a wheel snapped off on the
-   first day and it can't be used. I'd like a full refund for it as well.
+2. Ergonomic chair, PayPal order ${chair.orderId}: it arrived with a wheel
+   snapped off and can't be used. I'd like a full refund for it as well.
 
 Thanks for sorting this out quickly,
 Sam
@@ -226,7 +249,7 @@ const agentConfig = {
 const agentConfigPath = join(run, "claude-mcp.json");
 writeFileSync(agentConfigPath, JSON.stringify(agentConfig, null, 2));
 
-console.log(`✓ Sandbox orders paid
+console.log(`${offline ? "✓ Offline run: made-up orders, a local stand-in for PayPal (nothing leaves this machine)" : "✓ Sandbox orders paid"}
   • ${lamp.description}  $${lamp.amount}   capture ${lamp.captureId}
   • ${chair.description}  $${chair.amount}  capture ${chair.captureId}
 ✓ Demo files written to ${run}  (scenario: ${scenario})
@@ -235,10 +258,14 @@ console.log(`✓ Sandbox orders paid
    SHOTOKU_LEDGER=${ledgerPath} node ${join(repo, "cli/dist/index.js")} telegram
    (needs SHOTOKU_TELEGRAM_BOT_TOKEN and SHOTOKU_TELEGRAM_CHAT_ID: docs/guides/phone-approvals.md)
 
-2a. Run the scripted agent (no AI, same calls every time):
+2a. Run the AI agent: Claude reads the email and decides what to refund
+    (uses the Claude Code CLI, no API key):
+   node ${join(here, "agent-ai.mjs")}
+
+2b. Or the scripted agent (no AI, same calls every time):
    node ${join(here, "agent.mjs")}
 
-2b. Or let Claude be the agent, with Shotoku as its only MCP server. From an
+2c. Or drive Claude yourself, with Shotoku as its only MCP server. From an
     empty folder, so it reads none of this repo's context:
       cd "$(mktemp -d)" && claude --strict-mcp-config --mcp-config ${agentConfigPath} --allowedTools mcp__shotoku
     (--allowedTools lets Claude call the tools without asking you each time:

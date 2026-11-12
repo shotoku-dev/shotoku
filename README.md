@@ -2,16 +2,124 @@
 
 **Spend controls for AI agents.**
 
+[![CI](https://github.com/shotoku-dev/shotoku/actions/workflows/ci.yml/badge.svg)](https://github.com/shotoku-dev/shotoku/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/shotoku-cli)](https://www.npmjs.com/package/shotoku-cli)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-![Shotoku demo](assets/demo.gif)
+**[Watch the demo (3 min)](https://www.youtube.com/watch?v=OfXpXQCjEnA)** · **[Try the dashboard in your browser](https://www.shotoku.dev/demo)** · **[Run it yourself](#run-it-yourself)**
+
+[![Shotoku and PayPal: an AI support agent's refund is held for a human](https://img.youtube.com/vi/OfXpXQCjEnA/maxresdefault.jpg)](https://www.youtube.com/watch?v=OfXpXQCjEnA)
 
 Shotoku lets AI agents spend money safely — budgets, human approvals, and a tamper-evident audit trail, enforced deterministically on your machine **before** the payment happens. No cloud. No custody. Never holds funds or keys.
 
 The same engine authorizes any agent action — the request model is rail-agnostic (x402, MCP, API, code). Spending is where the pain is sharpest today, so that's where it starts.
 
-Works with [x402](docs/guides/x402.md) and [PayPal](examples/paypal/README.md). Designed for any rail.
+Works with [PayPal](examples/paypal/README.md) and [x402](docs/guides/x402.md). Designed for any rail.
+
+## An AI agent with your PayPal account
+
+Give an AI support agent PayPal's MCP server and it can refund any payment in your account, for any amount. It acts on what customers tell it, and it cannot tell a true claim from a false one.
+
+A customer writes that two orders arrived broken: an $89 lamp and a $480 chair. The shop's policy is to refund damaged items, so a well-behaved agent refunds both. With Shotoku in front of PayPal's server:
+
+```
+claude → paypal__get_order       lamp, chair          ✓ APPROVED   reads are free
+claude → paypal__create_refund   $89, lamp            ✓ APPROVED   refunded by PayPal
+claude → paypal__create_refund   $480, chair          ◷ HELD       over the $100 limit, sent to your phone
+you    → tap Approve or Deny
+claude → retries the exact same call                  ✓ refunded, or ✗ blocked
+```
+
+Shotoku does not try to judge the claim. It decides how far the agent can go without you, and it does that with a rule, not with another model:
+
+```yaml
+- resource: paypal__create_refund
+  verdict: approved
+  maxAmount: 100
+  overLimit: pending_approval
+```
+
+```mermaid
+flowchart LR
+  A["AI agent<br/>Claude, or any MCP client"] -->|every tool call| S
+  subgraph S["Shotoku, on your machine"]
+    direction TB
+    P["1. Price the call<br/>what does it send out of the account?"] --> R["2. Policy and budgets<br/>deterministic, fails closed"] --> L[("3. Ledger<br/>append-only, hash-chained")]
+  end
+  S -->|approved| M["PayPal MCP server<br/>@paypal/mcp"] --> API["PayPal API"]
+  S -.->|over the limit| H["You<br/>phone, dashboard, terminal"]
+  H -.->|approval, good for one identical retry| S
+```
+
+What makes this hold up against a real agent:
+
+- **The agent cannot skip it.** Shotoku is the only MCP server the agent sees. PayPal's server runs behind it, so there is no un-gated path to `create_refund`.
+- **It prices what PayPal will actually do.** `create_refund` with no amount refunds the whole capture, so the cheapest-looking call is the most expensive one. Shotoku looks the capture up and prices the call at the full $480 before deciding.
+- **The agent cannot approve itself.** Approval tools are not exposed over MCP and are refused if called. An approval lets through one identical retry: same agent, same tool, same arguments, same amount, within 15 minutes.
+- **It never guesses.** No policy, an unreadable ledger, or an amount it cannot determine all end the same way: the agent is not approved.
+- **Your PayPal secret stays with you.** Shotoku mints a short-lived access token from your app credentials and hands PayPal's server only the token.
+
+![The Shotoku dashboard: two PayPal calls waiting for a human, budgets, and the decision history](assets/dashboard.png)
+
+The dashboard is built with AG Grid. [Open it in your browser](https://www.shotoku.dev/demo), with simulated data, and approve the $480 refund yourself.
+
+## Run it yourself
+
+You need Node 20+ and pnpm.
+
+```bash
+git clone https://github.com/shotoku-dev/shotoku && cd shotoku
+pnpm install
+```
+
+**No PayPal account, one command.** Claude is the agent, a local stand-in answers for PayPal, and everything else is the real thing: the MCP wrapping, the policy, the approval, the ledger. When the $480 refund is held, type `y` or `n`.
+
+```bash
+pnpm demo:paypal
+```
+
+This uses the [Claude Code CLI](https://claude.com/claude-code) on the login you already have, so there is no API key to set up. Without it, `node examples/paypal/agent.mjs` runs a scripted agent that makes the same calls.
+
+**Against the PayPal sandbox.** Put a sandbox app's `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` in `.env`, then:
+
+```bash
+pnpm build
+node examples/paypal/setup.mjs       # creates and pays two real sandbox orders
+node examples/paypal/agent-ai.mjs    # Claude handles the customer's email
+```
+
+Now the agent talks to PayPal's own MCP server, and the refunds are real sandbox refunds. `shotoku ui` shows the run in the dashboard and `shotoku telegram` sends the held refund to your phone; setup prints the exact commands. The [PayPal demo guide](examples/paypal/README.md) has every step, plus a prompt-injection scenario.
+
+**No install at all.** `npx shotoku-cli demo` runs four simulated decisions in a few seconds.
+
+## Built for the PayPal AI Hackathon
+
+Shotoku started in June 2026 as a policy engine for x402 payments. Everything that connects it to PayPal was built during the hackathon, after 1 October 2026:
+
+| Built during the hackathon | Where |
+|---|---|
+| Pricing for PayPal's MCP tools: refunds by amount or by capture lookup, dispute claims by dispute lookup, every other tool classified | [`mcp/src/paypal-pricing.ts`](mcp/src/paypal-pricing.ts) |
+| Access tokens minted from app credentials, so the secret never reaches the upstream server | [`mcp/src/paypal-credentials.ts`](mcp/src/paypal-credentials.ts) |
+| `overLimit: pending_approval`, so a rule can ask a human instead of refusing | [`core/src/policy.ts`](core/src/policy.ts) |
+| Per-agent daily budgets across every vendor and tool | [`core/src/policy.ts`](core/src/policy.ts) |
+| A call with no known amount is held for a human, never counted as zero | [`core/src/policy.ts`](core/src/policy.ts) |
+| Approve or deny from your phone, through Telegram | [`cli/src/telegram/`](cli/src/telegram) |
+| The local dashboard, built with AG Grid | [`cli/src/ui/`](cli/src/ui), [`cli/assets/ui/`](cli/assets/ui) |
+| The support-agent demo: sandbox orders, a Claude agent, a scripted agent, an offline mode | [`examples/paypal/`](examples/paypal) |
+| The [hosted dashboard demo](https://www.shotoku.dev/demo) and the [PayPal docs](https://www.shotoku.dev/docs/paypal) | [`web/`](web) |
+
+**PayPal technology used**
+
+- [`@paypal/mcp`](https://www.npmjs.com/package/@paypal/mcp), PayPal's MCP server from the Agent Toolkit. Shotoku wraps it unmodified and gates every one of its tools.
+- Orders v2, to create and capture the demo's sandbox orders.
+- Payments v2 and Disputes v1, read-only, to price a refund or a dispute claim before it is allowed.
+- OAuth 2.0 client credentials, to mint the access token.
+- The PayPal sandbox. The demo refuses to run against the live API.
+
+**AI used**
+
+- Claude is the support agent. It reads the customer's email, looks the orders up and decides what to refund, through the Model Context Protocol. Nothing in the demo tells it which tools to call.
+- Shotoku itself contains no model, on purpose. The agent is the AI; the thing that limits it is 374 tests' worth of deterministic code. A guardrail that can be talked into something is not a guardrail.
 
 ## What you can do with it
 
@@ -39,20 +147,7 @@ shotoku demo
 
 Four simulated decisions: two purchases approved, a third denied when the daily budget runs out, and an unknown vendor held for human approval.
 
-## See it with a real agent and PayPal
-
-An AI support agent can issue PayPal refunds through PayPal's own MCP server. A customer writes that two orders arrived broken, an $89 lamp and a $480 chair. Shotoku sits in front of PayPal's server:
-
-```
-agent → paypal__create_refund  $89    ✓ APPROVED   refunded by PayPal
-agent → paypal__create_refund  $480   ◷ PENDING    over the $100 limit, sent to your phone
-you   → tap Approve or Deny
-agent → retries the exact same call   ✓ refunded, or ✗ blocked
-```
-
-The agent acts on what customers tell it and cannot tell a true claim from a false one. Shotoku does not try to: it decides how far the agent can go without you.
-
-It runs against the PayPal sandbox in a few minutes, with a scripted agent or a real one. See [examples/paypal](examples/paypal/README.md).
+![Shotoku demo](assets/demo.gif)
 
 ## Quickstart
 

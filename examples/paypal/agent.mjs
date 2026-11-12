@@ -33,7 +33,7 @@ const { Client } = await sdk("client/index.js");
 const { StdioClientTransport } = await sdk("client/stdio.js");
 const { getApprovalForDecision } = await import(pathToFileURL(join(repo, "core/dist/index.js")).href);
 
-const { lamp, chair } = JSON.parse(readFileSync(join(run, "orders.json"), "utf8"));
+const { lamp, chair, offline } = JSON.parse(readFileSync(join(run, "orders.json"), "utf8"));
 const ledgerPath = join(run, "decisions.jsonl");
 const WAIT_MINUTES = 10;
 
@@ -83,8 +83,16 @@ await refund(`refund the lamp, $${lamp.amount} (capture ${lamp.captureId})`, {
   amount: { currency_code: "USD", value: lamp.amount },
 });
 
-const chairCall = { capture_id: chair.captureId };
-const held = await refund(`refund the chair in full (capture ${chair.captureId}), no amount given`, chairCall);
+// Against PayPal, a refund with no amount refunds the whole capture, and
+// Shotoku prices it by looking the capture up. The offline stand-in has no
+// PayPal to look anything up in, so there the agent states the amount.
+const chairCall = offline
+  ? { capture_id: chair.captureId, amount: { currency_code: "USD", value: chair.amount } }
+  : { capture_id: chair.captureId };
+const held = await refund(
+  `refund the chair in full (capture ${chair.captureId})${offline ? "" : ", no amount given"}`,
+  chairCall,
+);
 
 const decisionId = held.text.match(/decision: (dec_[a-z0-9]+)/)?.[1];
 if (!held.blocked || !held.text.includes("pending_approval") || !decisionId) {

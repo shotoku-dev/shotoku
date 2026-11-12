@@ -15,6 +15,8 @@ A second scenario, `--scenario injection`, hides a fake "system note" in the ema
 
 Everything runs in the PayPal **sandbox**: no real money moves, and the setup script refuses to run against the live API.
 
+**No PayPal account?** `pnpm demo:paypal` at the repo root runs the same story in one command: Claude is the agent, a local stand-in ([`offline-paypal.mjs`](offline-paypal.mjs)) answers for PayPal, and the MCP wrapping, the policy, the approval and the ledger are the real ones. `node examples/paypal/setup.mjs --offline` prepares that run without starting the agent.
+
 ## What you need
 
 - Node 20+ and pnpm: `pnpm install && pnpm build` at the repo root.
@@ -41,13 +43,21 @@ This creates two orders in your sandbox, pays them with PayPal's test card, and 
 SHOTOKU_LEDGER="$PWD/examples/paypal/.run/decisions.jsonl" node cli/dist/index.js telegram
 ```
 
-**2. The agent.** Either the scripted agent, which makes the same calls every time and needs no AI:
+**2. The agent.** Claude, as the support agent:
+
+```bash
+node examples/paypal/agent-ai.mjs
+```
+
+It gets the shop's refund policy, the customer's email and one MCP server, Shotoku. Nothing tells it which tools to call. The script prints each call with Shotoku's verdict, and when a call is held it waits for your answer, hands it back to the same Claude session, and lets the agent finish: retry if you approved, or write to the customer if you denied. It uses the Claude Code CLI on your existing login, so there is no API key.
+
+Or the scripted agent, which makes the same calls every time and needs no AI:
 
 ```bash
 node examples/paypal/agent.mjs
 ```
 
-or Claude, with Shotoku as its only MCP server. Setup writes the config to `examples/paypal/.run/claude-mcp.json`:
+Or drive Claude yourself, with Shotoku as its only MCP server. Setup writes the config to `examples/paypal/.run/claude-mcp.json`:
 
 ```bash
 cd "$(mktemp -d)" && claude --strict-mcp-config --mcp-config /path/to/shotoku/examples/paypal/.run/claude-mcp.json --allowedTools mcp__shotoku
@@ -62,7 +72,7 @@ SHOTOKU_LEDGER="$PWD/examples/paypal/.run/decisions.jsonl" node cli/dist/index.j
 SHOTOKU_LEDGER="$PWD/examples/paypal/.run/decisions.jsonl" node cli/dist/index.js deny dec_...
 ```
 
-The scripted agent waits up to ten minutes for your answer, then retries if you approved.
+Both agents wait up to ten minutes for your answer, then retry if you approved. With `agent-ai.mjs` you can also type `y` or `n` in its own terminal.
 
 ## What is going on
 
