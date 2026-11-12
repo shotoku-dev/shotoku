@@ -20,7 +20,9 @@ const { Server } = await sdk("server/index.js");
 const { StdioServerTransport } = await sdk("server/stdio.js");
 const { ListToolsRequestSchema, CallToolRequestSchema } = await sdk("types.js");
 
-const orders = Object.values(JSON.parse(readFileSync(join(here, ".run", "orders.json"), "utf8"))).filter(
+// eval.mjs runs several of these at once, each with its own orders file.
+const ordersPath = process.env.SHOTOKU_DEMO_ORDERS ?? join(here, ".run", "orders.json");
+const orders = Object.values(JSON.parse(readFileSync(ordersPath, "utf8"))).filter(
   (order) => typeof order === "object" && order !== null && "captureId" in order,
 );
 const refunded = new Map();

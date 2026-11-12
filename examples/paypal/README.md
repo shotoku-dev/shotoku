@@ -74,6 +74,15 @@ SHOTOKU_LEDGER="$PWD/examples/paypal/.run/decisions.jsonl" node cli/dist/index.j
 
 Both agents wait up to ten minutes for your answer, then retry if you approved. With `agent-ai.mjs` you can also type `y` or `n` in its own terminal.
 
+## Measure it
+
+```bash
+node examples/paypal/eval.mjs                        # the claim email, 5 runs per arm
+node examples/paypal/eval.mjs --scenario injection
+```
+
+Runs the same Claude agent with and without Shotoku, with no human answering, and counts the money refunded on the agent's say-so alone. It uses the offline stand-in, so it needs no PayPal account. Our numbers are in the [main README](../../README.md#what-the-agent-does-with-nobody-watching).
+
 ## What is going on
 
 - [`policy.yaml`](policy.yaml): refunds up to $100 pass; over that, `overLimit: pending_approval` asks a human instead of refusing. Reads are free; anything else PayPal offers is held for review.

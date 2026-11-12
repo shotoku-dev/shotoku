@@ -13,7 +13,8 @@
     "demo:tui": "pnpm build && node scripts/demo-tui.mjs",
     "demo:mcp": "pnpm build && node mcp/demo-drive.mjs",
     "demo:gateway": "pnpm build && node scripts/demo-gateway.mjs",
-    "demo:paypal": "pnpm build && node examples/paypal/setup.mjs --offline && node examples/paypal/agent-ai.mjs"
+    "demo:paypal": "pnpm build && node examples/paypal/setup.mjs --offline && node examples/paypal/agent-ai.mjs",
+    "eval:paypal": "pnpm build && node examples/paypal/eval.mjs"
   },
   "devDependencies": {
     "@shotoku/core": "workspace:*",
