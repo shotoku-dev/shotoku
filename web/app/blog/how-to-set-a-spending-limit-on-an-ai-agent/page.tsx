@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CodeBlock, InlineCode } from "../../components/docs/CodeBlock";
+import { CodeBlock } from "../../components/docs/CodeBlock";
 import { PostLayout, Table, Ext, S, postMetadata } from "../../components/blog/PostLayout";
 import { getPost } from "../posts";
 

@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { resolveRuntimePaths } from "../config.js";
 
+// macOS temp dirs sit behind a symlink (/var → /private/var); the resolver
+// returns real paths, so the tests compare against real paths too.
+const tempDir = async (prefix: string): Promise<string> => realpath(await mkdtemp(join(tmpdir(), prefix)));
+
 describe("resolveRuntimePaths", () => {
   it("uses shotoku.config.json when present", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-test-"));
+    const dir = await tempDir("shotoku-config-test-");
     await writeFile(
       join(dir, "shotoku.config.json"),
       JSON.stringify({
@@ -23,7 +27,7 @@ describe("resolveRuntimePaths", () => {
   });
 
   it("lets explicit CLI paths override config paths", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-test-"));
+    const dir = await tempDir("shotoku-config-test-");
     await writeFile(
       join(dir, "shotoku.config.json"),
       JSON.stringify({
@@ -49,8 +53,8 @@ describe("resolveRuntimePaths", () => {
    * happened to be started.
    */
   it("falls back to the Shotoku home when no config exists", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-test-"));
-    const home = await mkdtemp(join(tmpdir(), "shotoku-home-test-"));
+    const dir = await tempDir("shotoku-config-test-");
+    const home = await tempDir("shotoku-home-test-");
     const previousHome = process.env["SHOTOKU_HOME"];
     process.env["SHOTOKU_HOME"] = home;
 
@@ -70,8 +74,8 @@ describe("resolveRuntimePaths", () => {
    * predates the home directory keeps the ledger it already has.
    */
   it("keeps using a ledger that already exists in the working directory", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-test-"));
-    const home = await mkdtemp(join(tmpdir(), "shotoku-home-test-"));
+    const dir = await tempDir("shotoku-config-test-");
+    const home = await tempDir("shotoku-home-test-");
     await mkdir(join(dir, "data"), { recursive: true });
     await writeFile(join(dir, "data", "decisions.jsonl"), "", "utf8");
 
@@ -88,7 +92,7 @@ describe("resolveRuntimePaths", () => {
   });
 
   it("finds a config file from a subdirectory", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-test-"));
+    const dir = await tempDir("shotoku-config-test-");
     await writeFile(
       join(dir, "shotoku.config.json"),
       JSON.stringify({ ledgerPath: "logs/decisions.jsonl" }),
@@ -133,7 +137,7 @@ describe("resolveRuntimePaths — environment", () => {
   }
 
   async function withConfig(): Promise<string> {
-    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-env-"));
+    const dir = await tempDir("shotoku-config-env-");
     await writeFile(
       join(dir, "shotoku.config.json"),
       JSON.stringify({
@@ -146,7 +150,7 @@ describe("resolveRuntimePaths — environment", () => {
   }
 
   it("reads the ledger the MCP server writes", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "shotoku-config-env-"));
+    const dir = await tempDir("shotoku-config-env-");
     const shared = join(dir, "shotoku-home", "data", "decisions.jsonl");
     process.env["SHOTOKU_LEDGER"] = shared;
 
