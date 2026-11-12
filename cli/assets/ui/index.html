@@ -21,7 +21,7 @@
     </header>
 
     <main>
-      <p id="notice" class="notice" hidden></p>
+      <p id="notice" class="notice" role="alert" hidden></p>
 
       <section class="kpis" aria-label="Last 24 hours">
         <div class="kpi"><span class="kpi-label">Pending</span><span id="kpi-pending" class="kpi-value pending">–</span></div>
@@ -33,7 +33,7 @@
       <section class="panel">
         <div class="panel-head">
           <h2>Pending approvals</h2>
-          <span class="muted">Approving lets the agent's identical retry through, once.</span>
+          <span class="muted">An approval lets the agent's identical retry through, once.</span>
         </div>
         <div id="pending-grid" class="grid grid-pending"></div>
       </section>
@@ -52,7 +52,7 @@
           <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
         </div>
         <div id="history-grid" class="grid grid-history"></div>
-        <pre id="detail" class="detail" hidden></pre>
+        <div id="detail" class="detail" aria-live="polite" hidden></div>
       </section>
     </main>
   </body>

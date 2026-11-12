@@ -1,6 +1,7 @@
 /*
- * Demo-only styles: the banner above the dashboard. styles.css is an untouched
- * copy of cli/assets/ui/styles.css, so everything the demo adds lives here.
+ * Demo-only styles: the banner above the dashboard and the short brief at the
+ * top of the page. styles.css is an untouched copy of cli/assets/ui/styles.css,
+ * so everything the demo adds lives here.
  */
 
 .demo-banner {
@@ -43,25 +44,61 @@
   text-decoration: underline;
   text-decoration-color: var(--muted);
   text-underline-offset: 3px;
+  transition: text-decoration-color 150ms ease-out;
 }
 
 .demo-banner a:hover {
   text-decoration-color: var(--fg);
 }
 
-.demo-banner .btn:hover {
-  border-color: var(--muted);
+.demo-banner .btn {
+  height: 28px;
 }
 
-.demo-banner a:focus-visible,
-.demo-banner .btn:focus-visible {
-  outline: 1px solid var(--muted);
+.demo-banner a:focus-visible {
+  outline: 2px solid var(--fg);
   outline-offset: 2px;
+}
+
+.demo-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Sits closer to the numbers it introduces than the sections sit to each other. */
+  margin-bottom: -12px;
+}
+
+.demo-brief h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.demo-brief p {
+  margin: 0;
+  max-width: 65ch;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+  text-wrap: pretty;
 }
 
 @media (max-width: 720px) {
   .demo-banner {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .demo-brief h1 {
+    font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-banner a {
+    transition: none;
   }
 }

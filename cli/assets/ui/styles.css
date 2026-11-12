@@ -2,7 +2,10 @@
   --bg: #0a0a0a;
   --fg: #f5f5f0;
   --muted: #8a8a85;
+  /* For controls that cannot be used right now. */
+  --disabled: #5a5a56;
   --border: #1f1f1f;
+  --border-strong: #2e2e2c;
   --panel: #0f0f0f;
   /* Colour means status, and nothing else. */
   --approved: #3ddc84;
@@ -10,6 +13,8 @@
   --pending: #f5c542;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --z-toast: 400;
   color-scheme: dark;
 }
 
@@ -22,13 +27,20 @@ body {
   background: var(--bg);
   color: var(--fg);
   font: 14px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(245, 245, 240, 0.18);
 }
 
 .bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 6px 16px;
   padding: 14px 24px;
   border-bottom: 1px solid var(--border);
 }
@@ -53,9 +65,11 @@ body {
 .meta {
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 4px 16px;
   font-family: var(--mono);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .integrity.ok {
@@ -69,16 +83,16 @@ body {
 main {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 32px 24px 64px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 40px;
 }
 
 .notice {
   margin: 0;
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   font-family: var(--mono);
   font-size: 13px;
 }
@@ -87,6 +101,8 @@ main {
   border-color: var(--denied);
   color: var(--denied);
 }
+
+/* --- last 24 hours ------------------------------------------------------- */
 
 .kpis {
   display: grid;
@@ -97,8 +113,8 @@ main {
 .kpi {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 16px 20px;
+  gap: 6px;
+  padding: 18px 20px 16px;
 }
 
 .kpi + .kpi {
@@ -107,13 +123,16 @@ main {
 
 .kpi-label {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .kpi-value {
-  font: 600 28px var(--mono);
+  font: 600 30px/1.1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .approved {
@@ -128,45 +147,173 @@ main {
   color: var(--pending);
 }
 
+/* Zero pending and zero denied are the resting state, not something to flag. */
+.kpi-value.quiet {
+  color: var(--muted);
+}
+
+/* --- panels -------------------------------------------------------------- */
+
 .panel-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 h2 {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-}
-
-.grid-pending {
-  height: 220px;
-}
-
-.grid-budgets {
-  height: 200px;
-}
-
-.grid-history {
-  height: 420px;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
 }
 
 .search {
   width: 260px;
   max-width: 100%;
-  padding: 6px 10px;
+  height: 32px;
+  padding: 0 10px;
   background: var(--bg);
   color: var(--fg);
-  border: 1px solid var(--border);
-  font: 13px var(--sans);
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  /* 16px keeps iOS from zooming the page on focus. */
+  font: 16px var(--sans);
+  transition: border-color 150ms ease-out;
 }
 
-.search:focus {
-  outline: 1px solid var(--muted);
+@media (min-width: 721px) {
+  .search {
+    font-size: 13px;
+  }
 }
+
+.search::placeholder {
+  color: var(--muted);
+}
+
+.search:hover {
+  border-color: var(--muted);
+}
+
+.search:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* --- grids --------------------------------------------------------------- */
+
+.grid .ag-header-cell-text {
+  letter-spacing: 0.01em;
+}
+
+/* The filter control is there when you reach for a column, not before. */
+.grid .ag-header-cell-filter-button {
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+.grid .ag-header-cell:hover .ag-header-cell-filter-button,
+.grid .ag-header-cell:focus-within .ag-header-cell-filter-button,
+.grid .ag-header-cell-filtered .ag-header-cell-filter-button {
+  opacity: 1;
+}
+
+/* A grid is as tall as its rows. Empty, it keeps room for what it says. */
+.grid .ag-grid-scrolling-rows {
+  min-height: 0 !important;
+}
+
+.grid.is-empty .ag-grid-scrolling-rows {
+  min-height: 132px !important;
+}
+
+/* Pending rows are taller than the rest; their text centres on the row, like the buttons. */
+.grid-pending .ag-cell {
+  line-height: 50px;
+}
+
+.grid-history .ag-row {
+  cursor: pointer;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-strong {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.muted-cell {
+  color: var(--muted);
+}
+
+.status {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* A row that has just arrived: one wash of light, then it is a row like any other. */
+.grid .row-fresh::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(245, 245, 240, 0.09);
+  opacity: 0;
+  pointer-events: none;
+  animation: arrive 2200ms ease-out;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.grid .row-open {
+  background: #161616;
+  box-shadow: inset 2px 0 0 var(--fg);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px;
+  text-align: center;
+}
+
+.empty-title {
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.empty-hint {
+  max-width: 46ch;
+  color: var(--muted);
+  font-size: 13px;
+  text-wrap: balance;
+}
+
+/* --- approve and deny ---------------------------------------------------- */
 
 .actions {
   display: flex;
@@ -176,75 +323,303 @@ h2 {
 }
 
 .btn {
-  padding: 3px 12px;
+  position: relative;
+  height: 32px;
+  padding: 0 12px;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
   color: var(--fg);
-  font: 600 12px var(--sans);
+  font: 600 12.5px var(--sans);
+  white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    color 150ms ease-out,
+    scale 150ms ease-out;
+}
+
+/* A 40px target around a 32px button, without touching its neighbour. */
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
+.btn:active:not(:disabled) {
+  scale: 0.96;
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  border-color: var(--border);
+  color: var(--disabled);
   cursor: default;
 }
 
+/* Both answers carry the same weight: the page does not lean towards spending. */
+.btn-approve,
+.btn-deny {
+  width: 94px;
+}
+
 .btn-approve {
-  border-color: var(--approved);
+  border-color: rgba(61, 220, 132, 0.55);
   color: var(--approved);
 }
 
 .btn-deny {
-  border-color: var(--denied);
+  border-color: rgba(255, 92, 92, 0.55);
   color: var(--denied);
 }
 
-.btn-approve:hover:not(:disabled) {
-  background: rgba(61, 220, 132, 0.1);
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) {
+    border-color: var(--muted);
+  }
+
+  .btn-approve:hover:not(:disabled) {
+    border-color: var(--approved);
+    background: rgba(61, 220, 132, 0.12);
+  }
+
+  .btn-deny:hover:not(:disabled) {
+    border-color: var(--denied);
+    background: rgba(255, 92, 92, 0.12);
+  }
 }
 
-.btn-deny:hover:not(:disabled) {
-  background: rgba(255, 92, 92, 0.1);
+/* --- a pending decision on a phone --------------------------------------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px 16px 16px;
+  white-space: normal;
 }
 
-.status {
-  font-family: var(--mono);
+.card-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.card-amount {
+  font-size: 20px;
   font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
+
+.card-tool {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.card-why,
+.card-meta {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.card-why {
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.card-meta {
+  margin-top: 2px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.card .actions {
+  height: auto;
+  margin-top: auto;
+}
+
+.card .btn {
+  flex: 1;
+  width: auto;
+  height: 44px;
+  font-size: 14px;
+}
+
+/* --- budgets ------------------------------------------------------------- */
 
 .usage {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  width: 100%;
   height: 100%;
 }
 
 .usage-track {
   flex: 1;
-  height: 6px;
-  border: 1px solid var(--border);
+  height: 4px;
+  background: var(--border);
+  overflow: hidden;
 }
 
 .usage-fill {
   height: 100%;
   background: var(--fg);
+  transform-origin: left center;
 }
 
-.detail {
-  margin: 12px 0 0;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  font: 12px/1.6 var(--mono);
-  white-space: pre-wrap;
-  word-break: break-word;
+.usage-share {
+  width: 4ch;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
+
+/* --- one decision, in full ----------------------------------------------- */
+
+.detail {
+  margin-top: 12px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  scroll-margin-bottom: 24px;
+  animation: reveal 220ms var(--ease-out);
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detail-id {
+  color: var(--muted);
+}
+
+.detail-close {
+  margin-left: auto;
+}
+
+.detail-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 24px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.detail-facts dt,
+.detail-label {
+  color: var(--muted);
+}
+
+.detail-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-label {
+  margin: 18px 0 6px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.detail-reasons {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 80ch;
+  font-size: 13px;
+}
+
+.detail-reasons li {
+  padding-left: 16px;
+  position: relative;
+}
+
+.detail-reasons li::before {
+  content: "•";
+  position: absolute;
+  left: 2px;
+  color: var(--muted);
+}
+
+/* --- confirmation -------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: var(--z-toast);
+  max-width: min(680px, calc(100vw - 32px));
+  padding: 11px 16px;
+  background: var(--fg);
+  color: var(--bg);
+  width: max-content;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  /* Leaving: quicker and quieter than arriving. */
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition:
+    opacity 160ms ease-in,
+    transform 160ms ease-in;
+}
+
+.toast.toast-in {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition:
+    opacity 220ms var(--ease-out),
+    transform 220ms var(--ease-out);
+}
+
+/* --- small screens ------------------------------------------------------- */
 
 @media (max-width: 720px) {
   .bar,
   main {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  main {
+    padding-top: 24px;
+    gap: 32px;
   }
 
   .kpis {
@@ -261,5 +636,39 @@ h2 {
 
   .panel-head {
     flex-direction: column;
+    gap: 4px;
+  }
+
+  .search {
+    width: 100%;
+    height: 40px;
+  }
+
+  .btn::before {
+    inset: 0;
+  }
+
+  /* The page-size picker does not fit beside the pager on a phone. */
+  .grid .ag-paging-page-size {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .search,
+  .toast,
+  .toast.toast-in,
+  .grid .ag-header-cell-filter-button {
+    transition: none;
+  }
+
+  .detail,
+  .grid .row-fresh::after {
+    animation: none;
+  }
+
+  .btn:active:not(:disabled) {
+    scale: 1;
   }
 }

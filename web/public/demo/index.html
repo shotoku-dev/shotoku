@@ -41,7 +41,16 @@
     </header>
 
     <main>
-      <p id="notice" class="notice" hidden></p>
+      <section class="demo-brief" aria-labelledby="demo-brief-title">
+        <h1 id="demo-brief-title">You are the human in the loop.</h1>
+        <p>
+          A support agent is refunding orders through PayPal. Up to $100 it refunds on its own. Anything larger
+          stops here and waits for you. Approve or deny a call below, then watch the agent's retry arrive in
+          History and the budget move.
+        </p>
+      </section>
+
+      <p id="notice" class="notice" role="alert" hidden></p>
 
       <section class="kpis" aria-label="Last 24 hours">
         <div class="kpi"><span class="kpi-label">Pending</span><span id="kpi-pending" class="kpi-value pending">–</span></div>
@@ -53,7 +62,7 @@
       <section class="panel">
         <div class="panel-head">
           <h2>Pending approvals</h2>
-          <span class="muted">Approving lets the agent's identical retry through, once.</span>
+          <span class="muted">An approval lets the agent's identical retry through, once.</span>
         </div>
         <div id="pending-grid" class="grid grid-pending"></div>
       </section>
@@ -72,7 +81,7 @@
           <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
         </div>
         <div id="history-grid" class="grid grid-history"></div>
-        <pre id="detail" class="detail" hidden></pre>
+        <div id="detail" class="detail" aria-live="polite" hidden></div>
       </section>
     </main>
   </body>

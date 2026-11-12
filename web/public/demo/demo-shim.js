@@ -508,6 +508,22 @@
 
   seed(Date.now());
 
+  // The agent keeps working while you look around: a few more calls arrive on
+  // their own, each decided by the same policy logic as the seed. The amounts
+  // are small enough that everything on the page can be approved without
+  // running into the agent's $1,000 daily budget.
+  const LATER = [
+    [14, () => read()],
+    [15.5, () => refund(32)],
+    [38, () => read()],
+    [39.5, () => refund(130, "full refund of capture 7XK40318NV906342B")],
+    [70, () => read()],
+    [71.5, () => refund(28)],
+  ];
+  for (const [seconds, request] of LATER) {
+    setTimeout(() => authorize(request(), Date.now()), seconds * 1000);
+  }
+
   // State is in memory only, so a reload is a reset.
   document.getElementById("demo-reset").addEventListener("click", () => window.location.reload());
 })();
