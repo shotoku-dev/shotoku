@@ -281,9 +281,9 @@
     ),
     columnDefs: [
       { headerName: "Agent", field: "actor", width: 132 },
-      { headerName: "Tool or vendor", field: "resource", flex: 1, minWidth: 250, cellClass: "mono", tooltipValueGetter: (p) => `${p.data.resource} · ${p.data.decisionId}` },
+      { headerName: "Tool or vendor", field: "resource", flex: 1, minWidth: 226, cellClass: "mono", tooltipValueGetter: (p) => `${p.data.resource} · ${p.data.decisionId}` },
       { headerName: "Amount", field: "amount", width: 96, valueFormatter: (p) => money(p.value), type: "rightAligned", cellClass: `${RIGHT} amount-strong` },
-      { headerName: "Why a human", field: "summary", flex: 1.6, minWidth: 250, tooltipValueGetter: (p) => [p.data.summary, p.data.amountSource].filter(Boolean).join(" · ") },
+      { headerName: "Why a human", field: "summary", flex: 1.6, minWidth: 226, tooltipValueGetter: (p) => [p.data.summary, p.data.amountSource].filter(Boolean).join(" · ") },
       { headerName: "Waiting", field: "ageSeconds", width: 88, valueFormatter: (p) => age(p.value), cellClass: "amount muted-cell" },
       { headerName: "", field: "decisionId", colId: "actions", width: 212, pinned: "right", sortable: false, resizable: false, cellRenderer: actionsCell },
     ],
@@ -333,9 +333,9 @@
       { headerName: "Decision", field: "status", width: 130, cellRenderer: statusCell },
       { headerName: "Human answer", field: "resolution", width: 214, cellRenderer: resolutionCell, valueFormatter: (p) => (p.value ? `${p.value.verdict} ${p.value.via ?? "terminal"}` : "") },
       { headerName: "Agent", field: "actor", width: 150 },
-      { headerName: "Tool or vendor", field: "resource", flex: 1.2, minWidth: 140, cellClass: "mono" },
+      { headerName: "Tool or vendor", field: "resource", flex: 1.5, minWidth: 140, cellClass: "mono" },
       { headerName: "Amount", field: "amount", width: 110, valueFormatter: (p) => money(p.value), type: "rightAligned", cellClass: RIGHT },
-      { headerName: "Summary", field: "summary", flex: 2, minWidth: 240, cellClass: "muted-cell", tooltipField: "summary" },
+      { headerName: "Summary", field: "summary", flex: 2, minWidth: 220, cellClass: "muted-cell", tooltipField: "summary" },
     ],
   });
 
@@ -347,17 +347,23 @@
   // one tap away in the decision's detail.
   function fitColumns() {
     const wide = !narrow.matches;
+    // Between a phone and a full window, the agent's name gives way first: it
+    // is still in each decision's detail, and the reason needs the room more.
+    const roomy = wide && document.querySelector("main").clientWidth >= 1160;
+    pendingGrid.setColumnsVisible(["actor"], roomy);
+    budgetsGrid.setColumnsVisible(["actor"], roomy);
+    historyGrid.setColumnsVisible(["actor"], roomy);
     pendingGrid.setGridOption("headerHeight", wide ? undefined : 0);
     pendingGrid.resetRowHeights();
     pendingGrid.redrawRows();
-    budgetsGrid.setColumnsVisible(["kind", "actor", "limit", "usage"], wide);
+    budgetsGrid.setColumnsVisible(["kind", "limit", "usage"], wide);
     budgetsGrid.applyColumnState({
       state: [
         { colId: "spent", width: wide ? 110 : 84 },
         { colId: "remaining", width: wide ? 120 : 104 },
       ],
     });
-    historyGrid.setColumnsVisible(["timestamp", "resolution", "actor", "summary"], wide);
+    historyGrid.setColumnsVisible(["timestamp", "resolution", "summary"], wide);
     historyGrid.applyColumnState({
       state: [
         { colId: "status", width: wide ? 130 : 112 },
@@ -366,6 +372,14 @@
     });
   }
   narrow.addEventListener("change", fitColumns);
+  let roomyNow = null;
+  new ResizeObserver(() => {
+    const roomy = document.querySelector("main").clientWidth >= 1160;
+    if (roomy !== roomyNow) {
+      roomyNow = roomy;
+      fitColumns();
+    }
+  }).observe(document.querySelector("main"));
   fitColumns();
 
   // --- decision detail -------------------------------------------------------
@@ -479,13 +493,22 @@
   }
 
   let inFlight = false;
+  let loadFailed = false;
   async function refresh() {
     if (inFlight) return;
     inFlight = true;
     try {
-      render(await api("/api/state"));
+      const state = await api("/api/state");
+      if (loadFailed) showNotice("", false);
+      loadFailed = false;
+      render(state);
     } catch (error) {
+      loadFailed = true;
       showNotice(`Could not load the ledger: ${error.message}`, true);
+      // What is on screen is the last good read. It can no longer vouch for
+      // the ledger, so the header stops saying it is intact.
+      setText("integrity", "✗ ledger could not be read");
+      document.getElementById("integrity").className = "integrity broken";
     } finally {
       inFlight = false;
     }

@@ -44,7 +44,7 @@ if (spawnSync("claude", ["--version"], { stdio: "ignore" }).status !== 0) {
   process.exit(1);
 }
 
-const { approve, deny, getApprovalForDecision, getPendingApprovals, readDecisions } = await import(
+const { approve, deny, getApprovalForDecision, readDecisions } = await import(
   pathToFileURL(join(repo, "core/dist/index.js")).href
 );
 
@@ -168,6 +168,8 @@ function turn(prompt) {
 }
 
 async function waitForHuman(decision) {
+  const already = await getApprovalForDecision(ledgerPath, decision.decisionId);
+  if (already) return already;
   const amount = decision.request.amount !== undefined ? `$${decision.request.amount} ` : "";
   const interactive = process.stdin.isTTY === true;
   console.log(
@@ -206,7 +208,11 @@ await turn(readFileSync(join(run, "agent-prompt.txt"), "utf8"));
 
 const answered = new Set();
 for (let round = 0; round < MAX_ROUNDS; round += 1) {
-  const pending = (await getPendingApprovals(ledgerPath)).filter((d) => !answered.has(d.decisionId));
+  // Every call that was held, whether or not a human has answered yet: an
+  // answer given while the agent was still talking must reach it too.
+  const pending = (await readDecisions(ledgerPath)).filter(
+    (d) => d.response.status === "pending_approval" && !answered.has(d.decisionId),
+  );
   if (pending.length === 0) break;
 
   const updates = [];

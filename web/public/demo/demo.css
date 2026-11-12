@@ -1,8 +1,15 @@
 /*
- * Demo-only styles: the banner above the dashboard and the short brief at the
- * top of the page. styles.css is an untouched copy of cli/assets/ui/styles.css,
- * so everything the demo adds lives here.
+ * Demo-only styles: the banner, and the agent's pane beside the dashboard.
+ * styles.css is an untouched copy of cli/assets/ui/styles.css, so everything
+ * the demo adds lives here.
  */
+
+:root {
+  --banner-height: 45px;
+  --z-banner: 100;
+}
+
+/* --- banner -------------------------------------------------------------- */
 
 .demo-banner {
   display: flex;
@@ -39,7 +46,8 @@
   gap: 6px 16px;
 }
 
-.demo-banner a {
+.demo-banner a,
+.recap a {
   color: var(--fg);
   text-decoration: underline;
   text-decoration-color: var(--muted);
@@ -47,7 +55,8 @@
   transition: text-decoration-color 150ms ease-out;
 }
 
-.demo-banner a:hover {
+.demo-banner a:hover,
+.recap a:hover {
   text-decoration-color: var(--fg);
 }
 
@@ -55,50 +64,430 @@
   height: 28px;
 }
 
-.demo-banner a:focus-visible {
+.demo-banner a:focus-visible,
+.recap a:focus-visible,
+.story:focus-visible {
   outline: 2px solid var(--fg);
   outline-offset: 2px;
 }
 
-.demo-brief {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  /* Sits closer to the numbers it introduces than the sections sit to each other. */
-  margin-bottom: -12px;
+/* --- two panes ----------------------------------------------------------- */
+
+.stage {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  align-items: start;
 }
 
-.demo-brief h1 {
+.dash {
+  min-width: 0;
+}
+
+.dash main {
+  padding-top: 24px;
+}
+
+.agent {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+
+/* Side by side, the banner stays put and the agent's pane fills what is left. */
+@media (min-width: 1181px) {
+  .demo-banner {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-banner);
+    height: var(--banner-height);
+    flex-wrap: nowrap;
+  }
+
+  .agent {
+    position: sticky;
+    top: var(--banner-height);
+    height: calc(100vh - var(--banner-height));
+    height: calc(100dvh - var(--banner-height));
+  }
+}
+
+.agent-head {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.agent-label {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.agent h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.015em;
   text-wrap: balance;
 }
 
-.demo-brief p {
-  margin: 0;
-  max-width: 65ch;
+.agent-lead {
+  margin: 6px 0 0;
   color: var(--muted);
-  font-size: 14.5px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.5;
   text-wrap: pretty;
 }
 
+/* --- the transcript ------------------------------------------------------ */
+
+.story {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px 24px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.story::-webkit-scrollbar {
+  width: 8px;
+}
+
+.story::-webkit-scrollbar-thumb {
+  background: rgba(245, 245, 240, 0.14);
+  border-radius: 4px;
+}
+
+.story p {
+  margin: 0;
+}
+
+.entry {
+  animation: entry-in 240ms var(--ease-out);
+}
+
+@keyframes entry-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.act {
+  margin: 10px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-strong);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+}
+
+.mail-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mail-subject {
+  font-weight: 600;
+}
+
+.mail-hidden {
+  padding: 8px 10px;
+  border-left: 2px solid var(--denied);
+  background: rgba(255, 92, 92, 0.07);
+  font: 12px/1.5 var(--mono);
+  overflow-wrap: anywhere;
+}
+
+.call,
+.you,
+.note,
+.thinking {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.call {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.call-line,
+.you {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  overflow-wrap: anywhere;
+}
+
+.who {
+  font-weight: 600;
+}
+
+.arrow,
+.args {
+  color: var(--muted);
+}
+
+.tag {
+  align-self: center;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  color: var(--muted);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
+
+.verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
+  padding-left: 16px;
+}
+
+.verdict-id,
+.verdict-detail {
+  color: var(--muted);
+}
+
+.verdict-detail {
+  padding-left: 16px;
+  overflow-wrap: anywhere;
+}
+
+.you.said-yes .who {
+  color: var(--approved);
+}
+
+.you.said-no .who {
+  color: var(--denied);
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  border-left: 2px solid var(--fg);
+  background: rgba(245, 245, 240, 0.045);
+  font-family: var(--sans);
+  font-size: 13px;
+  text-wrap: pretty;
+}
+
+.note-who {
+  color: var(--muted);
+  font: 500 11px var(--mono);
+  letter-spacing: 0.04em;
+}
+
+.say {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-strong);
+  font-size: 13.5px;
+  text-wrap: pretty;
+}
+
+.say-who {
+  color: var(--muted);
+  font: 500 11px var(--mono);
+  letter-spacing: 0.04em;
+}
+
+.thinking {
+  color: var(--muted);
+}
+
+.dots {
+  animation: breathe 1200ms ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.your-turn {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--pending);
+  color: var(--fg);
+  font-weight: 500;
+  text-wrap: pretty;
+}
+
+.pulse {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pending);
+  translate: 0 -1px;
+  animation: breathe 1400ms ease-in-out infinite;
+}
+
+.recap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+}
+
+.recap-line {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.recap-foot {
+  margin-top: 8px !important;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-wrap: pretty;
+}
+
+/* --- what to do next ----------------------------------------------------- */
+
+.agent-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 20px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.story-actions:empty {
+  display: none;
+}
+
+.story-btn {
+  height: 34px;
+  border-color: var(--muted);
+  animation: entry-in 240ms var(--ease-out);
+}
+
+.story-btn.quiet {
+  border-color: var(--border-strong);
+  color: var(--muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .story-btn:hover:not(:disabled) {
+    border-color: var(--fg);
+    background: rgba(245, 245, 240, 0.08);
+    color: var(--fg);
+  }
+}
+
+.provenance {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* The decision the agent is waiting on. */
+.needs-you .grid {
+  box-shadow: 0 0 0 1px var(--pending);
+}
+
+.needs-you h2::after {
+  content: "the agent is waiting on you";
+  margin-left: 12px;
+  color: var(--pending);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* --- narrower screens: the agent sits above the dashboard ---------------- */
+
+@media (max-width: 1180px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .agent {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .story {
+    flex: none;
+    height: 44vh;
+    height: 44dvh;
+    min-height: 260px;
+  }
+}
+
 @media (max-width: 720px) {
-  .demo-banner {
+  .demo-banner,
+  .agent-head,
+  .story,
+  .agent-foot {
     padding-left: 16px;
     padding-right: 16px;
   }
 
-  .demo-brief h1 {
-    font-size: 20px;
+  .needs-you h2::after {
+    display: block;
+    margin: 2px 0 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .demo-banner a {
+  .demo-banner a,
+  .recap a {
     transition: none;
+  }
+
+  .entry,
+  .story-btn,
+  .dots,
+  .pulse {
+    animation: none;
   }
 }

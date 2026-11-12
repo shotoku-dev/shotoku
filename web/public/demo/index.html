@@ -4,10 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Shotoku</title>
+    <meta
+      name="description"
+      content="An AI support agent, PayPal, and you. Watch the agent work, answer the refund it is not allowed to make alone, then try to edit the ledger behind its back."
+    />
     <!--
       The hosted demo of the `shotoku ui` dashboard. app.js and styles.css are
-      copies of cli/assets/ui/; demo-shim.js stands in for the local server.
-      Paths are absolute so the page works at /demo and /demo/index.html.
+      copies of cli/assets/ui/; demo-shim.js stands in for the local server and
+      demo-story.js plays the agent. Paths are absolute so the page works at
+      /demo and /demo/index.html.
     -->
     <link rel="icon" href="/assets/brand/shotoku-favicon.svg" />
     <link rel="stylesheet" href="/demo/styles.css" />
@@ -15,12 +20,13 @@
     <script src="/demo/vendor/ag-grid-community.min.js" defer></script>
     <script src="/demo/demo-shim.js" defer></script>
     <script src="/demo/app.js" defer></script>
+    <script src="/demo/demo-story.js" defer></script>
   </head>
   <body>
     <aside class="demo-banner" aria-label="About this demo">
       <p>
-        <strong>Live demo.</strong> Simulated data, running entirely in your browser: nothing here reaches PayPal.
-        This is the same dashboard <code>shotoku ui</code> serves locally.
+        <strong>Live demo.</strong> Runs entirely in your browser: nothing here reaches PayPal. The dashboard is the
+        one <code>shotoku ui</code> serves locally.
       </p>
       <div class="demo-links">
         <a href="https://www.youtube.com/watch?v=OfXpXQCjEnA" target="_blank" rel="noopener">Watch the video</a>
@@ -29,60 +35,76 @@
       </div>
     </aside>
 
-    <header class="bar">
-      <div class="brand">
-        <span class="wordmark">shotoku</span>
-        <span class="tagline">spend controls</span>
+    <div class="stage">
+      <section class="agent" aria-labelledby="agent-title">
+        <header class="agent-head">
+          <p class="agent-label">The agent</p>
+          <h1 id="agent-title">Claude is working your support inbox.</h1>
+          <p class="agent-lead">
+            It can refund through PayPal up to $100 on its own. Past that, it needs you.
+          </p>
+        </header>
+
+        <div id="story" class="story" role="log" aria-live="polite" aria-label="What the agent is doing" tabindex="0"></div>
+
+        <footer class="agent-foot">
+          <div id="story-actions" class="story-actions"></div>
+          <p class="provenance">
+            Claude's words, calls and PayPal ids are replayed from real runs against the PayPal sandbox on
+            12 November 2026. Every decision is computed here, in your browser, by a port of Shotoku's policy and
+            ledger code.
+          </p>
+        </footer>
+      </section>
+
+      <div class="dash">
+        <header class="bar">
+          <div class="brand">
+            <span class="wordmark">shotoku</span>
+            <span class="tagline">spend controls</span>
+          </div>
+          <div class="meta">
+            <span id="integrity" class="integrity">checking ledger…</span>
+            <span id="refreshed" class="muted"></span>
+          </div>
+        </header>
+
+        <main>
+          <p id="notice" class="notice" role="alert" hidden></p>
+
+          <section class="kpis" aria-label="Last 24 hours">
+            <div class="kpi"><span class="kpi-label">Pending</span><span id="kpi-pending" class="kpi-value pending">–</span></div>
+            <div class="kpi"><span class="kpi-label">Approved</span><span id="kpi-approved" class="kpi-value approved">–</span></div>
+            <div class="kpi"><span class="kpi-label">Denied</span><span id="kpi-denied" class="kpi-value denied">–</span></div>
+            <div class="kpi"><span class="kpi-label">Spent, 24h</span><span id="kpi-spent" class="kpi-value">–</span></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Pending approvals</h2>
+              <span class="muted">An approval lets the agent's identical retry through, once.</span>
+            </div>
+            <div id="pending-grid" class="grid grid-pending"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Budgets</h2>
+              <span class="muted">Approved spend in the rolling 24-hour window.</span>
+            </div>
+            <div id="budgets-grid" class="grid grid-budgets"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>History</h2>
+              <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
+            </div>
+            <div id="history-grid" class="grid grid-history"></div>
+            <div id="detail" class="detail" aria-live="polite" hidden></div>
+          </section>
+        </main>
       </div>
-      <div class="meta">
-        <span id="integrity" class="integrity">checking ledger…</span>
-        <span id="refreshed" class="muted"></span>
-      </div>
-    </header>
-
-    <main>
-      <section class="demo-brief" aria-labelledby="demo-brief-title">
-        <h1 id="demo-brief-title">You are the human in the loop.</h1>
-        <p>
-          A support agent is refunding orders through PayPal. Up to $100 it refunds on its own. Anything larger
-          stops here and waits for you. Approve or deny a call below, then watch the agent's retry arrive in
-          History and the budget move.
-        </p>
-      </section>
-
-      <p id="notice" class="notice" role="alert" hidden></p>
-
-      <section class="kpis" aria-label="Last 24 hours">
-        <div class="kpi"><span class="kpi-label">Pending</span><span id="kpi-pending" class="kpi-value pending">–</span></div>
-        <div class="kpi"><span class="kpi-label">Approved</span><span id="kpi-approved" class="kpi-value approved">–</span></div>
-        <div class="kpi"><span class="kpi-label">Denied</span><span id="kpi-denied" class="kpi-value denied">–</span></div>
-        <div class="kpi"><span class="kpi-label">Spent, 24h</span><span id="kpi-spent" class="kpi-value">–</span></div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Pending approvals</h2>
-          <span class="muted">An approval lets the agent's identical retry through, once.</span>
-        </div>
-        <div id="pending-grid" class="grid grid-pending"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Budgets</h2>
-          <span class="muted">Approved spend in the rolling 24-hour window.</span>
-        </div>
-        <div id="budgets-grid" class="grid grid-budgets"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <h2>History</h2>
-          <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
-        </div>
-        <div id="history-grid" class="grid grid-history"></div>
-        <div id="detail" class="detail" aria-live="polite" hidden></div>
-      </section>
-    </main>
+    </div>
   </body>
 </html>

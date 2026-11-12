@@ -1,4 +1,4 @@
-/* global window, document, Response, URL, setTimeout */
+/* global window, document, Response, URL, setTimeout, TextEncoder */
 /**
  * The hosted demo's stand-in for the `shotoku ui` server.
  *
@@ -15,6 +15,12 @@
  *   reason text and rolling 24-hour totals).
  * The seed is replayed through that logic, so the KPIs, budgets and history
  * agree with each other by construction rather than by hand-typed numbers.
+ *
+ * The ledger is hash-chained the way the real one is (SHA-256 over the
+ * previous hash and the record, as canonical JSON), and every read verifies
+ * the chain. Edit a record and the next read fails, exactly as it does locally.
+ *
+ * demo-story.js drives the agent through `window.shotokuDemo`.
  *
  * State lives in memory only. A reload starts again from the seed.
  */
@@ -58,6 +64,71 @@
   let decisions = [];
   /** Human answers, oldest first. One per pending decision at most. */
   let approvals = [];
+  /**
+   * Every record in the order it was appended, as the ledger file holds them,
+   * each with the hash that chains it to the one before.
+   */
+  let lines = [];
+
+  // --- the hash chain (core/src/integrity.ts, core/src/ledger.ts) -------------
+
+  const GENESIS_HASH = `sha256:${"0".repeat(64)}`;
+
+  /** JSON with object keys in sorted order, so one record has one spelling. */
+  function canonicalJson(value) {
+    if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+    if (value !== null && typeof value === "object") {
+      const members = Object.keys(value)
+        .sort()
+        .filter((key) => value[key] !== undefined)
+        .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`);
+      return `{${members.join(",")}}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  async function sha256Hex(text) {
+    const digest = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `sha256:${hex}`;
+  }
+
+  function hashRecord(previousHash, record) {
+    return sha256Hex(canonicalJson({ previousHash, record }));
+  }
+
+  /** Gives every record that has none yet its place in the chain. */
+  let sealing = Promise.resolve();
+  function seal() {
+    sealing = sealing.then(async () => {
+      for (let index = 0; index < lines.length; index += 1) {
+        if (lines[index].integrity) continue;
+        const previousHash = index === 0 ? GENESIS_HASH : lines[index - 1].integrity.hash;
+        // Hashed as it stands now. A later edit to the record is not rehashed.
+        const hash = await hashRecord(previousHash, lines[index].record);
+        lines[index].integrity = { version: 1, sequence: index + 1, previousHash, hash };
+      }
+    });
+    return sealing;
+  }
+
+  /** Recomputes the whole chain, as every read of the real ledger does. */
+  async function verify() {
+    await seal();
+    let previousHash = GENESIS_HASH;
+    for (let index = 0; index < lines.length; index += 1) {
+      const { record, integrity } = lines[index];
+      const line = index + 1;
+      if (integrity.previousHash !== previousHash) {
+        return { ok: false, line, message: `Ledger is corrupt at line ${line}: previous hash does not match` };
+      }
+      if (integrity.hash !== (await hashRecord(previousHash, record))) {
+        return { ok: false, line, message: `Ledger is corrupt at line ${line}: record hash does not match` };
+      }
+      previousHash = integrity.hash;
+    }
+    return { ok: true, records: lines.length };
+  }
 
   // --- money and matching (core/src/money.ts, core/src/policy.ts) -------------
 
@@ -270,6 +341,8 @@
         : {}),
     };
     decisions.push(record);
+    lines.push({ record });
+    seal();
     return record;
   }
 
@@ -297,6 +370,8 @@
       ...(via ? { via } : {}),
     };
     approvals.push(approval);
+    lines.push({ record: approval });
+    seal();
     return approval;
   }
 
@@ -319,6 +394,7 @@
   function seed(nowMs) {
     decisions = [];
     approvals = [];
+    lines = [];
     seedIndex = 0;
     seeding = true;
     const ago = (minutes) => nowMs - minutes * MINUTE_MS;
@@ -337,15 +413,7 @@
     const largeApproval = resolve(large.decisionId, "approved", ago(126));
     authorize(large.request, ago(125), largeApproval);
 
-    // The desk lamp: $89, within the limit, approved with no human involved.
-    authorize(read(), ago(9));
-    authorize(refund(89), ago(8));
-
-    // Waiting for a human: the ergonomic chair refund and a dispute claim.
-    authorize(read(), ago(4));
-    authorize(refund(480), ago(3));
-    authorize(toolCall("accept_dispute_claim", 140, "dispute PP-D-27803"), ago(1.5));
-
+    // What happens next is up to the agent in demo-story.js, and to you.
     seeding = false;
   }
 
@@ -468,19 +536,34 @@
     );
   }
 
-  function decide(decisionId, verb) {
+  /** Decisions whose answer demo-story.js acts on itself. */
+  const claimed = new Set();
+  const answerListeners = [];
+
+  async function decide(decisionId, verb) {
+    // An answer is a write, and the real ledger refuses writes it cannot chain.
+    const report = await verify();
+    if (!report.ok) return json(409, { error: report.message });
     try {
       const approval = resolve(decisionId, verb === "approve" ? "approved" : "denied", Date.now(), "dashboard");
-      if (approval.verdict === "approved") {
+      const original = decisions.find((d) => d.decisionId === decisionId);
+      if (approval.verdict === "approved" && !claimed.has(decisionId)) {
         // What the agent does next on a real machine: the same call again. The
         // grant lets it through once, if the budget still has room.
-        const original = decisions.find((d) => d.decisionId === decisionId);
         setTimeout(() => authorize(original.request, Date.now(), approval), RETRY_MS);
       }
+      for (const listener of answerListeners) listener(approval, original);
       return json(200, { approval });
     } catch (error) {
       return json(409, { error: error.message });
     }
+  }
+
+  async function state() {
+    // As locally: a ledger that does not verify is not read at all.
+    const report = await verify();
+    if (!report.ok) return json(500, { error: report.message });
+    return json(200, { ...buildState(Date.now()), integrity: { ok: true, records: report.records } });
   }
 
   const realFetch = window.fetch.bind(window);
@@ -491,7 +574,7 @@
     const method = ((init && init.method) || (input && input.method) || "GET").toUpperCase();
 
     if (url.origin === window.location.origin) {
-      if (method === "GET" && url.pathname === "/api/state") return json(200, buildState(Date.now()));
+      if (method === "GET" && url.pathname === "/api/state") return state();
       const write = method === "POST" ? DECISION_PATH.exec(url.pathname) : null;
       if (write) return decide(write[1], write[2]);
     }
@@ -508,21 +591,43 @@
 
   seed(Date.now());
 
-  // The agent keeps working while you look around: a few more calls arrive on
-  // their own, each decided by the same policy logic as the seed. The amounts
-  // are small enough that everything on the page can be approved without
-  // running into the agent's $1,000 daily budget.
-  const LATER = [
-    [14, () => read()],
-    [15.5, () => refund(32)],
-    [38, () => read()],
-    [39.5, () => refund(130, "full refund of capture 7XK40318NV906342B")],
-    [70, () => read()],
-    [71.5, () => refund(28)],
-  ];
-  for (const [seconds, request] of LATER) {
-    setTimeout(() => authorize(request(), Date.now()), seconds * 1000);
-  }
+  // --- what demo-story.js can do ----------------------------------------------
+
+  /** The record an edit replaced, so it can be put back. */
+  let edited = null;
+
+  window.shotokuDemo = {
+    /** The agent looks an order up. */
+    read: () => authorize(read(), Date.now()),
+    /** The agent asks for a refund; `source` says where the amount came from. */
+    refund: (amount, source) => authorize(refund(amount, source), Date.now()),
+    /** The story will act on this decision's answer itself. */
+    claim: (decisionId) => claimed.add(decisionId),
+    /** The agent repeats a held call after a human approved it. */
+    retry(decisionId) {
+      const original = decisions.find((d) => d.decisionId === decisionId);
+      const approval = approvals.find((a) => a.decisionId === decisionId);
+      return authorize(original.request, Date.now(), approval);
+    },
+    onAnswer: (listener) => answerListeners.push(listener),
+    verify,
+    /** Rewrites one recorded amount in place, the way an editor would. */
+    async edit(decisionId, amount) {
+      await seal();
+      const index = lines.findIndex((line) => line.record.decisionId === decisionId && line.record.kind !== "approval");
+      const record = lines[index].record;
+      edited = { record, request: record.request };
+      record.request = { ...record.request, amount };
+      return { line: index + 1, before: edited.request.amount, after: amount };
+    },
+    /** Puts the edited record back as it was. */
+    restore() {
+      if (!edited) return;
+      edited.record.request = edited.request;
+      edited = null;
+    },
+    spent: () => fromMicros(snapshotAt(Date.now()).actorTotals[ACTOR] ?? 0),
+  };
 
   // State is in memory only, so a reload is a reset.
   document.getElementById("demo-reset").addEventListener("click", () => window.location.reload());
