@@ -113,8 +113,156 @@
 }
 
 .agent-head {
+  position: relative;
   padding: 20px 20px 16px;
   border-bottom: 1px solid var(--border);
+}
+
+.agent-hide {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  height: 26px;
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .agent-hide:hover:not(:disabled) {
+    color: var(--fg);
+  }
+}
+
+/* --- the pane, folded away ----------------------------------------------- */
+
+.agent-show {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: 500 11px var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.agent-show:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: -2px;
+}
+
+.agent-show-mark {
+  color: var(--fg);
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.agent-show-dot {
+  display: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pending);
+  animation: breathe 1400ms ease-in-out infinite;
+}
+
+.agent-waiting .agent-show-dot {
+  display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .agent-show:hover {
+    background: rgba(245, 245, 240, 0.05);
+    color: var(--fg);
+  }
+}
+
+.agent-collapsed .agent-show {
+  display: flex;
+}
+
+.agent-collapsed .agent-head,
+.agent-collapsed .story,
+.agent-collapsed .agent-foot {
+  display: none;
+}
+
+@media (min-width: 1181px) {
+  .stage.agent-collapsed {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .agent-collapsed .agent-show {
+    flex-direction: column;
+    height: 100%;
+    justify-content: flex-start;
+  }
+
+  .agent-collapsed .agent-show-label {
+    writing-mode: vertical-rl;
+  }
+}
+
+@media (max-width: 1180px) {
+  .agent-collapsed .agent-show {
+    padding: 14px 16px;
+  }
+
+  .agent-collapsed .agent-show-mark {
+    rotate: 90deg;
+  }
+}
+
+/* --- before anything has happened ---------------------------------------- */
+
+.start {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+}
+
+.start-title {
+  font-size: 15px;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.start-text {
+  color: var(--muted);
+  font-size: 13.5px;
+  text-wrap: pretty;
+}
+
+/* The one thing to do on this page. */
+.start-btn {
+  height: 36px;
+  margin-top: 6px;
+  padding: 0 14px;
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+  font-size: 13px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .start-btn:hover:not(:disabled) {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
 }
 
 .agent-label {
@@ -128,6 +276,7 @@
 
 .agent h1 {
   margin: 0;
+  padding-right: 56px;
   font-size: 19px;
   font-weight: 600;
   line-height: 1.25;
@@ -487,7 +636,12 @@
   .entry,
   .story-btn,
   .dots,
-  .pulse {
+  .pulse,
+  .agent-show-dot {
     animation: none;
+  }
+
+  .agent-show {
+    transition: none;
   }
 }

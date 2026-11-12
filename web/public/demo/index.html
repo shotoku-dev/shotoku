@@ -37,7 +37,13 @@
 
     <div class="stage">
       <section class="agent" aria-labelledby="agent-title">
+        <button id="agent-show" class="agent-show" type="button" aria-label="Show the agent">
+          <span class="agent-show-mark" aria-hidden="true">›</span>
+          <span class="agent-show-label">The agent</span>
+          <span class="agent-show-dot" aria-hidden="true"></span>
+        </button>
         <header class="agent-head">
+          <button id="agent-hide" class="btn agent-hide" type="button" aria-expanded="true" aria-controls="story">Hide</button>
           <p class="agent-label">The agent</p>
           <h1 id="agent-title">Claude is working your support inbox.</h1>
           <p class="agent-lead">

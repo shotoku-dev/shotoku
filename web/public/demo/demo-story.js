@@ -8,6 +8,10 @@
  * a call that is held on the left is waiting on the right, and the agent does
  * not move until you answer it there.
  *
+ * Nothing happens until you ask for it: the page opens quiet, the agent starts
+ * when you hand it the email, and its pane folds away if you only want the
+ * dashboard.
+ *
  * What Claude says, the order of its calls and the PayPal ids are replayed
  * from real runs against the PayPal sandbox on 12 November 2026
  * (examples/paypal/agent-ai.mjs). Nothing on this page reaches PayPal. The
@@ -143,6 +147,34 @@
 
   const pendingPanel = document.getElementById("pending-grid").closest(".panel");
 
+  // --- folding the agent's pane away -------------------------------------------
+
+  const stage = document.querySelector(".stage");
+  const hideButton = document.getElementById("agent-hide");
+  const showButton = document.getElementById("agent-show");
+
+  function setCollapsed(collapsed) {
+    stage.classList.toggle("agent-collapsed", collapsed);
+    hideButton.setAttribute("aria-expanded", String(!collapsed));
+    if (collapsed) {
+      showButton.focus();
+    } else {
+      // Whatever the agent did while the pane was away is at the bottom.
+      log.scrollTop = log.scrollHeight;
+      hideButton.focus();
+    }
+  }
+
+  hideButton.addEventListener("click", () => setCollapsed(true));
+  showButton.addEventListener("click", () => setCollapsed(false));
+
+  /** While the agent waits on you, the folded pane says so. */
+  function setWaiting(isWaiting) {
+    pendingPanel.classList.toggle("needs-you", isWaiting);
+    stage.classList.toggle("agent-waiting", isWaiting);
+    showButton.setAttribute("aria-label", isWaiting ? "Show the agent. It is waiting on you." : "Show the agent");
+  }
+
   // --- act one: a plausible claim ----------------------------------------------
 
   const LAMP = { order: "3V565148FR843633E", capture: "2W9291277Y030111K", refund: "5DR90921HT497160G" };
@@ -151,7 +183,6 @@
 
   async function claim() {
     setActions([]);
-    await pause(700);
     email({
       from: "Sam Rivera",
       subject: "Two damaged items, please refund",
@@ -201,10 +232,10 @@
 
     const prompt = add(el("p", "your-turn"));
     prompt.append(el("span", "pulse"), el("span", "", "Your turn. Approve or deny the $480 refund under Pending approvals."));
-    pendingPanel.classList.add("needs-you");
+    setWaiting(true);
 
     const approval = await answer;
-    pendingPanel.classList.remove("needs-you");
+    setWaiting(false);
     prompt.remove();
 
     if (approval.verdict === "approved") {
@@ -337,5 +368,27 @@
     setActions(buttons);
   }
 
-  claim();
+  // --- the page opens quiet ----------------------------------------------------
+
+  function start() {
+    const card = el("div", "start");
+    card.append(
+      el("p", "start-title", "A customer says two orders arrived broken."),
+      el(
+        "p",
+        "start-text",
+        "One is an $89 lamp, the other a $480 chair. Hand the email to the agent and see what it does with your PayPal account.",
+      ),
+    );
+    const button = el("button", "btn start-btn", "Give the agent the email");
+    button.type = "button";
+    button.addEventListener("click", () => {
+      card.remove();
+      claim();
+    });
+    card.append(button);
+    log.append(card);
+  }
+
+  start();
 })();
