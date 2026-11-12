@@ -24,10 +24,7 @@
   </head>
   <body>
     <aside class="demo-banner" aria-label="About this demo">
-      <p>
-        <strong>Live demo.</strong> Runs entirely in your browser: nothing here reaches PayPal. The dashboard is the
-        one <code>shotoku ui</code> serves locally.
-      </p>
+      <p><strong>Live demo.</strong> Runs in your browser. Nothing here reaches PayPal.</p>
       <div class="demo-links">
         <a href="https://www.youtube.com/watch?v=OfXpXQCjEnA" target="_blank" rel="noopener">Watch the video</a>
         <a href="https://github.com/shotoku-dev/shotoku" target="_blank" rel="noopener">GitHub</a>
@@ -54,11 +51,7 @@
 
         <footer class="agent-foot">
           <div id="story-actions" class="story-actions"></div>
-          <p class="provenance">
-            Claude’s words, calls and PayPal ids are replayed from real runs against the PayPal sandbox on
-            12 November 2026. Every decision is computed here, in your browser, by a port of Shotoku’s policy and
-            ledger code.
-          </p>
+          <p class="provenance">Claude’s output is replayed from real PayPal sandbox runs. Decisions are computed in your browser.</p>
         </footer>
       </section>
 
@@ -94,19 +87,19 @@
 
           <section class="panel">
             <div class="panel-head">
-              <h2>Budgets</h2>
-              <span class="muted">Approved spend in the rolling 24-hour window.</span>
-            </div>
-            <div id="budgets-grid" class="grid grid-budgets"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <h2>History</h2>
+              <div class="tabs" role="tablist" aria-label="Ledger views">
+                <button id="tab-history" class="tab" type="button" role="tab" aria-selected="true" aria-controls="view-history">History</button>
+                <button id="tab-budgets" class="tab" type="button" role="tab" aria-selected="false" aria-controls="view-budgets" tabindex="-1">Budgets</button>
+              </div>
               <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
             </div>
-            <div id="history-grid" class="grid grid-history"></div>
-            <div id="detail" class="detail" aria-live="polite" hidden></div>
+            <div id="view-history" role="tabpanel" aria-labelledby="tab-history">
+              <div id="history-grid" class="grid grid-history"></div>
+              <div id="detail" class="detail" aria-live="polite" hidden></div>
+            </div>
+            <div id="view-budgets" role="tabpanel" aria-labelledby="tab-budgets" hidden>
+              <div id="budgets-grid" class="grid grid-budgets"></div>
+            </div>
           </section>
         </main>
       </div>

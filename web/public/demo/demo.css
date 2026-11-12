@@ -299,9 +299,9 @@
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px 20px 24px;
-  font-size: 13px;
+  gap: 12px;
+  padding: 20px 20px 24px;
+  font-size: 13.5px;
   line-height: 1.5;
 }
 
@@ -334,28 +334,25 @@
 }
 
 .act {
-  margin: 10px 0 0;
-  padding-top: 16px;
+  margin: 12px 0 0;
+  padding-top: 18px;
   border-top: 1px solid var(--border-strong);
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
 }
 
 .mail {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
+  gap: 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 
 .mail-meta {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .mail-subject {
@@ -369,62 +366,40 @@
   overflow-wrap: anywhere;
 }
 
-.call,
-.you,
-.note,
-.thinking {
-  font-family: var(--mono);
+/* A tool call is one line: what was called, and what Shotoku said. */
+.call-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font: 12.5px var(--mono);
+}
+
+.call-line .status {
+  margin-left: auto;
+}
+
+.call-detail {
+  color: var(--muted);
   font-size: 12.5px;
-}
-
-.call {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.call-line,
-.you {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 8px;
   overflow-wrap: anywhere;
 }
 
-.who {
-  font-weight: 600;
-}
-
-.arrow,
-.args {
-  color: var(--muted);
-}
-
 .tag {
-  align-self: center;
   padding: 0 5px;
   border: 1px solid var(--border-strong);
   color: var(--muted);
   font-size: 10.5px;
-  letter-spacing: 0.02em;
 }
 
-.verdict {
+.you {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 10px;
-  padding-left: 16px;
+  gap: 0 8px;
+  font-weight: 500;
 }
 
-.verdict-id,
-.verdict-detail {
-  color: var(--muted);
-}
-
-.verdict-detail {
-  padding-left: 16px;
-  overflow-wrap: anywhere;
+.who {
+  font: 600 12.5px/1.6 var(--mono);
 }
 
 .you.said-yes .who {
@@ -435,41 +410,22 @@
   color: var(--denied);
 }
 
+/* Shotoku explains itself in the margin; Claude speaks in the open. */
 .note {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 1px 0 1px 12px;
+  padding-left: 12px;
   border-left: 2px solid var(--fg);
-  font-family: var(--sans);
+  color: var(--muted);
   font-size: 13px;
   text-wrap: pretty;
 }
 
-.note-who {
-  color: var(--muted);
-  font: 500 11px var(--mono);
-  letter-spacing: 0.04em;
-}
-
 .say {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border-strong);
-  font-size: 13.5px;
   text-wrap: pretty;
-}
-
-.say-who {
-  color: var(--muted);
-  font: 500 11px var(--mono);
-  letter-spacing: 0.04em;
 }
 
 .thinking {
   color: var(--muted);
+  font: 12.5px var(--mono);
 }
 
 .dots {
@@ -490,11 +446,7 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  padding: 11px 12px;
-  border: 1px solid var(--pending);
-  color: var(--fg);
-  font-weight: 500;
-  text-wrap: pretty;
+  font-weight: 600;
 }
 
 .pulse {
@@ -510,10 +462,10 @@
 .recap {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 14px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
+  gap: 2px;
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-strong);
 }
 
 .recap-line {

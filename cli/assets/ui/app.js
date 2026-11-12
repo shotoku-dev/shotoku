@@ -336,13 +336,39 @@
       { headerName: "Agent", field: "actor", width: 150 },
       { headerName: "Tool or vendor", field: "resource", flex: 1.5, minWidth: 140, cellClass: "mono" },
       { headerName: "Amount", field: "amount", width: 110, valueFormatter: (p) => money(p.value), type: "rightAligned", cellClass: RIGHT },
-      { headerName: "Summary", field: "summary", flex: 2, minWidth: 220, cellClass: "muted-cell", tooltipField: "summary" },
     ],
   });
 
   document.getElementById("history-search").addEventListener("input", (event) => {
     historyGrid.setGridOption("quickFilterText", event.target.value);
   });
+
+  // One view of the ledger at a time: what happened, or what is left to spend.
+  const views = ["history", "budgets"].map((name) => ({
+    tab: document.getElementById(`tab-${name}`),
+    view: document.getElementById(`view-${name}`),
+  }));
+
+  function showView(chosen) {
+    for (const entry of views) {
+      const selected = entry === chosen;
+      entry.tab.setAttribute("aria-selected", String(selected));
+      entry.tab.tabIndex = selected ? 0 : -1;
+      entry.view.hidden = !selected;
+    }
+    // The filter belongs to the history.
+    document.getElementById("history-search").style.visibility = chosen === views[0] ? "" : "hidden";
+  }
+
+  for (const entry of views) {
+    entry.tab.addEventListener("click", () => showView(entry));
+    entry.tab.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+      const other = views[(views.indexOf(entry) + 1) % views.length];
+      showView(other);
+      other.tab.focus();
+    });
+  }
 
   // A phone gets the columns that answer "what, and how much"; the rest is
   // one tap away in the decision’s detail.
@@ -364,7 +390,7 @@
         { colId: "remaining", width: wide ? 120 : 104 },
       ],
     });
-    historyGrid.setColumnsVisible(["timestamp", "resolution", "summary"], wide);
+    historyGrid.setColumnsVisible(["timestamp", "resolution"], wide);
     historyGrid.applyColumnState({
       state: [
         { colId: "status", width: wide ? 130 : 112 },

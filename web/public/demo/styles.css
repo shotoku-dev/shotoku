@@ -72,6 +72,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* The integrity line already says the page is live. */
+#refreshed {
+  display: none;
+}
+
 .integrity.ok {
   color: var(--approved);
 }
@@ -104,21 +109,17 @@ main {
 
 /* --- last 24 hours ------------------------------------------------------- */
 
+/* Four numbers on a line. No boxes: the tables below are what you act on. */
 .kpis {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 56px;
 }
 
 .kpi {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 18px 20px 16px;
-}
-
-.kpi + .kpi {
-  border-left: 1px solid var(--border);
+  gap: 4px;
 }
 
 .kpi-label {
@@ -130,7 +131,7 @@ main {
 }
 
 .kpi-value {
-  font: 600 30px/1.1 var(--mono);
+  font: 600 24px/1.1 var(--mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
@@ -204,7 +205,70 @@ h2 {
   outline-offset: 2px;
 }
 
+/* --- history and budgets, one at a time ---------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 22px;
+}
+
+.tab {
+  position: relative;
+  padding: 0 0 8px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: 600 15px var(--sans);
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+
+/* Room to hit, without the two tabs overlapping. */
+.tab::before {
+  content: "";
+  position: absolute;
+  inset: -12px -10px -4px;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--fg);
+}
+
+.tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: var(--fg);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover {
+    color: var(--fg);
+  }
+}
+
 /* --- grids --------------------------------------------------------------- */
+
+/* Rows on the page, not a table in a box. The grid bleeds by its cell padding
+   so the first column lines up with the headings above it. */
+.grid {
+  margin-inline: -12px;
+}
+
+.grid .ag-root-wrapper {
+  border: none;
+}
+
+.grid .ag-header-cell-resize::after {
+  display: none;
+}
 
 .grid .ag-header-cell-text {
   letter-spacing: 0.01em;
@@ -623,15 +687,7 @@ h2 {
   }
 
   .kpis {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .kpi:nth-child(3) {
-    border-left: none;
-  }
-
-  .kpi:nth-child(n + 3) {
-    border-top: 1px solid var(--border);
+    gap: 16px 36px;
   }
 
   .panel-head {
@@ -656,6 +712,7 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .btn,
+  .tab,
   .search,
   .toast,
   .toast.toast-in,
@@ -671,4 +728,10 @@ h2 {
   .btn:active:not(:disabled) {
     scale: 1;
   }
+}
+
+/* The answer buttons sit in a pinned column; it needs no rule of its own. */
+.grid .ag-pinned-right-header,
+.grid .ag-cell-first-right-pinned {
+  border-left: none !important;
 }

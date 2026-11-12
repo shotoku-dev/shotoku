@@ -40,19 +40,19 @@
 
       <section class="panel">
         <div class="panel-head">
-          <h2>Budgets</h2>
-          <span class="muted">Approved spend in the rolling 24-hour window.</span>
-        </div>
-        <div id="budgets-grid" class="grid grid-budgets"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <h2>History</h2>
+          <div class="tabs" role="tablist" aria-label="Ledger views">
+            <button id="tab-history" class="tab" type="button" role="tab" aria-selected="true" aria-controls="view-history">History</button>
+            <button id="tab-budgets" class="tab" type="button" role="tab" aria-selected="false" aria-controls="view-budgets" tabindex="-1">Budgets</button>
+          </div>
           <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
         </div>
-        <div id="history-grid" class="grid grid-history"></div>
-        <div id="detail" class="detail" aria-live="polite" hidden></div>
+        <div id="view-history" role="tabpanel" aria-labelledby="tab-history">
+          <div id="history-grid" class="grid grid-history"></div>
+          <div id="detail" class="detail" aria-live="polite" hidden></div>
+        </div>
+        <div id="view-budgets" role="tabpanel" aria-labelledby="tab-budgets" hidden>
+          <div id="budgets-grid" class="grid grid-budgets"></div>
+        </div>
       </section>
     </main>
   </body>
