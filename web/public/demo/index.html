@@ -9,10 +9,10 @@
       content="An AI support agent, PayPal, and you. Watch the agent work, answer the refund it is not allowed to make alone, then try to edit the ledger behind its back."
     />
     <!--
-      The hosted demo of the `shotoku ui` dashboard. app.js and styles.css are
-      copies of cli/assets/ui/; demo-shim.js stands in for the local server and
-      demo-story.js plays the agent. Paths are absolute so the page works at
-      /demo and /demo/index.html.
+      The hosted demo. One column: what the agent does, and the one decision it
+      needs from you. The full `shotoku ui` dashboard is underneath, folded away:
+      app.js and styles.css are copies of cli/assets/ui/, demo-shim.js stands in
+      for the local server, and demo-story.js plays the agent.
     -->
     <link rel="icon" href="/assets/brand/shotoku-favicon.svg" />
     <link rel="stylesheet" href="/demo/styles.css" />
@@ -23,99 +23,91 @@
     <script src="/demo/demo-story.js" defer></script>
   </head>
   <body>
-    <aside class="demo-banner" aria-label="About this demo">
-      <p><strong>Live demo.</strong> Runs in your browser. Nothing here reaches PayPal.</p>
-      <div class="demo-links">
-        <a href="https://www.youtube.com/watch?v=OfXpXQCjEnA" target="_blank" rel="noopener">Watch the video</a>
-        <a href="https://github.com/shotoku-dev/shotoku" target="_blank" rel="noopener">GitHub</a>
-        <button id="demo-reset" class="btn" type="button">Reset demo</button>
-      </div>
-    </aside>
-
     <dialog id="intro" class="intro" aria-labelledby="intro-title">
       <h2 id="intro-title">Give your agent a budget, not your card.</h2>
-      <p>
-        An AI support agent has your PayPal account. A customer writes that two orders arrived broken: an $89 lamp
-        and a $480 chair.
-      </p>
-      <p>Hand it the email and see how far it gets without you.</p>
+      <p>An AI agent has your PayPal account. A customer wants two refunds: $89 and $480.</p>
       <div class="intro-actions">
         <button id="intro-start" class="btn intro-start" type="button">Give the agent the email</button>
-        <button id="intro-skip" class="btn intro-skip" type="button">Look around first</button>
       </div>
     </dialog>
 
-    <div class="stage">
-      <section class="agent" aria-labelledby="agent-title">
-        <button id="agent-show" class="agent-show" type="button" aria-label="Show the agent">
-          <span class="agent-show-mark" aria-hidden="true">›</span>
-          <span class="agent-show-label">The agent</span>
-          <span class="agent-show-dot" aria-hidden="true"></span>
-        </button>
-        <header class="agent-head">
-          <button id="agent-hide" class="btn agent-hide" type="button" aria-expanded="true" aria-controls="story">Hide</button>
-          <h1 id="agent-title">Claude is working your support inbox.</h1>
-          <p class="agent-lead">
-            It can refund through PayPal up to $100 on its own. Past that, it needs you.
-          </p>
-        </header>
+    <header class="top">
+      <span class="wordmark">shotoku</span>
+      <span class="top-note">Live demo. Nothing here reaches PayPal.</span>
+      <nav class="top-links">
+        <a href="https://www.youtube.com/watch?v=OfXpXQCjEnA" target="_blank" rel="noopener">Video</a>
+        <a href="https://github.com/shotoku-dev/shotoku" target="_blank" rel="noopener">GitHub</a>
+        <button id="demo-reset" class="btn" type="button">Reset</button>
+      </nav>
+    </header>
 
-        <div id="story" class="story" role="log" aria-live="polite" aria-label="What the agent is doing" tabindex="0"></div>
-
-        <footer class="agent-foot">
-          <div id="story-actions" class="story-actions"></div>
-          <p class="provenance">Claude’s output is replayed from real PayPal sandbox runs. Decisions are computed in your browser.</p>
-        </footer>
+    <div class="page">
+      <section class="meter" aria-label="Spent today">
+        <p class="meter-line">
+          <span id="meter-spent" class="meter-spent">$85</span>
+          <span class="meter-of">of $1,000 spent today</span>
+          <span id="chain" class="chain ok">✓ ledger intact</span>
+        </p>
+        <div class="meter-track"><div id="meter-fill" class="meter-fill"></div></div>
       </section>
 
-      <div class="dash">
-        <header class="bar">
-          <div class="brand">
-            <span class="wordmark">shotoku</span>
-            <span class="tagline">spend controls</span>
-          </div>
-          <div class="meta">
-            <span id="integrity" class="integrity">checking ledger…</span>
-            <span id="refreshed" class="muted"></span>
-          </div>
-        </header>
+      <section class="feed">
+        <div id="story" class="story" role="log" aria-live="polite" aria-label="What the agent is doing"></div>
+        <div id="story-actions" class="story-actions"></div>
+      </section>
 
-        <main>
-          <p id="notice" class="notice" role="alert" hidden></p>
+      <p class="provenance">Claude’s output is replayed from real PayPal sandbox runs. Decisions are computed in your browser.</p>
 
-          <section class="kpis" aria-label="Last 24 hours">
-            <div class="kpi"><span class="kpi-label">Pending</span><span id="kpi-pending" class="kpi-value pending">–</span></div>
-            <div class="kpi"><span class="kpi-label">Approved</span><span id="kpi-approved" class="kpi-value approved">–</span></div>
-            <div class="kpi"><span class="kpi-label">Denied</span><span id="kpi-denied" class="kpi-value denied">–</span></div>
-            <div class="kpi"><span class="kpi-label">Spent, 24h</span><span id="kpi-spent" class="kpi-value">–</span></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <h2>Pending approvals</h2>
-              <span class="muted">An approval lets the agent’s identical retry through, once.</span>
+      <details class="full">
+        <summary>Open the full dashboard</summary>
+        <div class="dash">
+          <header class="bar">
+            <div class="brand">
+              <span class="wordmark">shotoku</span>
+              <span class="tagline">spend controls</span>
             </div>
-            <div id="pending-grid" class="grid grid-pending"></div>
-          </section>
+            <div class="meta">
+              <span id="integrity" class="integrity">checking ledger…</span>
+              <span id="refreshed" class="muted"></span>
+            </div>
+          </header>
 
-          <section class="panel">
-            <div class="panel-head">
-              <div class="tabs" role="tablist" aria-label="Ledger views">
-                <button id="tab-history" class="tab" type="button" role="tab" aria-selected="true" aria-controls="view-history">History</button>
-                <button id="tab-budgets" class="tab" type="button" role="tab" aria-selected="false" aria-controls="view-budgets" tabindex="-1">Budgets</button>
+          <main>
+            <p id="notice" class="notice" role="alert" hidden></p>
+
+            <section class="kpis" aria-label="Last 24 hours">
+              <div class="kpi"><span class="kpi-label">Pending</span><span id="kpi-pending" class="kpi-value pending">–</span></div>
+              <div class="kpi"><span class="kpi-label">Approved</span><span id="kpi-approved" class="kpi-value approved">–</span></div>
+              <div class="kpi"><span class="kpi-label">Denied</span><span id="kpi-denied" class="kpi-value denied">–</span></div>
+              <div class="kpi"><span class="kpi-label">Spent, 24h</span><span id="kpi-spent" class="kpi-value">–</span></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Pending approvals</h2>
               </div>
-              <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
-            </div>
-            <div id="view-history" role="tabpanel" aria-labelledby="tab-history">
-              <div id="history-grid" class="grid grid-history"></div>
-              <div id="detail" class="detail" aria-live="polite" hidden></div>
-            </div>
-            <div id="view-budgets" role="tabpanel" aria-labelledby="tab-budgets" hidden>
-              <div id="budgets-grid" class="grid grid-budgets"></div>
-            </div>
-          </section>
-        </main>
-      </div>
+              <div id="pending-grid" class="grid grid-pending"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div class="tabs" role="tablist" aria-label="Ledger views">
+                  <button id="tab-history" class="tab" type="button" role="tab" aria-selected="true" aria-controls="view-history">History</button>
+                  <button id="tab-budgets" class="tab" type="button" role="tab" aria-selected="false" aria-controls="view-budgets" tabindex="-1">Budgets</button>
+                </div>
+                <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
+              </div>
+              <div id="view-history" role="tabpanel" aria-labelledby="tab-history">
+                <div id="history-grid" class="grid grid-history"></div>
+                <div id="detail" class="detail" aria-live="polite" hidden></div>
+              </div>
+              <div id="view-budgets" role="tabpanel" aria-labelledby="tab-budgets" hidden>
+                <div id="budgets-grid" class="grid grid-budgets"></div>
+              </div>
+            </section>
+          </main>
+        </div>
+      </details>
     </div>
   </body>
 </html>

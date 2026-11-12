@@ -59,9 +59,9 @@ What makes this hold up against a real agent:
 - **It never guesses.** No policy, an unreadable ledger, or an amount it cannot determine all end the same way: the agent is not approved.
 - **Your PayPal secret stays with you.** Shotoku mints a short-lived access token from your app credentials and hands PayPal's server only the token.
 
-[![The live demo: Claude's transcript on the left, held at a $480 refund; the Shotoku dashboard on the right, waiting for an answer](assets/dashboard.png)](https://www.shotoku.dev/demo)
+[![The live demo: the agent has refunded $89 and is held at a $480 refund, waiting for Approve or Deny](assets/dashboard.png)](https://www.shotoku.dev/demo)
 
-**[Try it in your browser](https://www.shotoku.dev/demo).** Watch the agent work the email, answer the $480 refund it cannot make alone, then edit the ledger behind its back and see what happens. The agent's side is replayed from real runs against the PayPal sandbox; every decision is computed in the page by a port of Shotoku's policy and ledger code, hash chain included. The dashboard is the one `shotoku ui` serves locally, built with AG Grid.
+**[Try it in your browser](https://www.shotoku.dev/demo).** Watch the agent work the email, answer the $480 refund it cannot make alone, then edit the ledger behind its back and see what happens. The agent's side is replayed from real runs against the PayPal sandbox; every decision is computed in the page by a port of Shotoku's policy and ledger code, hash chain included. The full dashboard, the one `shotoku ui` serves locally and built with AG Grid, opens underneath.
 
 ## What the agent does with nobody watching
 

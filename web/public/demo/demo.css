@@ -1,52 +1,47 @@
 /*
- * Demo-only styles: the banner, and the agent's pane beside the dashboard.
- * styles.css is an untouched copy of cli/assets/ui/styles.css, so everything
- * the demo adds lives here.
+ * Demo-only styles. One centred column: a spend meter, the agent's feed, and
+ * the full dashboard folded away underneath. styles.css is an untouched copy
+ * of cli/assets/ui/styles.css, so everything the demo adds lives here.
  */
 
 :root {
-  --banner-height: 45px;
-  --z-banner: 100;
+  --card: #111110;
+  --card-border: rgba(255, 255, 255, 0.07);
+  --z-top: 100;
 }
 
-/* --- banner -------------------------------------------------------------- */
+/* --- top bar ------------------------------------------------------------- */
 
-.demo-banner {
+.top {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-top);
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px 24px;
-  padding: 8px 24px;
+  gap: 14px;
+  height: 52px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--border);
-  background: var(--panel);
+  background: var(--bg);
+}
+
+.top-note {
   color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
   font-size: 13px;
 }
 
-.demo-banner p {
-  margin: 0;
-  min-width: 0;
-}
-
-.demo-banner strong {
-  color: var(--fg);
-  font-weight: 600;
-}
-
-.demo-banner code {
-  color: var(--fg);
-  font: 12px var(--mono);
-}
-
-.demo-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 16px;
-}
-
-.demo-banner a,
+.top-links a,
 .recap a {
   color: var(--fg);
   text-decoration: underline;
@@ -55,263 +50,112 @@
   transition: text-decoration-color 150ms ease-out;
 }
 
-/* Taller to hit than the text is to read. */
-.demo-links a {
+.top-links a {
   padding: 10px 0;
 }
 
-.demo-banner a:hover,
+.top-links a:hover,
 .recap a:hover {
   text-decoration-color: var(--fg);
 }
 
-.demo-banner .btn {
-  height: 28px;
-}
-
-.demo-banner a:focus-visible,
+.top-links a:focus-visible,
 .recap a:focus-visible,
-.story:focus-visible {
+.full summary:focus-visible {
   outline: 2px solid var(--fg);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
-/* --- two panes ----------------------------------------------------------- */
-
-.stage {
-  display: grid;
-  grid-template-columns: 380px minmax(0, 1fr);
-  align-items: start;
+.top .btn {
+  height: 30px;
+  border-radius: 999px;
 }
 
-.dash {
-  min-width: 0;
-}
+/* --- the column ---------------------------------------------------------- */
 
-.dash main {
-  padding-top: 24px;
-}
-
-.agent {
+.page {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
-  background: var(--panel);
+  gap: 20px;
+  width: min(600px, 100% - 32px);
+  margin: 0 auto;
+  padding: 40px 0 96px;
 }
 
-/* Side by side, the banner stays put and the agent's pane fills what is left. */
-@media (min-width: 1181px) {
-  .demo-banner {
-    position: sticky;
-    top: 0;
-    z-index: var(--z-banner);
-    height: var(--banner-height);
-    flex-wrap: nowrap;
-  }
+/* --- what has been spent ------------------------------------------------- */
 
-  .agent {
-    position: sticky;
-    top: var(--banner-height);
-    height: calc(100vh - var(--banner-height));
-    height: calc(100dvh - var(--banner-height));
-  }
-}
-
-.agent-head {
-  position: relative;
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-/* 40px to aim at, around a 26px control. */
-.agent-hide::before {
-  inset: -7px;
-}
-
-.agent-hide {
-  position: absolute;
-  top: 18px;
-  right: 16px;
-  height: 26px;
-  padding: 0 10px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .agent-hide:hover:not(:disabled) {
-    color: var(--fg);
-  }
-}
-
-/* --- the pane, folded away ----------------------------------------------- */
-
-.agent-show {
-  display: none;
-  align-items: center;
+.meter {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  width: 100%;
-  padding: 16px 0;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  font: 500 11px var(--sans);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition:
-    background-color 150ms ease-out,
-    color 150ms ease-out;
 }
 
-.agent-show:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: -2px;
-}
-
-.agent-show-mark {
-  color: var(--fg);
-  font-size: 16px;
-  line-height: 1;
-  letter-spacing: 0;
-}
-
-.agent-show-dot {
-  display: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--pending);
-  animation: breathe 1400ms ease-in-out infinite;
-}
-
-.agent-waiting .agent-show-dot {
-  display: block;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .agent-show:hover {
-    background: rgba(245, 245, 240, 0.05);
-    color: var(--fg);
-  }
-}
-
-.agent-collapsed .agent-show {
+.meter-line {
   display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
 }
 
-.agent-collapsed .agent-head,
-.agent-collapsed .story,
-.agent-collapsed .agent-foot {
-  display: none;
+.meter-spent {
+  font: 600 28px/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
-@media (min-width: 1181px) {
-  .stage.agent-collapsed {
-    grid-template-columns: 48px minmax(0, 1fr);
-  }
-
-  .agent-collapsed .agent-show {
-    flex-direction: column;
-    height: 100%;
-    justify-content: flex-start;
-  }
-
-  .agent-collapsed .agent-show-label {
-    writing-mode: vertical-rl;
-  }
+.meter-of {
+  color: var(--muted);
+  font-size: 14px;
 }
 
-@media (max-width: 1180px) {
-  .agent-collapsed .agent-show {
-    padding: 14px 16px;
-  }
-
-  .agent-collapsed .agent-show-mark {
-    rotate: 90deg;
-  }
+.chain {
+  margin-left: auto;
+  font: 500 12px var(--mono);
 }
 
-/* --- before anything has happened ---------------------------------------- */
+.chain.ok {
+  color: var(--approved);
+}
 
-.start {
+.chain.broken {
+  color: var(--denied);
+}
+
+.meter-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--fg);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 500ms var(--ease-out);
+}
+
+/* --- the feed ------------------------------------------------------------ */
+
+.feed {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  background: var(--card);
 }
-
-.start-title {
-  font-size: 15px;
-  font-weight: 600;
-  text-wrap: balance;
-}
-
-.start-text {
-  color: var(--muted);
-  font-size: 13.5px;
-  text-wrap: pretty;
-}
-
-/* The one thing to do on this page. */
-.start-btn {
-  height: 36px;
-  margin-top: 6px;
-  padding: 0 14px;
-  background: var(--fg);
-  border-color: var(--fg);
-  color: var(--bg);
-  font-size: 13px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .start-btn:hover:not(:disabled) {
-    background: #ffffff;
-    border-color: #ffffff;
-  }
-}
-
-.agent h1 {
-  margin: 0;
-  padding-right: 56px;
-  font-size: 19px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
-}
-
-.agent-lead {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 13.5px;
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
-/* --- the transcript ------------------------------------------------------ */
 
 .story {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px 20px 24px;
-  font-size: 13.5px;
+  font-size: 15px;
   line-height: 1.5;
-}
-
-.story::-webkit-scrollbar {
-  width: 8px;
-}
-
-.story::-webkit-scrollbar-thumb {
-  background: rgba(245, 245, 240, 0.14);
-  border-radius: 4px;
 }
 
 .story p {
@@ -319,7 +163,8 @@
 }
 
 .entry {
-  animation: entry-in 240ms var(--ease-out);
+  scroll-margin: 80px 0 24px;
+  animation: entry-in 260ms var(--ease-out);
 }
 
 @keyframes entry-in {
@@ -333,21 +178,13 @@
   }
 }
 
-.act {
-  margin: 12px 0 0;
-  padding-top: 18px;
-  border-top: 1px solid var(--border-strong);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-}
-
 .mail {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .mail-meta {
@@ -355,81 +192,73 @@
   font-size: 12.5px;
 }
 
-.mail-subject {
-  font-weight: 600;
-}
-
 .mail-hidden {
-  padding-left: 10px;
-  border-left: 2px solid var(--muted);
+  margin-top: 6px !important;
+  color: var(--muted);
   font: 12px/1.5 var(--mono);
   overflow-wrap: anywhere;
 }
 
-/* A tool call is one line: what was called, and what Shotoku said. */
-.call-line {
+/* One line per thing the agent does, with what Shotoku said about it. */
+.call {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  font: 12.5px var(--mono);
 }
 
-.call-line .status {
+.chip {
   margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font: 600 12px var(--mono);
+  white-space: nowrap;
 }
 
-.call-detail {
-  color: var(--muted);
-  font-size: 12.5px;
-  overflow-wrap: anywhere;
+.chip.approved {
+  background: rgba(61, 220, 132, 0.12);
+}
+
+.chip.pending {
+  background: rgba(245, 197, 66, 0.14);
+}
+
+.chip.denied {
+  background: rgba(255, 92, 92, 0.13);
 }
 
 .tag {
-  padding: 0 5px;
-  border-radius: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
   border: 1px solid var(--border-strong);
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 11px;
 }
 
-.you {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 8px;
-  font-weight: 500;
-}
-
-.who {
-  font: 600 12.5px/1.6 var(--mono);
-}
-
-.you.said-yes .who {
-  color: var(--approved);
-}
-
-.you.said-no .who {
-  color: var(--denied);
-}
-
-/* Shotoku explains itself in the margin; Claude speaks in the open. */
-.note {
-  padding-left: 12px;
-  border-left: 2px solid var(--fg);
-  color: var(--muted);
-  font-size: 13px;
+.say,
+.note,
+.you,
+.recap {
   text-wrap: pretty;
 }
 
 .say {
-  text-wrap: pretty;
+  color: var(--fg);
+}
+
+.note,
+.recap {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.you {
+  font-weight: 600;
 }
 
 .thinking {
   color: var(--muted);
-  font: 12.5px var(--mono);
-}
-
-.dots {
+  font: 16px/1 var(--mono);
+  letter-spacing: 0.2em;
   animation: breathe 1200ms ease-in-out infinite;
 }
 
@@ -443,167 +272,183 @@
   }
 }
 
-.your-turn {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-weight: 600;
-}
+/* --- the decision -------------------------------------------------------- */
 
-.pulse {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--pending);
-  translate: 0 -1px;
-  animation: breathe 1400ms ease-in-out infinite;
-}
-
-.recap {
+.ask {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: 6px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-strong);
+  gap: 4px;
+  margin-top: 4px;
+  padding: 18px;
+  border: 1px solid rgba(245, 197, 66, 0.5);
+  border-radius: 16px;
+  background: rgba(245, 197, 66, 0.06);
 }
 
-.recap-line {
-  font-size: 15px;
+.ask-amount {
+  font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.005em;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
-.recap-foot {
-  margin-top: 8px !important;
+.ask-why {
   color: var(--muted);
-  font-size: 12.5px;
-  text-wrap: pretty;
+  font-size: 14px;
+}
+
+.ask-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ask .btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+/* Both answers carry the same weight: the page does not lean towards spending. */
+.ask-approve {
+  border-color: rgba(61, 220, 132, 0.55);
+  color: var(--approved);
+}
+
+.ask-deny {
+  border-color: rgba(255, 92, 92, 0.55);
+  color: var(--denied);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ask-approve:hover:not(:disabled) {
+    border-color: var(--approved);
+    background: rgba(61, 220, 132, 0.12);
+  }
+
+  .ask-deny:hover:not(:disabled) {
+    border-color: var(--denied);
+    background: rgba(255, 92, 92, 0.12);
+  }
 }
 
 /* --- what to do next ----------------------------------------------------- */
 
-.agent-foot {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px 20px 16px;
-  border-top: 1px solid var(--border);
-}
-
 .story-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+  scroll-margin: 80px 0 24px;
 }
 
 .story-actions:empty {
   display: none;
 }
 
-.story-btn {
-  height: 34px;
-  border-color: var(--muted);
-  animation: entry-in 240ms var(--ease-out);
+.story-btn,
+.start-btn {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  animation: entry-in 260ms var(--ease-out);
 }
 
-.story-btn.quiet {
+.story-btn {
   border-color: var(--border-strong);
-  color: var(--muted);
+}
+
+.start-btn {
+  align-self: flex-start;
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .story-btn:hover:not(:disabled) {
     border-color: var(--fg);
     background: rgba(245, 245, 240, 0.08);
-    color: var(--fg);
+  }
+
+  .start-btn:hover:not(:disabled) {
+    background: #ffffff;
+    border-color: #ffffff;
   }
 }
 
 .provenance {
   margin: 0;
   color: var(--muted);
-  font-size: 11.5px;
-  line-height: 1.5;
-  text-wrap: pretty;
+  font-size: 12.5px;
+  text-align: center;
+  text-wrap: balance;
 }
 
-/* The decision the agent is waiting on. */
-.needs-you .grid {
-  outline: 1px solid var(--pending);
-  outline-offset: 3px;
+/* --- the full dashboard, folded away ------------------------------------- */
+
+.full {
+  /* Wider than the column: the tables need the room. */
+  width: min(1180px, 100vw - 32px);
+  align-self: center;
+  margin-top: 12px;
 }
 
-.needs-you h2::after {
-  content: "the agent is waiting on you";
-  margin-left: 12px;
-  color: var(--pending);
-  font-size: 12px;
+.full summary {
+  width: max-content;
+  margin: 0 auto;
+  padding: 10px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13.5px;
   font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+  transition:
+    color 150ms ease-out,
+    border-color 150ms ease-out;
 }
 
-/* --- narrower screens: the agent sits above the dashboard ---------------- */
+.full summary::-webkit-details-marker {
+  display: none;
+}
 
-@media (max-width: 1180px) {
-  .stage {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .agent {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .story {
-    flex: none;
-    height: 44vh;
-    height: 44dvh;
-    min-height: 260px;
+@media (hover: hover) and (pointer: fine) {
+  .full summary:hover {
+    border-color: var(--muted);
+    color: var(--fg);
   }
 }
 
-@media (max-width: 720px) {
-  .demo-banner,
-  .agent-head,
-  .story,
-  .agent-foot {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .needs-you h2::after {
-    display: block;
-    margin: 2px 0 0;
-  }
+.full[open] summary {
+  margin-bottom: 20px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .demo-banner a,
-  .recap a {
-    transition: none;
-  }
+.dash {
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  background: var(--card);
+  overflow: hidden;
+}
 
-  .entry,
-  .story-btn,
-  .dots,
-  .pulse,
-  .agent-show-dot {
-    animation: none;
-  }
+.dash .bar {
+  border-bottom-color: var(--card-border);
+}
 
-  .agent-show {
-    transition: none;
-  }
+.dash main {
+  padding-top: 24px;
+  padding-bottom: 32px;
 }
 
 /* --- the opening --------------------------------------------------------- */
 
 .intro {
-  width: min(480px, calc(100vw - 32px));
-  padding: 28px 28px 24px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
+  border-radius: 24px;
   background: #0e0e0e;
   color: var(--fg);
   box-shadow:
@@ -612,7 +457,6 @@
     0 32px 80px rgba(0, 0, 0, 0.55);
 }
 
-/* The dashboard stays in sight behind it: that is what the email is about to change. */
 .intro::backdrop {
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
@@ -634,7 +478,7 @@
 }
 
 .intro h2 {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 24px;
   font-weight: 600;
   line-height: 1.2;
@@ -643,7 +487,7 @@
 }
 
 .intro p {
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--muted);
   font-size: 15px;
   line-height: 1.55;
@@ -651,29 +495,17 @@
 }
 
 .intro-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   margin-top: 22px;
 }
 
-.intro-start,
-.intro-skip {
-  height: 40px;
-  padding: 0 16px;
-  font-size: 14px;
-}
-
 .intro-start {
+  width: 100%;
+  height: 46px;
+  border-radius: 999px;
   background: var(--fg);
   border-color: var(--fg);
   color: var(--bg);
-}
-
-.intro-skip {
-  border-color: transparent;
-  color: var(--muted);
-  font-weight: 500;
+  font-size: 15px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -681,14 +513,30 @@
     background: #ffffff;
     border-color: #ffffff;
   }
+}
 
-  .intro-skip:hover:not(:disabled) {
-    border-color: var(--border-strong);
-    color: var(--fg);
+@media (max-width: 720px) {
+  .top-note {
+    display: none;
+  }
+
+  .page {
+    padding-top: 24px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .top-links a,
+  .recap a,
+  .full summary,
+  .meter-fill {
+    transition: none;
+  }
+
+  .entry,
+  .story-btn,
+  .start-btn,
+  .thinking,
   .intro[open] {
     animation: none;
   }
