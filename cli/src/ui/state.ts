@@ -140,7 +140,7 @@ function resourceRows(
   dailyTotals: Readonly<Record<string, number>>,
   latestByKey: ReadonlyMap<string, LedgerEntry>,
 ): BudgetRow[] {
-  return Object.entries(dailyTotals).map(([key, micros]) => {
+  const rows = Object.entries(dailyTotals).map(([key, micros]) => {
     const separator = key.indexOf("|");
     const actor = key.slice(0, separator);
     const resource = key.slice(separator + 1);
@@ -151,6 +151,9 @@ function resourceRows(
     const rule = policy && latest ? findMatchingRule(latest.request, policy) : undefined;
     return withLimit({ kind: "resource", actor, resource, spent: fromMicros(micros) }, rule?.maxDailyAmount);
   });
+  // A tool that has spent nothing and has no limit (a read, say) has nothing
+  // to report here. Its calls are still in the history.
+  return rows.filter((row) => row.spent > 0 || row.limit !== undefined);
 }
 
 export function buildDashboardState(input: DashboardInput): DashboardState {

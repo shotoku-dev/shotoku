@@ -55,6 +55,11 @@
   transition: text-decoration-color 150ms ease-out;
 }
 
+/* Taller to hit than the text is to read. */
+.demo-links a {
+  padding: 10px 0;
+}
+
 .demo-banner a:hover,
 .recap a:hover {
   text-decoration-color: var(--fg);
@@ -118,10 +123,15 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* 40px to aim at, around a 26px control. */
+.agent-hide::before {
+  inset: -7px;
+}
+
 .agent-hide {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 18px;
+  right: 16px;
   height: 26px;
   padding: 0 10px;
   color: var(--muted);
@@ -230,9 +240,6 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  padding: 16px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
 }
 
 .start-title {
@@ -263,15 +270,6 @@
     background: #ffffff;
     border-color: #ffffff;
   }
-}
-
-.agent-label {
-  margin: 0 0 8px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .agent h1 {
@@ -365,9 +363,8 @@
 }
 
 .mail-hidden {
-  padding: 8px 10px;
-  border-left: 2px solid var(--denied);
-  background: rgba(255, 92, 92, 0.07);
+  padding-left: 10px;
+  border-left: 2px solid var(--muted);
   font: 12px/1.5 var(--mono);
   overflow-wrap: anywhere;
 }
@@ -442,9 +439,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 9px 12px;
+  padding: 1px 0 1px 12px;
   border-left: 2px solid var(--fg);
-  background: rgba(245, 245, 240, 0.045);
   font-family: var(--sans);
   font-size: 13px;
   text-wrap: pretty;
@@ -521,8 +517,9 @@
 }
 
 .recap-line {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
 }
 
 .recap-foot {

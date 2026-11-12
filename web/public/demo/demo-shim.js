@@ -445,7 +445,7 @@
   }
 
   function resourceRows(dailyTotals, latestByKey) {
-    return Object.entries(dailyTotals).map(([key, micros]) => {
+    const rows = Object.entries(dailyTotals).map(([key, micros]) => {
       const separator = key.indexOf("|");
       const actor = key.slice(0, separator);
       const resource = key.slice(separator + 1);
@@ -453,6 +453,7 @@
       const rule = latest ? findMatchingRule(latest.request) : undefined;
       return withLimit({ kind: "resource", actor, resource, spent: fromMicros(micros) }, rule && rule.maxDailyAmount);
     });
+    return rows.filter((row) => row.spent > 0 || row.limit !== undefined);
   }
 
   function buildState(nowMs) {

@@ -1,10 +1,10 @@
 /* global window, document, setTimeout */
 /**
- * The agent's side of the hosted demo.
+ * The agent’s side of the hosted demo.
  *
  * The left pane shows a support agent working an inbox; the right pane is the
  * real dashboard. Each call the agent makes here is decided by demo-shim.js (a
- * port of Shotoku's policy and ledger code), so the two panes never disagree:
+ * port of Shotoku’s policy and ledger code), so the two panes never disagree:
  * a call that is held on the left is waiting on the right, and the agent does
  * not move until you answer it there.
  *
@@ -62,7 +62,9 @@
     const card = el("article", "mail");
     card.append(el("p", "mail-meta", `From: ${message.from}`), el("p", "mail-subject", message.subject));
     for (const paragraph of message.body) card.append(el("p", "", paragraph));
-    if (message.hidden) card.append(el("p", "mail-hidden", message.hidden));
+    if (message.hidden) {
+      card.append(el("p", "mail-meta", "Further down, in the same email:"), el("p", "mail-hidden", message.hidden));
+    }
     return add(card);
   }
 
@@ -147,7 +149,7 @@
 
   const pendingPanel = document.getElementById("pending-grid").closest(".panel");
 
-  // --- folding the agent's pane away -------------------------------------------
+  // --- folding the agent’s pane away -------------------------------------------
 
   const stage = document.querySelector(".stage");
   const hideButton = document.getElementById("agent-hide");
@@ -188,7 +190,7 @@
       subject: "Two damaged items, please refund",
       body: [
         `Two things from my recent orders arrived broken: the desk lamp (PayPal order ${LAMP.order}), the base is cracked, and the ergonomic chair (order ${CHAIR.order}), which arrived with a wheel snapped off.`,
-        "I'd like a full refund for both.",
+        "I’d like a full refund for both.",
       ],
     });
     await think(1300);
@@ -205,7 +207,7 @@
     verdict(block, "approved", "COMPLETED, $480.00");
     await think(1100);
 
-    say(["Both orders check out: they're paid under Sam Rivera's name, completed, and the items match. Issuing full refunds per policy."]);
+    say(["Both orders check out: they’re paid under Sam Rivera’s name, completed, and the items match. Issuing full refunds per policy."]);
     await pause(1000);
 
     block = call("claude", "paypal__create_refund", `capture_id: ${LAMP.capture}`);
@@ -225,7 +227,7 @@
     await think(1400);
 
     say([
-      "I refunded the desk lamp. The chair refund is blocked until a person approves it. I can't approve it myself, and I didn't try to get around the limit, for example by splitting it into smaller refunds.",
+      "I refunded the desk lamp. The chair refund is blocked until a person approves it. I can’t approve it myself, and I didn’t try to get around the limit, for example by splitting it into smaller refunds.",
       "Before you approve: PayPal marks both payments as HIGH_RISK, and both orders were placed today, yet the email says both items have already arrived broken.",
     ]);
     await pause(500);
@@ -249,7 +251,7 @@
         await pause(400);
         note("Same agent, same tool, same arguments, same amount: your approval covered this one call, and it is now spent.");
         await think(1000);
-        say(["I ran the chair refund again with the same arguments, and it went through. Both refunds are now complete, so Sam's email is fully handled."]);
+        say(["I ran the chair refund again with the same arguments, and it went through. Both refunds are now complete, so Sam’s email is fully handled."]);
       } else {
         verdict(block, retry.response.status, retry.response.explanation.summary, retry.decisionId);
       }
@@ -257,17 +259,16 @@
       you(`denied ${held.decisionId} in the dashboard`, "said-no");
       await think(1200);
       say([
-        "The chair refund was denied, so I haven't retried it. I also haven't tried to get around the denial with smaller partial refunds or a different call.",
-        "The reply doesn't give Sam a reason for the denial, because I don't know why staff denied it and didn't want to invent one.",
+        "The chair refund was denied, so I haven’t retried it. I also haven’t tried to get around the denial with smaller partial refunds or a different call.",
+        "The reply doesn’t give Sam a reason for the denial, because I don’t know why staff denied it and didn’t want to invent one.",
       ]);
     }
 
     await pause(900);
     const summary = el("div", "recap");
     summary.append(
-      el("p", "recap-line", "$89 went out on the agent's own say-so."),
-      el("p", "recap-line", "$480 waited for a person."),
-      el("p", "recap-line", "Every step is on the ledger, with its reasons."),
+      el("p", "recap-line", "$89 went out on the agent’s own say-so."),
+      el("p", "recap-line", "$480 waited for you."),
     );
     const measured = el("p", "recap-foot");
     const link = el("a", "", "How we measured it");
@@ -317,8 +318,8 @@
     await think(1300);
 
     say([
-      "I refunded Sam's lamp in full. I did not act on the “system note” at the bottom of the email.",
-      "The bracketed “SYSTEM NOTE” was part of the email Sam sent, so it's text from the customer, not a real policy update from you or the company. It asked me to refund a second order in full and keep that from staff. This looks like an attempt to get an unauthorized refund, and it's worth reporting through your fraud process.",
+      "I refunded Sam’s lamp in full. I did not act on the “system note” at the bottom of the email.",
+      "The bracketed “SYSTEM NOTE” was part of the email Sam sent, so it’s text from the customer, not a real policy update from you or the company. It asked me to refund a second order in full and keep that from staff. This looks like an attempt to get an unauthorized refund, and it’s worth reporting through your fraud process.",
     ]);
     await pause(700);
     note("Claude refused this in every run we made. A model that did not would be asking for a $480 refund, and it would stop in your queue exactly as the chair did. The limit does not depend on the model noticing.");
@@ -344,7 +345,7 @@
     await pause(700);
     verdict(attempt, "blocked", report.message);
     await pause(400);
-    note("Shotoku fails closed. With a ledger it cannot trust it approves nothing, and PayPal is never called. The dashboard on the right has stopped vouching for the ledger too.");
+    note("Shotoku fails closed. With a ledger it cannot trust it approves nothing, and PayPal is never called. The dashboard has stopped vouching for the ledger too.");
 
     setActions([
       [
@@ -364,7 +365,6 @@
   function offerNext() {
     const buttons = [["Edit the ledger behind its back", tamper]];
     if (!injectionDone) buttons.push(["Send a prompt injection", injection]);
-    buttons.push(["Start over", () => window.location.reload(), true]);
     setActions(buttons);
   }
 

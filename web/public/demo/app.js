@@ -1,7 +1,7 @@
 /**
  * The Shotoku dashboard page. Plain browser JavaScript, no build step.
  *
- * Every value from the ledger was written by an agent's request, so nothing
+ * Every value from the ledger was written by an agent’s request, so nothing
  * here goes through innerHTML: cell renderers build elements and set
  * textContent, and AG Grid renders plain values as text.
  *
@@ -77,7 +77,7 @@
     notice.hidden = !text;
   }
 
-  /** Something you just did worked: said once, out of the layout's way. */
+  /** Something you just did worked: said once, out of the layout’s way. */
   let toastTimer;
   function toast(text) {
     let node = document.getElementById("toast");
@@ -141,7 +141,7 @@
     let primed = false;
     return {
       isFresh: (id) => fresh.has(id),
-      /** Call with every render's ids. Returns the ones that are new. */
+      /** Call with every render’s ids. Returns the ones that are new. */
       note(ids, onExpire) {
         const arrived = [];
         for (const id of ids) {
@@ -218,7 +218,7 @@
         showNotice("", false);
         toast(
           verb === "approve"
-            ? `Approved ${what}. The agent's identical retry goes through once.`
+            ? `Approved ${what}. The agent’s identical retry goes through once.`
             : `Denied ${what}. Nothing is spent.`,
         );
       } catch (error) {
@@ -310,6 +310,7 @@
 
   /** The decision whose detail is open, if any. */
   let detailId = null;
+  let pagerHidden = false;
   let latestHistory = [];
 
   const historyGrid = agGrid.createGrid(document.getElementById("history-grid"), {
@@ -344,11 +345,11 @@
   });
 
   // A phone gets the columns that answer "what, and how much"; the rest is
-  // one tap away in the decision's detail.
+  // one tap away in the decision’s detail.
   function fitColumns() {
     const wide = !narrow.matches;
-    // Between a phone and a full window, the agent's name gives way first: it
-    // is still in each decision's detail, and the reason needs the room more.
+    // Between a phone and a full window, the agent’s name gives way first: it
+    // is still in each decision’s detail, and the reason needs the room more.
     const roomy = wide && document.querySelector("main").clientWidth >= 1160;
     pendingGrid.setColumnsVisible(["actor"], roomy);
     budgetsGrid.setColumnsVisible(["actor"], roomy);
@@ -467,6 +468,12 @@
     document.getElementById("pending-grid").classList.toggle("is-empty", state.pending.length === 0);
     document.getElementById("budgets-grid").classList.toggle("is-empty", state.budgets.length === 0);
     document.getElementById("history-grid").classList.toggle("is-empty", state.history.length === 0);
+    // A pager for a single page is a row of dead controls.
+    const onePage = state.history.length <= historyGrid.paginationGetPageSize();
+    if (onePage !== pagerHidden) {
+      pagerHidden = onePage;
+      historyGrid.setGridOption("suppressPaginationPanel", onePage);
+    }
 
     setText("kpi-pending", String(state.totals.pending));
     setText("kpi-approved", String(state.totals.approved));
