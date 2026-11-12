@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shotoku</title>
+    <!--
+      The hosted demo of the `shotoku ui` dashboard. app.js and styles.css are
+      copies of cli/assets/ui/; demo-shim.js stands in for the local server.
+      Paths are absolute so the page works at /demo and /demo/index.html.
+    -->
+    <link rel="icon" href="/assets/brand/shotoku-favicon.svg" />
+    <link rel="stylesheet" href="/demo/styles.css" />
+    <link rel="stylesheet" href="/demo/demo.css" />
+    <script src="/demo/vendor/ag-grid-community.min.js" defer></script>
+    <script src="/demo/demo-shim.js" defer></script>
+    <script src="/demo/app.js" defer></script>
+  </head>
+  <body>
+    <aside class="demo-banner" aria-label="About this demo">
+      <p>
+        <strong>Live demo.</strong> Simulated data, running entirely in your browser: nothing here reaches PayPal.
+        This is the same dashboard <code>shotoku ui</code> serves locally.
+      </p>
+      <div class="demo-links">
+        <a href="https://www.youtube.com/watch?v=OfXpXQCjEnA" target="_blank" rel="noopener">Watch the video</a>
+        <a href="https://github.com/shotoku-dev/shotoku" target="_blank" rel="noopener">GitHub</a>
+        <button id="demo-reset" class="btn" type="button">Reset demo</button>
+      </div>
+    </aside>
+
+    <header class="bar">
+      <div class="brand">
+        <span class="wordmark">shotoku</span>
+        <span class="tagline">spend controls</span>
+      </div>
+      <div class="meta">
+        <span id="integrity" class="integrity">checking ledger…</span>
+        <span id="refreshed" class="muted"></span>
+      </div>
+    </header>
+
+    <main>
+      <p id="notice" class="notice" hidden></p>
+
+      <section class="kpis" aria-label="Last 24 hours">
+        <div class="kpi"><span class="kpi-label">Pending</span><span id="kpi-pending" class="kpi-value pending">–</span></div>
+        <div class="kpi"><span class="kpi-label">Approved</span><span id="kpi-approved" class="kpi-value approved">–</span></div>
+        <div class="kpi"><span class="kpi-label">Denied</span><span id="kpi-denied" class="kpi-value denied">–</span></div>
+        <div class="kpi"><span class="kpi-label">Spent, 24h</span><span id="kpi-spent" class="kpi-value">–</span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Pending approvals</h2>
+          <span class="muted">Approving lets the agent's identical retry through, once.</span>
+        </div>
+        <div id="pending-grid" class="grid grid-pending"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Budgets</h2>
+          <span class="muted">Approved spend in the rolling 24-hour window.</span>
+        </div>
+        <div id="budgets-grid" class="grid grid-budgets"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>History</h2>
+          <input id="history-search" class="search" type="search" placeholder="Filter decisions" aria-label="Filter decisions" />
+        </div>
+        <div id="history-grid" class="grid grid-history"></div>
+        <pre id="detail" class="detail" hidden></pre>
+      </section>
+    </main>
+  </body>
+</html>

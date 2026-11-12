@@ -51,6 +51,11 @@ agent → retries the exact same call   ✓ refunded, or ✗ blocked`}</div>
         Shotoku never moves the money. It decides whether each call may run, and records the answer in the
         local ledger.
       </p>
+      <p style={S.p}>
+        <a href="/demo" style={LINK}>Try the dashboard in your browser</a>, with simulated data, and approve the
+        $480 refund yourself. Or{" "}
+        <a href="https://www.youtube.com/watch?v=OfXpXQCjEnA" style={LINK}>watch the three-minute demo</a>.
+      </p>
 
       <hr style={S.divider} />
 

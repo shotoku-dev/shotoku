@@ -1,0 +1,67 @@
+/*
+ * Demo-only styles: the banner above the dashboard. styles.css is an untouched
+ * copy of cli/assets/ui/styles.css, so everything the demo adds lives here.
+ */
+
+.demo-banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 24px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.demo-banner p {
+  margin: 0;
+  min-width: 0;
+}
+
+.demo-banner strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.demo-banner code {
+  color: var(--fg);
+  font: 12px var(--mono);
+}
+
+.demo-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+}
+
+.demo-banner a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
+  text-underline-offset: 3px;
+}
+
+.demo-banner a:hover {
+  text-decoration-color: var(--fg);
+}
+
+.demo-banner .btn:hover {
+  border-color: var(--muted);
+}
+
+.demo-banner a:focus-visible,
+.demo-banner .btn:focus-visible {
+  outline: 1px solid var(--muted);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .demo-banner {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

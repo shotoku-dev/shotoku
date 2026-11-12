@@ -57,6 +57,15 @@ export default [
     },
   },
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "web/.next/**", "clawvisor/**"],
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "web/.next/**",
+      "clawvisor/**",
+      // The hosted demo: AG Grid's minified bundle, and a verbatim copy of
+      // cli/assets/ui/app.js, which is linted where it lives.
+      "web/public/demo/vendor/**",
+      "web/public/demo/app.js",
+    ],
   },
 ];
