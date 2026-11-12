@@ -14,6 +14,9 @@
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
   --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Controls. Surfaces that hold them use the larger one. */
+  --radius: 8px;
+  --radius-surface: 12px;
   --z-toast: 400;
   color-scheme: dark;
 }
@@ -97,6 +100,7 @@ main {
 .notice {
   margin: 0;
   padding: 10px 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--border-strong);
   font-family: var(--mono);
   font-size: 13px;
@@ -179,7 +183,7 @@ h2 {
   background: var(--bg);
   color: var(--fg);
   border: 1px solid var(--border-strong);
-  border-radius: 0;
+  border-radius: var(--radius);
   /* 16px keeps iOS from zooming the page on focus. */
   font: 16px var(--sans);
   transition: border-color 150ms ease-out;
@@ -260,6 +264,7 @@ h2 {
    so the first column lines up with the headings above it. */
 .grid {
   margin-inline: -12px;
+  border-radius: var(--radius-surface);
 }
 
 .grid .ag-root-wrapper {
@@ -392,7 +397,7 @@ h2 {
   padding: 0 12px;
   background: transparent;
   border: 1px solid var(--border-strong);
-  border-radius: 0;
+  border-radius: var(--radius);
   color: var(--fg);
   font: 600 12.5px var(--sans);
   white-space: nowrap;
@@ -531,6 +536,7 @@ h2 {
 .usage-track {
   flex: 1;
   height: 4px;
+  border-radius: 2px;
   background: var(--border);
   overflow: hidden;
 }
@@ -555,6 +561,7 @@ h2 {
   margin-top: 12px;
   padding: 18px 20px 20px;
   border: 1px solid var(--border-strong);
+  border-radius: var(--radius-surface);
   background: var(--panel);
   scroll-margin-bottom: 24px;
   animation: reveal 220ms var(--ease-out);
@@ -646,6 +653,7 @@ h2 {
   z-index: var(--z-toast);
   max-width: min(680px, calc(100vw - 32px));
   padding: 11px 16px;
+  border-radius: var(--radius-surface);
   background: var(--fg);
   color: var(--bg);
   width: max-content;

@@ -362,12 +362,27 @@
     );
     const button = el("button", "btn start-btn", "Give the agent the email");
     button.type = "button";
-    button.addEventListener("click", () => {
-      card.remove();
-      claim();
-    });
     card.append(button);
     log.append(card);
+
+    let begun = false;
+    function begin() {
+      if (begun) return;
+      begun = true;
+      card.remove();
+      claim();
+    }
+    button.addEventListener("click", begin);
+
+    // The same invitation, in front of everything, for a first visit. The card
+    // in the pane stays behind it for anyone who would rather look around.
+    const intro = document.getElementById("intro");
+    document.getElementById("intro-start").addEventListener("click", () => {
+      intro.close();
+      begin();
+    });
+    document.getElementById("intro-skip").addEventListener("click", () => intro.close());
+    if (typeof intro.showModal === "function") intro.showModal();
   }
 
   start();

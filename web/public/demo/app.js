@@ -130,7 +130,7 @@
     fontFamily: "inherit",
     fontSize: 13,
     wrapperBorderRadius: 0,
-    borderRadius: 0,
+    borderRadius: 6,
     spacing: 6,
   });
 
