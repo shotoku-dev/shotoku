@@ -92,132 +92,148 @@ export default function QuickstartPage() {
     <div style={S.page}>
       <h1 style={S.h1}>Quickstart</h1>
       <p style={S.lead}>
-        Get from install to your first authorization decision in under five minutes.
+        Connect your agent to Shotoku, watch one spend go through and one wait for
+        you, then approve it. About five minutes.
       </p>
 
-      {/* Prerequisites */}
       <p style={{ ...S.p, marginBottom: 0, marginTop: 0 }}>
-        You need Node.js 18+ and npm or pnpm before starting.
+        You need Node.js 20 or newer, and an MCP-compatible agent such as Claude
+        Desktop, Claude Code, or Cursor.
       </p>
+
+      <Step title="See it first (optional)" />
+      <p style={S.p}>
+        Thirty seconds, nothing to configure, nothing real happens. Four simulated
+        spends: two approved, one denied when the daily budget runs out, one held
+        for a human.
+      </p>
+      <CodeBlock lang="bash" code={`npx shotoku-cli demo`} />
 
       <Step title="Install the CLI" />
       <CodeBlock lang="bash" code={`npm install -g shotoku-cli`} />
       <p style={S.p}>
-        This installs the <InlineCode>shotoku</InlineCode> command globally.
-        The core library (<InlineCode>@shotoku/core</InlineCode>) is also available
-        separately if you want to call <InlineCode>authorize()</InlineCode> directly
-        from your agent code.
+        Shotoku has two halves. The MCP server is for your agent: it asks before it
+        spends. The <InlineCode>shotoku</InlineCode> command is for you: it creates
+        the policy, and it is how you approve. The agent can never approve its own
+        requests, so you need both.
       </p>
 
-      <Step title="Initialize" />
-      <CodeBlock lang="bash" code={`shotoku init`} />
-      <p style={S.p}>This creates three things in your current directory:</p>
+      <Step title="Give Shotoku a home" />
+      <p style={S.p}>
+        Your agent host starts the MCP server from a folder it chooses, often the
+        filesystem root. A fixed home keeps the policy and the ledger in one place,
+        whatever that folder is.
+      </p>
+      <CodeBlock
+        lang="bash"
+        code={`mkdir -p ~/shotoku-home
+cd ~/shotoku-home
+shotoku init`}
+      />
+      <p style={S.p}>This creates:</p>
       <ul style={S.ul}>
         <li style={S.li}>
-          <InlineCode>shotoku.config.json</InlineCode> — runtime config (policy path, ledger path)
+          <InlineCode>policy.yaml</InlineCode>, the rules your agents are held to
         </li>
         <li style={S.li}>
-          <InlineCode>policy.yaml</InlineCode> — your authorization rules
+          <InlineCode>shotoku.config.json</InlineCode>, which says where the policy
+          and the ledger are
         </li>
         <li style={S.li}>
-          <InlineCode>data/</InlineCode> — directory where decisions are stored locally
+          <InlineCode>data/</InlineCode>, where every decision is recorded, one JSON
+          line each
         </li>
       </ul>
-
-      <Step title="Define your policy" />
-      <p style={S.p}>
-        Open <InlineCode>policy.yaml</InlineCode> and define which resources your
-        agents are allowed to access. Anything not on the allowlist goes to{" "}
-        <InlineCode>pending_approval</InlineCode>. Anything that exceeds a limit
-        is <InlineCode>denied</InlineCode>.
-      </p>
+      <p style={S.p}>The starting policy looks like this:</p>
       <CodeBlock
         lang="yaml"
         filename="policy.yaml"
         code={`rules:
-  - resource: "api.openai.com"
-    actions: ["api_call"]
+  - resource: openai.com
+    actions: [api_call, purchase]
     verdict: approved
-    maxAmount: 5.00
-    maxDailyAmount: 50.00
+    maxAmount: 50          # per transaction
+    maxDailyAmount: 200    # rolling 24 hours
 
-  - resource: "api.anthropic.com"
-    actions: ["api_call"]
+  - resource: anthropic.com
+    actions: [api_call, purchase]
     verdict: approved
-    maxAmount: 2.00
-    maxDailyAmount: 20.00
+    maxAmount: 50
+    maxDailyAmount: 200
 
 defaultVerdict: pending_approval`}
       />
       <p style={S.p}>
-        The <InlineCode>daily</InlineCode> limit is computed from the rolling
-        24-hour window in the local ledger — not a calendar day.
+        Rules are read top to bottom, and the first match decides. Anything that
+        matches no rule is held for you, never approved on its own. Anything over a
+        limit is denied. See <Link href="/docs/policies">Policies</Link> for the
+        full format.
       </p>
 
-      <Step title="Call authorize() in your agent" />
+      <Step title="Connect your agent" />
       <p style={S.p}>
-        Before your agent takes an action, call <InlineCode>authorize()</InlineCode>.
-        It evaluates the request against your policy and the local ledger, writes
-        the decision, and returns the result.
+        Add Shotoku to your agent host&apos;s MCP config. Use the absolute path to
+        the folder you just made.
       </p>
       <CodeBlock
-        lang="typescript"
-        filename="agent.ts"
-        code={`import { authorize } from "@shotoku/core";
-
-const response = await authorize(
-  {
-    actor:    "agent-001",
-    action:   "api_call",
-    resource: "api.openai.com",
-    amount:   0.04,
-  },
-  {
-    policyPath: "./policy.yaml",
-    ledgerPath: "./data/decisions.jsonl",
-  },
-);
-
-if (response.approved) {
-  // safe to proceed
-  await callOpenAI(prompt);
+        lang="json"
+        code={`{
+  "mcpServers": {
+    "shotoku": {
+      "command": "npx",
+      "args": ["-y", "shotoku-mcp"],
+      "env": {
+        "SHOTOKU_HOME": "/absolute/path/to/shotoku-home",
+        "SHOTOKU_MCP_ACTOR": "my-agent"
+      }
+    }
+  }
 }`}
       />
       <p style={S.p}>
-        Shotoku fails closed. If the policy file is missing or the request is
-        malformed, the response is <InlineCode>denied</InlineCode> — it never
-        defaults to approved.
+        For Claude Desktop, the file is{" "}
+        <InlineCode>claude_desktop_config.json</InlineCode>, in{" "}
+        <InlineCode>~/Library/Application Support/Claude/</InlineCode> on macOS
+        and <InlineCode>%APPDATA%\Claude\</InlineCode> on Windows. Restart the app
+        afterwards.
+      </p>
+      <p style={S.p}>
+        <InlineCode>SHOTOKU_MCP_ACTOR</InlineCode> is the name your agent&apos;s
+        decisions are recorded under. Leave it out and Shotoku uses the name your
+        agent host announces.
+      </p>
+      <p style={S.p}>
+        Your agent should now list three Shotoku tools:{" "}
+        <InlineCode>authorize_action</InlineCode>,{" "}
+        <InlineCode>get_decision</InlineCode> and{" "}
+        <InlineCode>get_pending_approvals</InlineCode>.
       </p>
 
-      <Step title="Try it from the CLI" />
+      <Step title="Let the agent ask" />
+      <p style={S.p}>Give your agent this:</p>
+      <CodeBlock
+        lang="text"
+        code={`Use Shotoku to check whether you may spend $5 on openai.com,
+then whether you may spend $12 on vendor-xyz.com.`}
+      />
       <p style={S.p}>
-        You can also authorize directly from the terminal — useful for testing
-        policies before wiring them into agent code.
+        The first spend is approved: openai.com is on the allowlist, and $5 is under
+        both limits. The second is held, because vendor-xyz.com matches no rule. The
+        agent gets the decision ID back and tells you a human has to approve.
       </p>
-      <CodeBlock
-        lang="bash"
-        code={`shotoku authorize \\
-  --actor agent-001 \\
-  --action api_call \\
-  --resource api.openai.com \\
-  --amount 0.04`}
-      />
-      <CodeBlock
-        lang="bash"
-        code={`✓ Approved  dec_abc123
-  • api.openai.com is allowlisted
-  • Daily budget remaining: $49.96
-  • Transaction below $5.00 limit
-  Recorded at 14:05:22`}
-      />
 
-      <Step title="Handle pending approvals" />
+      <Step title="Approve it" />
       <p style={S.p}>
-        When an agent tries to reach a resource not on your allowlist, Shotoku
-        records it as <InlineCode>pending_approval</InlineCode> and waits for a
-        human decision.
+        In a terminal inside <InlineCode>~/shotoku-home</InlineCode>, see what is
+        waiting for you:
       </p>
       <CodeBlock lang="bash" code={`shotoku status`} />
+      <p style={S.p}>
+        Run it from that folder, or set <InlineCode>SHOTOKU_HOME</InlineCode> in your
+        shell. Anywhere else, the CLI reads a different ledger than your agent and
+        shows nothing waiting. <InlineCode>shotoku where</InlineCode> tells you which
+        ledger you are reading.
+      </p>
 
       {/* Pending approval output — uses DotmSquare11 instead of ◷ */}
       <div
@@ -241,36 +257,116 @@ if (response.approved) {
             whiteSpace: "pre",
           }}
         >
+          <span style={{ display: "block", color: "#0F0D0C" }}>{"1 pending approval:"}</span>
+          <span style={{ display: "block" }}>{" "}</span>
           <span style={{ color: "#92400e", fontWeight: 500, display: "flex", alignItems: "center", gap: "0.4em" }}>
+            <span>{"  "}</span>
             <span style={{ display: "inline-flex", flexShrink: 0, lineHeight: 1 }}>
               <DotmSquare11 size={14} dotSize={1.5} animated speed={1.4} color="#92400e" />
             </span>
-            <span>{"Pending Approval  dec_ghi789"}</span>
+            <span>{"dec_ghi789"}</span>
           </span>
-          <span style={{ display: "block", color: "#0F0D0C" }}>{"  • vendor-xyz.com is not on the allowlist"}</span>
-          <span style={{ display: "block", color: "#0F0D0C" }}>{"  • A human must approve this decision"}</span>
-          <span style={{ display: "block", color: "#0F0D0C" }}>{"  → Run: shotoku approve dec_ghi789"}</span>
+          <span style={{ display: "block", color: "#0F0D0C" }}>{"     my-agent · purchase · vendor-xyz.com · $12 · 1m ago"}</span>
+          <span style={{ display: "block", color: "#0F0D0C" }}>{"     • vendor-xyz.com is not on the allowlist"}</span>
+          <span style={{ display: "block", color: "#0F0D0C" }}>{"     → shotoku approve dec_ghi789  |  shotoku deny dec_ghi789"}</span>
         </pre>
       </div>
+
       <CodeBlock
         lang="bash"
         code={`shotoku approve dec_ghi789
-# → ✓ Approved. Recorded as apr_xxx.
+# ✓ Approved. Recorded as apr_4b1e09c2d7a3.`}
+      />
+      <p style={S.p}>
+        Ask the agent to try the same spend again. It goes through this time, once.
+        An approval covers that exact request: same agent, same vendor, same amount,
+        within 15 minutes. A second identical spend needs a new approval. Standing
+        permission belongs in <InlineCode>policy.yaml</InlineCode>.
+      </p>
+      <p style={S.p}>You can also answer from somewhere other than a terminal:</p>
+      <ul style={S.ul}>
+        <li style={S.li}>
+          <InlineCode>shotoku ui</InlineCode> opens a local dashboard with approve
+          and deny buttons, budgets, and history. See{" "}
+          <Link href="/docs/dashboard">Dashboard</Link>.
+        </li>
+        <li style={S.li}>
+          <InlineCode>shotoku telegram</InlineCode> sends each pending decision to
+          your phone, with buttons to approve or deny. See{" "}
+          <Link href="/docs/phone">Approve from your phone</Link>.
+        </li>
+      </ul>
 
-shotoku deny dec_ghi789
-# → ✗ Denied. Recorded as den_xxx.`}
+      <Step title="Make it unavoidable" />
+      <p style={S.p}>
+        So far the agent asks because you told it to. Nothing stops it from skipping
+        the question. To make Shotoku a gate the agent cannot go around, put your
+        other MCP servers behind it. The agent then reaches their tools only through
+        Shotoku, and every call is checked against the policy first.
+      </p>
+      <p style={S.p}>
+        <Link href="/docs/mcp">MCP server</Link> covers the setup.{" "}
+        <Link href="/docs/paypal">PayPal</Link> walks through a full example: an
+        agent that issues refunds through PayPal&apos;s own MCP server, with refunds
+        over $100 sent to your phone.
+      </p>
+
+      <hr style={S.divider} />
+
+      <Step title="Not using an MCP agent?" />
+      <p style={S.p}>
+        Call <InlineCode>authorize()</InlineCode> from your own code before the agent
+        acts. It reads the same policy and writes to the same ledger, so{" "}
+        <InlineCode>shotoku status</InlineCode> and every way of approving work the
+        same.
+      </p>
+      <CodeBlock lang="bash" code={`npm install @shotoku/core`} />
+      <CodeBlock
+        lang="typescript"
+        filename="agent.ts"
+        code={`import { authorize } from "@shotoku/core";
+
+const response = await authorize(
+  { actor: "my-agent", action: "purchase", resource: "openai.com", amount: 5 },
+  {
+    policyPath: "/absolute/path/to/shotoku-home/policy.yaml",
+    ledgerPath: "/absolute/path/to/shotoku-home/data/decisions.jsonl",
+  },
+);
+
+if (response.approved) {
+  // safe to proceed
+}`}
+      />
+      <p style={S.p}>
+        Shotoku fails closed. If the policy is missing or invalid, or the request is
+        malformed, the answer is <InlineCode>denied</InlineCode>, never approved.
+      </p>
+      <p style={S.p}>To test a policy without any agent, ask from the terminal:</p>
+      <CodeBlock
+        lang="bash"
+        code={`shotoku authorize --actor my-agent --action purchase --resource openai.com --amount 5`}
+      />
+      <CodeBlock
+        lang="text"
+        code={`✓ APPROVED  dec_063a20380ba7
+  • openai.com matched rule
+  • Amount $5 is within per-transaction limit of $50
+  • Daily budget remaining: $195
+  Recorded at 14:05:22`}
       />
 
       <Step title="Quick links" />
       <div style={S.nextGrid}>
         {[
-          { href: "/docs/api",       label: "API reference", desc: "authorize(), types, and the full request/response shape"   },
-          { href: "/docs/cli",       label: "CLI reference", desc: "Every command, flag, and exit code"                        },
-          { href: "/docs/policies",  label: "Policies",      desc: "Policy YAML format, rules, limits, and wildcards"          },
-          { href: "/docs/mcp",       label: "MCP server",    desc: "Connect Shotoku to Claude, Cursor, and any MCP client"     },
-          { href: "/docs/x402",      label: "x402",          desc: "Authorize HTTP 402 payment intents before they execute"    },
-          { href: "/docs/tui",       label: "TUI",           desc: "Interactive terminal UI for reviewing pending approvals"    },
-          { href: "/docs/snapshots", label: "Snapshots",     desc: "Sign and verify your policy and ledger state"              },
+          { href: "/docs/mcp",       label: "MCP server",              desc: "Advisory mode, wrapping other servers, and pricing tool calls" },
+          { href: "/docs/policies",  label: "Policies",                desc: "Rules, limits, agent budgets, and wildcards"                    },
+          { href: "/docs/phone",     label: "Approve from your phone", desc: "Pending decisions on Telegram, answered with a tap"            },
+          { href: "/docs/dashboard", label: "Dashboard",               desc: "Approvals, budgets, and history in your browser"                },
+          { href: "/docs/paypal",    label: "PayPal",                  desc: "A support agent issuing refunds, with limits and approvals"     },
+          { href: "/docs/x402",      label: "x402",                    desc: "Authorize a payment once the price is known, before signing"   },
+          { href: "/docs/cli",       label: "CLI reference",           desc: "Every command, flag, and exit code"                             },
+          { href: "/docs/api",       label: "API reference",           desc: "authorize(), types, and the request and response shape"        },
         ].map((card) => (
           <Link key={card.href} href={card.href} style={S.nextCard}>
             <div style={S.nextLabel}>{card.label}</div>
